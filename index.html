@@ -182,7 +182,7 @@
             transition: all 0.4s ease; flex: 0 0 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; 
         }
         
-        body.view-details #summaryPanel { flex: 0 0 15%; max-width: 15%; margin: 0; }
+        body.view-details #summaryPanel { flex: 0 0 16%; max-width: 16%; margin: 0; }
         
         body.view-summary #summaryPanel .val-num { font-size: 2.8rem; margin-bottom: 4px; font-weight: bold;}
         body.view-summary #summaryPanel .val-unit { font-size: 0.95rem; }
@@ -202,7 +202,7 @@
             transition: all 0.4s ease; flex: 0 0 0%; width: 0; opacity: 0; overflow: hidden; transform: translateX(10px);
             pointer-events: none; visibility: hidden; display: flex; gap: 12px;
         }
-        body.view-details #detailsPanel { flex: 0 0 calc(85% - 12px); width: calc(85% - 12px); opacity: 1; transform: translateX(0); pointer-events: auto; visibility: visible; }
+        body.view-details #detailsPanel { flex: 0 0 calc(84% - 12px); width: calc(84% - 12px); opacity: 1; transform: translateX(0); pointer-events: auto; visibility: visible; }
 
         .details-dept-card {
             flex: 1; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); 
@@ -483,7 +483,7 @@
         .progress-fill { height: 100%; background-color: var(--krn-blue); width: 0%; transition: width 1.4s ease; border-radius: 2px;}
 
         /* ---------------- SVG DONUTS ---------------- */
-        .donuts-triplet-container { display: flex; justify-content: space-around; gap: 10px; width: 100%; flex-wrap: wrap; }
+        .donuts-triplet-container { display: flex; justify-content: space-around; gap: 10px; width: 100%; flex-wrap: wrap; transition: all 0.3s ease;}
         body.view-details #summaryPanel .donuts-triplet-container { flex-direction: column; gap: 20px; padding-bottom: 10px; align-items: center; }
         .svg-donut-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; gap: 0px; }
         
@@ -788,7 +788,8 @@
         tbProgramCSV: 'Data/BvA-202627 - ActualProgram.csv',
         adminCSV: 'Data/BvA-202627 - AdminActual.csv',
         iiCSV: 'Data/Innovation.csv',
-        cicCSV: 'Data/CIC.csv'
+        cicCSV: 'Data/CIC.csv',
+        eodCSV: 'Data/EOD.csv'
     };
 
     const fiscalMonths = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
@@ -800,6 +801,7 @@
     };
 
     let rawData = [];
+    let globalEODData = [];
     let currentGranularity = 'Monthly';
     let viewMode = 'QTD'; 
     let selectedPeriod = 'Jul';
@@ -1036,7 +1038,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE 
+    // 4. MULTI-LINK DATA PARSING ENGINE (With Anti-Duplication Shield)
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1083,6 +1085,7 @@
         let pseudoCounter = 1;
 
         // 1. Process Budget Master
+        const processedBudgetCodes = new Set();
         budgetRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase() === 'acct');
             const rawCode = codeKey ? r._raw[codeKey] : '';
@@ -1096,6 +1099,9 @@
             if (!code || code === 'NAN' || code === '') {
                 code = 'UNMAPPED_BUDGET_' + pseudoCounter++;
             }
+            
+            if (processedBudgetCodes.has(code)) return;
+            processedBudgetCodes.add(code);
 
             const stream = r['stream'] || r['expenseitems'] || r['workstream'] || 'General';
             const program = r['program'] || 'Unallocated';
@@ -1244,22 +1250,26 @@
         // 3. Admin TB Integrator
         const processedAdminCodes = new Set();
         adminRows.forEach(r => {
-            const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase().includes('heads') || k.toLowerCase().includes('acctsegment'));
-            let code = String(r._raw[codeKey] || '').trim().toUpperCase();
+            const codeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'natural account' || k.toLowerCase() === 'accountcode' || k.toLowerCase().includes('natural'));
+            let code = r._raw[codeKey];
             
-            const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense'));
-            const desc = String(r._raw[descKey] || '').trim();
-
-            if (!code || code.includes('TOTAL') || code === 'NAN') {
-                if (!desc || desc.toUpperCase().includes('TOTAL')) return;
-                code = desc.toUpperCase();
-            }
+            if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') return;
+            code = code.trim().toUpperCase();
+            
+            if (code.includes('TOTAL')) return;
             
             if (processedAdminCodes.has(code)) return;
             processedAdminCodes.add(code);
             
+            const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense'));
+            const desc = String(r._raw[descKey] || '').trim();
+
             fiscalMonths.forEach(m => {
-                let mKey = Object.keys(r._raw).find(k => k.toLowerCase().startsWith(m.toLowerCase()));
+                let mKey = Object.keys(r._raw).find(k => {
+                    let lowerK = k.toLowerCase();
+                    return lowerK.startsWith(m.toLowerCase() + '-') || lowerK === m.toLowerCase();
+                });
+                
                 if (mKey) {
                     let actual = getSafeNum(r._raw[mKey]);
                     if (actual !== 0) {
@@ -1420,7 +1430,6 @@
     function isRowInViewScope(r) {
         const monthStr = r.Month || r.Month;
         
-        // Capital Cost Budget Bypass
         if (monthStr === 'ALL_MONTHS') return true; 
 
         if (currentGranularity === 'Yearly' || selectedPeriod === 'FY Total') return true;
@@ -1508,6 +1517,88 @@
 
         const summaryDonutContainer = document.getElementById('summaryDonutContainer');
         if (summaryDonutContainer) {
+            
+            // Generate EOD Dynamic Metrics based on Selected Month
+            let targetMonthStr = '';
+            if (currentGranularity === 'Monthly') targetMonthStr = selectedPeriod;
+            else if (currentGranularity === 'Quarterly') {
+                if (selectedPeriod === 'Q1') targetMonthStr = 'Sep';
+                if (selectedPeriod === 'Q2') targetMonthStr = 'Dec';
+                if (selectedPeriod === 'Q3') targetMonthStr = 'Mar';
+                if (selectedPeriod === 'Q4') targetMonthStr = 'Jun';
+            } else {
+                targetMonthStr = 'Jun';
+            }
+            
+            let targetYearStr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].includes(targetMonthStr) ? '27' : '26';
+            let targetDate = new Date(targetMonthStr + ' 1, 20' + targetYearStr);
+            
+            let targetIdx = -1;
+            for(let i=0; i<globalEODData.length; i++) {
+                if (globalEODData[i].date <= targetDate) targetIdx = i;
+            }
+            
+            let eodHtml = '';
+            if (targetIdx >= 0) {
+                let lastMonthObj = globalEODData[targetIdx];
+                
+                let sumDep3 = 0, sumAvail3 = 0, count3 = 0;
+                for(let i = targetIdx; i >= 0 && count3 < 3; i--) { sumDep3 += globalEODData[i].dep; sumAvail3 += globalEODData[i].avail; count3++; }
+                let avg3 = sumAvail3 !== 0 ? (sumDep3/sumAvail3)*100 : 0;
+                
+                let sumDep12 = 0, sumAvail12 = 0, count12 = 0;
+                for(let i = targetIdx; i >= 0 && count12 < 12; i--) { sumDep12 += globalEODData[i].dep; sumAvail12 += globalEODData[i].avail; count12++; }
+                let avg12 = sumAvail12 !== 0 ? (sumDep12/sumAvail12)*100 : 0;
+                
+                if (isSummaryView) {
+                    eodHtml = `
+                    <div style="margin-top: 20px; width: 100%;">
+                        <div style="font-size: 0.8rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">EOD Tracking</div>
+                        <div class="table-wrapper" style="max-height: 250px;">
+                        <table class="detail-table" style="font-size:0.75rem;">
+                            <thead><tr><th>Month</th><th>EOD %</th><th>Capital Available</th><th>Capital Deployed</th></tr></thead>
+                            <tbody>
+                    `;
+                    globalEODData.forEach(r => {
+                        eodHtml += `<tr><td>${r.rawMonth}</td><td><b>${r.pct.toFixed(2)}%</b></td><td style="font-variant-numeric:tabular-nums">${r.avail.toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${r.dep.toLocaleString()}</td></tr>`;
+                    });
+                    
+                    eodHtml += `
+                            </tbody>
+                        </table>
+                        </div>
+                        <table class="detail-table" style="font-size:0.75rem; margin-top: 10px; background-color: rgba(0,0,0,0.02);">
+                            <tbody>
+                                <tr><td><b>Last month</b></td><td><b>${lastMonthObj.pct.toFixed(2)}%</b></td><td style="font-variant-numeric:tabular-nums">${lastMonthObj.avail.toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${lastMonthObj.dep.toLocaleString()}</td></tr>
+                                <tr><td><b>Last 3 months avg</b></td><td><b>${avg3.toFixed(2)}%</b></td><td style="font-variant-numeric:tabular-nums">${Math.round(sumAvail3/count3).toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${Math.round(sumDep3/count3).toLocaleString()}</td></tr>
+                                <tr><td><b>Last 12 months avg</b></td><td><b>${avg12.toFixed(2)}%</b></td><td style="font-variant-numeric:tabular-nums">${Math.round(sumAvail12/count12).toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${Math.round(sumDep12/count12).toLocaleString()}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>`;
+                    
+                } else {
+                    eodHtml = `
+                    <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid var(--border-color); width: 100%;">
+                        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.65rem;">
+                            <div style="display:flex; justify-content: space-between; align-items:center;">
+                                <span style="color:var(--text-secondary);">Last month</span>
+                                <strong style="color:var(--text-primary); font-size:0.8rem;">${lastMonthObj.pct.toFixed(2)}%</strong>
+                            </div>
+                            <div style="display:flex; justify-content: space-between; align-items:center;">
+                                <span style="color:var(--text-secondary);">3 months avg</span>
+                                <strong style="color:var(--text-primary); font-size:0.8rem;">${avg3.toFixed(2)}%</strong>
+                            </div>
+                            <div style="display:flex; justify-content: space-between; align-items:center;">
+                                <span style="color:var(--text-secondary);">12 months avg</span>
+                                <strong style="color:var(--text-primary); font-size:0.8rem;">${avg12.toFixed(2)}%</strong>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+            } else {
+                eodHtml = '<div style="margin-top:20px; font-size:0.7rem; color:var(--text-secondary); text-align:center;">No EOD tracking data available.</div>';
+            }
+
             if (isSummaryView) {
                 summaryDonutContainer.style.display = 'grid';
                 summaryDonutContainer.innerHTML = `
@@ -1529,7 +1620,12 @@
                 renderSvgDonut('periodBudgetDonorDonut', pBudDonItems, null, null, true);
                 
                 let placeholder = document.getElementById('eodPlaceholder');
-                if (placeholder) placeholder.remove();
+                if (!placeholder) {
+                    placeholder = document.createElement('div');
+                    placeholder.id = 'eodPlaceholder';
+                    summaryDonutContainer.parentNode.appendChild(placeholder);
+                }
+                placeholder.innerHTML = eodHtml;
                 
             } else {
                 summaryDonutContainer.style.display = 'flex';
@@ -1550,17 +1646,11 @@
                 if (!placeholder) {
                     placeholder = document.createElement('div');
                     placeholder.id = 'eodPlaceholder';
-                    placeholder.style.marginTop = '20px';
-                    placeholder.style.padding = '15px';
-                    placeholder.style.borderTop = '1px solid var(--border-color)';
-                    placeholder.innerHTML = '<div style="font-size:0.65rem; font-weight:bold; color:var(--text-secondary); text-align:center;">EOD DATA TABLE PLACEHOLDER</div><div style="font-size:0.55rem; color:var(--text-secondary); text-align:center; margin-top:4px;">(Will fetch from EOD.csv)</div>';
                     summaryDonutContainer.parentNode.appendChild(placeholder);
                 }
+                placeholder.innerHTML = eodHtml;
             }
         }
-
-        // document.getElementById('thActualCol').innerText = 'Actual';
-        // document.getElementById('modalActualCol').innerText = 'Actual';
 
         renderSummaryTable(filteredRows);
         renderCard2Departments(filteredRows);
@@ -1882,14 +1972,14 @@
 
     function renderModalTable(searchTerm = '') {
         const tbody = document.getElementById('modalTableBody');
-        const thead = document.querySelector('#streamModal .detail-table thead tr');
+        const thead = document.querySelector('#streamModal .detail-table thead');
         
         let activeMonths = window.activeModalMonths || [];
         
-        let thHtml = `<th>Account Name</th>`;
+        let thHtml = `<tr><th>Account Name</th>`;
         activeMonths.forEach(m => thHtml += `<th>${m}</th>`);
-        thHtml += `<th>Period Budget</th>`;
-        thead.innerHTML = thHtml;
+        thHtml += `<th>Period Budget</th></tr>`;
+        if (thead) thead.innerHTML = thHtml;
 
         tbody.innerHTML = '';
         const term = searchTerm.toLowerCase();
@@ -1960,25 +2050,34 @@
         try {
             const errElem = document.getElementById('loaderStatusText');
             
-            if (errElem) errElem.innerText = "FETCHING BUDGET (1/5)...";
+            if (errElem) errElem.innerText = "FETCHING BUDGET (1/6)...";
             const bRes = await fetch(config.budgetMasterCSV);
             if (!bRes.ok) throw new Error("Budget Master fetch failed");
             
-            if (errElem) errElem.innerText = "FETCHING DONOR TB (2/5)...";
+            if (errElem) errElem.innerText = "FETCHING DONOR TB (2/6)...";
             const tdRes = await fetch(config.tbDonorCSV);
             if (!tdRes.ok) throw new Error("Donor TB fetch failed");
             
-            if (errElem) errElem.innerText = "FETCHING ADMIN ACTUALS (3/5)...";
+            if (errElem) errElem.innerText = "FETCHING ADMIN ACTUALS (3/6)...";
             const adminRes = await fetch(config.adminCSV);
             if (!adminRes.ok) throw new Error("Admin TB fetch failed");
             
-            if (errElem) errElem.innerText = "FETCHING INNOVATION (4/5)...";
+            if (errElem) errElem.innerText = "FETCHING INNOVATION (4/6)...";
             const iiRes = await fetch(config.iiCSV);
             if (!iiRes.ok) throw new Error("Innovation Investment fetch failed");
             
-            if (errElem) errElem.innerText = "FETCHING CIC (5/5)...";
+            if (errElem) errElem.innerText = "FETCHING CIC (5/6)...";
             const cicRes = await fetch(config.cicCSV);
             if (!cicRes.ok) throw new Error("CIC Investment fetch failed");
+
+            if (errElem) errElem.innerText = "FETCHING EOD (6/6)...";
+            let eodRows = [];
+            try {
+                const eodRes = await fetch(config.eodCSV);
+                if (eodRes.ok) eodRows = parseCSV(await eodRes.text());
+            } catch (e) {
+                console.warn("EOD.csv not found or failed to load. Ensure it exists in the Data folder.");
+            }
             
             if (errElem) errElem.innerText = "PROCESSING DATA...";
             
@@ -1988,11 +2087,36 @@
             const iiData = parseCSV(await iiRes.text());
             const cicData = parseCSV(await cicRes.text());
             
+            // EOD Parsing Logic
+            let parsedEOD = [];
+            eodRows.forEach(r => {
+                const mKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'month');
+                const availKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('available'));
+                const depKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('deployed'));
+                
+                if (mKey && r._raw[mKey]) {
+                    let monthStr = String(r._raw[mKey]).trim();
+                    let parts = monthStr.split('-');
+                    if(parts.length >= 2) {
+                        let m = parts[0].substring(0,3);
+                        let y = parts[1];
+                        let d = new Date(m + ' 1, 20' + y);
+                        
+                        let avail = getSafeNum(r._raw[availKey]);
+                        let dep = getSafeNum(r._raw[depKey]);
+                        let pct = avail !== 0 ? (dep/avail)*100 : 0;
+                        
+                        parsedEOD.push({ rawMonth: monthStr, date: d, avail: avail, dep: dep, pct: pct });
+                    }
+                }
+            });
+            parsedEOD.sort((a,b) => a.date - b.date);
+            globalEODData = parsedEOD;
+
             rawData = parseMultiLinkData(bData, tdData, [], adminData, iiData, cicData);
             
             if (rawData.length === 0) throw new Error("No data parsed. Check CSV structures.");
             
-            // Auto-detect latest active Month for Default Selection
             let maxMonthIdx = -1;
             rawData.forEach(r => {
                 if (Math.abs(r.Actual) > 0) {
