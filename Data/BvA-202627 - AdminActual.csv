@@ -88,3 +88,16 @@ H128002,Corporate Social Responsibility,Corporate Social Responsibility,0,0,0,0,
 H129031,Capacity Building of KRN,LT Gov Framework Exercise/Study,0,0,0,0,0,0,0,0,0,0,0,0
 H126002,Software Development and Maintenance,Employee Engagement,"41,261","15,720",0,0,0,0,0,0,0,0,0,0
 H103002,Capacity Building,Capacity Building,"508,107","4,236,476",0,0,0,0,0,0,0,0,0,0
+,,,,,,,,,,,,,,
+,Transaction cost,,250000,3078000,0,0,0,0,0,0,0,0,0,0
+,Corporate Investment Credit - Transaction Cost,,0,3078000,0,0,0,0,0,0,0,0,0,0
+C107002,CIC Transaction Cost,Strategic Investment - Pre & post investment cost,0,0,0,0,0,0,0,0,0,0,0,0
+C108002,CIC Transaction Cost,Credit - Pre & post investment cost,0,942667,0,0,0,0,0,0,0,0,0,0
+C109002,CIC Transaction Cost,Equity - Pre & post investment cost,0,942667,0,0,0,0,0,0,0,0,0,0
+C107003,CIC Transaction Cost,Due diligence cost - Pre & post investment cost,0,250000,0,0,0,0,0,0,0,0,0,0
+C110002,CIC Transaction Cost,GREEN - Pre & post investment cost,0,942666,0,0,0,0,0,0,0,0,0,0
+,Innovation Investment - Transaction cost,,250000,0,0,0,0,0,0,0,0,0,0,0
+I112001,II Transaction Cost,,0,0,0,0,0,0,0,0,0,0,0,0
+I112002,II Transaction Cost,,0,0,0,0,0,0,0,0,0,0,0,0
+I109004,II Transaction Cost,,0,0,0,0,0,0,0,0,0,0,0,0
+I107004,II Transaction Cost,,250000,0,0,0,0,0,0,0,0,0,0,0
