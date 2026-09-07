@@ -698,7 +698,7 @@
                                     <th>Department</th>
                                     <th>Trend</th>
                                     <th>Budget</th>
-                                    <th id="thActualCol">Actual</th>
+                                    <th>Actual</th>
                                     <th>%</th>
                                 </tr>
                             </thead>
@@ -1039,7 +1039,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE
+    // 4. MULTI-LINK DATA PARSING ENGINE 
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -2108,32 +2108,30 @@
         try {
             const errElem = document.getElementById('loaderStatusText');
             
-            const cb = '&cb=' + Date.now(); 
-            
             if (errElem) errElem.innerText = "FETCHING BUDGET (1/7)...";
-            const bRes = await fetch(config.budgetMasterCSV + cb);
+            const bRes = await fetch(config.budgetMasterCSV);
             if (!bRes.ok) throw new Error("Budget Master fetch failed");
             
             if (errElem) errElem.innerText = "FETCHING DONOR TB (2/7)...";
-            const tdRes = await fetch(config.tbDonorCSV + cb);
+            const tdRes = await fetch(config.tbDonorCSV);
             if (!tdRes.ok) throw new Error("Donor TB fetch failed");
             
             if (errElem) errElem.innerText = "FETCHING ADMIN ACTUALS (3/7)...";
-            const adminRes = await fetch(config.adminCSV + cb);
+            const adminRes = await fetch(config.adminCSV);
             if (!adminRes.ok) throw new Error("Admin TB fetch failed");
             
             if (errElem) errElem.innerText = "FETCHING INNOVATION (4/7)...";
-            const iiRes = await fetch(config.iiCSV + cb);
+            const iiRes = await fetch(config.iiCSV);
             if (!iiRes.ok) throw new Error("Innovation Investment fetch failed");
             
             if (errElem) errElem.innerText = "FETCHING CIC (5/7)...";
-            const cicRes = await fetch(config.cicCSV + cb);
+            const cicRes = await fetch(config.cicCSV);
             if (!cicRes.ok) throw new Error("CIC Investment fetch failed");
 
             if (errElem) errElem.innerText = "FETCHING CAPEX (6/7)...";
             let capexRows = [];
             try {
-                const capexRes = await fetch(config.capexCSV + cb);
+                const capexRes = await fetch(config.capexCSV);
                 if (capexRes.ok) capexRows = parseCSV(await capexRes.text());
             } catch (e) {
                 console.warn("CAPEX.csv not found or failed to load. Ensure it exists in the Data folder.");
@@ -2142,7 +2140,7 @@
             if (errElem) errElem.innerText = "FETCHING EOD (7/7)...";
             let eodRows = [];
             try {
-                const eodRes = await fetch(config.eodCSV + cb);
+                const eodRes = await fetch(config.eodCSV);
                 if (eodRes.ok) eodRows = parseCSV(await eodRes.text());
             } catch (e) {
                 console.warn("EOD.csv not found or failed to load. Ensure it exists in the Data folder.");
