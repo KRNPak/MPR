@@ -29,7 +29,7 @@
             --badge-primary: rgba(0, 104, 144, 0.2); 
             --badge-orange: rgba(249, 115, 22, 0.15);
 
-            /* LIGHT THEME - Contrast Improved */
+            /* LIGHT THEME */
             --bg-page-light: #f4f6f8;
             --bg-card-light: #ffffff;
             --bg-header-light: #ffffff;
@@ -698,7 +698,7 @@
                                     <th>Department</th>
                                     <th>Trend</th>
                                     <th>Budget</th>
-                                    <th>Actual</th>
+                                    <th id="thActualCol">Actual</th>
                                     <th>%</th>
                                 </tr>
                             </thead>
@@ -1039,7 +1039,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE (With Fuzzy Fallbacks)
+    // 4. MULTI-LINK DATA PARSING ENGINE
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1218,8 +1218,6 @@
                 mapping = { ...mapping }; 
                 if (code.startsWith('D')) mapping.Dept = 'Digital Financial Services';
             }
-
-            if (mapping.Dept.includes('Admin') || code.startsWith('H') || code.startsWith('S') || code.startsWith('SS')) return; 
 
             const donorKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('additionalsegmentdesc') || k.toLowerCase() === 'donor' || k.toLowerCase() === 'fund');
             let rawDonor = String(r._raw[donorKey] || r['additionalsegmentdesc'] || r['donor'] || mapping.Donor || 'OSR').trim();
@@ -1901,17 +1899,12 @@
             { label: 'Remaining', value: Math.max(0, dB - dA), color: 'var(--border-color)' }
         ], { pct: bvaPct, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPct)}%</strong>`, false);
 
-        if (selectedDepartment.includes('Admin')) {
-            document.getElementById('deptActualDonorDonut').innerHTML = `<div style="color:var(--text-secondary); font-size:0.6rem; text-align:center; padding: 20px;">N/A for Admins</div>`;
-            document.getElementById('deptBudgetDonorDonut').innerHTML = `<div style="color:var(--text-secondary); font-size:0.6rem; text-align:center; padding: 20px;">N/A for Admins</div>`;
-        } else {
-            const currentBrandColors = getBrandColors();
-            const aDonItems = Object.keys(dActDon).filter(d => dActDon[d] > 0).map((d, i) => ({ label: d, value: dActDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
-            renderSvgDonut('deptActualDonorDonut', aDonItems, null, null, true);
+        const currentBrandColors = getBrandColors();
+        const aDonItems = Object.keys(dActDon).filter(d => dActDon[d] > 0).map((d, i) => ({ label: d, value: dActDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
+        renderSvgDonut('deptActualDonorDonut', aDonItems, null, null, true);
 
-            const bDonItems = Object.keys(dBudDon).filter(d => dBudDon[d] > 0).map((d, i) => ({ label: d, value: dBudDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
-            renderSvgDonut('deptBudgetDonorDonut', bDonItems, null, null, true);
-        }
+        const bDonItems = Object.keys(dBudDon).filter(d => dBudDon[d] > 0).map((d, i) => ({ label: d, value: dBudDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
+        renderSvgDonut('deptBudgetDonorDonut', bDonItems, null, null, true);
 
         const streamContainer = document.getElementById('streamListContainer');
         streamContainer.innerHTML = '';
