@@ -698,7 +698,7 @@
                                     <th>Department</th>
                                     <th>Trend</th>
                                     <th>Budget</th>
-                                    <th>Actual</th>
+                                    <th id="thActualCol">Actual</th>
                                     <th>%</th>
                                 </tr>
                             </thead>
@@ -1039,7 +1039,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE 
+    // 4. MULTI-LINK DATA PARSING ENGINE (With Fuzzy Fallbacks & Splitting)
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1718,8 +1718,6 @@
                 placeholder.innerHTML = eodHtml;
             }
         }
-
-        document.getElementById('thActualCol').innerText = 'Actual';
 
         renderSummaryTable(filteredRows);
         renderCard2Departments(filteredRows);
