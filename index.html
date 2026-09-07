@@ -1533,8 +1533,8 @@
             topActual += r.Actual; 
         });
 
-        document.getElementById('lblTopActual').innerText = 'FY Total Actual';
-        document.getElementById('lblTopVariance').innerText = 'FY Variance';
+        //document.getElementById('lblTopActual').innerText = 'FY Total Actual';
+        //document.getElementById('lblTopVariance').innerText = 'FY Variance';
 
         animateCounter('topKpiBudget', topBudget);
         animateCounter('topKpiActual', topActual);
@@ -1543,8 +1543,8 @@
         const burnRate = topBudget > 0 ? (topActual / topBudget) * 100 : 0;
         animateCounterPct('topKpiBurn', burnRate);
 
-        document.getElementById('lblPeriodBudget').innerText = `${viewMode} Budget`;
-        document.getElementById('lblPeriodActual').innerText = `${viewMode} Actual`;
+        //document.getElementById('lblPeriodBudget').innerText = `${viewMode} Budget`;
+        //document.getElementById('lblPeriodActual').innerText = `${viewMode} Actual`;
 
         const filteredRows = rawData.filter(r => isRowInViewScope(r));
 
