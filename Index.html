@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karandaaz Pakistan - Budget vs Actual</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chivo:ital,wght@0,100..900;1,100..900&family=Oswald:wght@200..700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* DARK THEME */
+            --bg-page-dark: #131619;     
+            --bg-card-dark: #1c2024;     
+            --bg-header-dark: #1c2024;   
+            --text-primary-dark: #eef2f6; 
+            --text-secondary-dark: #8b949e; 
+            --border-color-dark: #2d333a; 
+            --card-shadow-dark: 0 8px 20px rgba(0,0,0,0.25);
+            
+            --krn-blue-dark: #006890;    
+            --krn-light-blue-dark: #4a96d2; 
+            --krn-teal: #4a96d2; 
+            --krn-orange: #f97316;
+            --krn-green: #22c55e;
+            
+            --badge-primary: rgba(0, 104, 144, 0.2); 
+            --badge-orange: rgba(249, 115, 22, 0.15);
+
+            /* LIGHT THEME - Contrast Improved */
+            --bg-page-light: #f4f6f8;
+            --bg-card-light: #ffffff;
+            --bg-header-light: #ffffff;
+            --text-primary-light: #0f172a; 
+            --text-secondary-light: #334155; 
+            --border-color-light: #cbd5e1; 
+            --krn-blue-light: #006890; 
+            --krn-light-blue-light: #4a96d2;
+            --card-shadow-light: 0 4px 15px rgba(0,0,0,0.06);
+        }
+
+        body {
+            --bg-page: var(--bg-page-dark);
+            --bg-card: var(--bg-card-dark);
+            --bg-header: var(--bg-header-dark);
+            --text-primary: var(--text-primary-dark);
+            --text-secondary: var(--text-secondary-dark);
+            --border-color: var(--border-color-dark);
+            --krn-blue: var(--krn-blue-dark);
+            --krn-light-blue: var(--krn-light-blue-dark);
+            --card-shadow: var(--card-shadow-dark);
+
+            font-family: Calibri, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-weight: 300;
+            background-color: var(--bg-page);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 10px 15px; 
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease; 
+        }
+
+        body.light-mode {
+            --bg-page: var(--bg-page-light);
+            --bg-card: var(--bg-card-light);
+            --bg-header: var(--bg-header-light);
+            --text-primary: var(--text-primary-light);
+            --text-secondary: var(--text-secondary-light);
+            --border-color: var(--border-color-light);
+            --krn-blue: var(--krn-blue-light);
+            --krn-light-blue: var(--krn-light-blue-light);
+            --card-shadow: var(--card-shadow-light);
+        }
+
+        * { box-sizing: border-box; }
+
+        .val-num, .val-num-inline, .donut-center-pct, .donut-legend-item strong, .donut-bottom-badge strong, .badge-pill, .val-unit { font-family: 'Oswald', 'Chivo', Calibri, sans-serif !important; }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+        .dashboard-container { max-width: 1600px; margin: 0 auto; width: 100%; }
+
+        /* ---------------- LOADING SCREEN ---------------- */
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #1c2024 0%, #131619 100%);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999; transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s;
+        }
+        body.light-mode .loading-overlay { background: radial-gradient(circle at center, #ffffff 0%, #f4f6f8 100%); }
+        .loading-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        
+        .loader-content { display: flex; flex-direction: column; align-items: center; gap: 25px; }
+        .logo-container { position: relative; width: 160px; height: 160px; display: flex; align-items: center; justify-content: center; }
+
+        .app-spinner {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            border: 2px solid rgba(74, 150, 210, 0.15);
+            border-top-color: var(--krn-blue);
+            border-right-color: var(--krn-light-blue);
+            border-radius: 50%;
+            animation: spinApp 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+        }
+        .app-spinner-inner {
+            position: absolute; top: 15px; left: 15px; width: calc(100% - 30px); height: calc(100% - 30px);
+            border: 2px solid rgba(0, 104, 144, 0.1);
+            border-bottom-color: var(--krn-blue);
+            border-left-color: var(--krn-light-blue);
+            border-radius: 50%;
+            animation: spinAppReverse 2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+        }
+        @keyframes spinApp { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spinAppReverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+
+        .loader-logo { height: 45px; z-index: 5; filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(74, 150, 210, 0.3)); animation: logoHeartbeat 2s infinite ease-in-out; }
+        body.light-mode .loader-logo { filter: none; animation: logoHeartbeatLight 2s infinite ease-in-out; }
+        @keyframes logoHeartbeat { 0%, 100% { transform: scale(1); filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(74, 150, 210, 0.3)); } 50% { transform: scale(1.08); filter: brightness(0) invert(1) drop-shadow(0 0 15px rgba(0, 104, 144, 0.8)); } }
+        @keyframes logoHeartbeatLight { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(0, 104, 144, 0.1)); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 15px rgba(0, 104, 144, 0.3)); } }
+        
+        .loader-title { font-size: 1.6rem; font-weight: 400; margin: 0; letter-spacing: 2px; background: linear-gradient(90deg, var(--krn-blue), var(--krn-teal)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .loader-progress-container { width: 250px; height: 3px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative; }
+        body.light-mode .loader-progress-container { background: rgba(0,0,0,0.05); }
+        .loader-progress-bar { width: 100%; height: 100%; background: linear-gradient(90deg, transparent, var(--krn-blue), transparent); position: absolute; left: -100%; animation: shimmerLoad 1.5s infinite; }
+        @keyframes shimmerLoad { 100% { left: 100%; } }
+        .loader-status-text { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; animation: pulseText 1.5s infinite; }
+        @keyframes pulseText { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        /* ---------------- TOP BANNER & KPIs ---------------- */
+        .header-banner {
+            background-color: var(--bg-header); border-radius: 8px; padding: 10px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid var(--border-color); margin-bottom: 12px; box-shadow: var(--card-shadow);
+            position: sticky; top: 10px; z-index: 900;
+        }
+        .header-left { display: flex; align-items: center; gap: 18px; }
+        
+        .header-logo { padding-right: 18px; border-right: 1px solid var(--border-color); display: flex; align-items: center;}
+        .header-logo img { height: 35px; filter: brightness(0) invert(1) drop-shadow(0 0 6px rgba(74, 150, 210, 0.4)); }
+        body.light-mode .header-logo img { filter: none; }
+        
+        .header-title-group { display: flex; flex-direction: column; justify-content: center; }
+        .header-title-group h1 { font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;}
+        .header-title-group .sub-title { font-size: 0.95rem; color: var(--text-secondary); font-weight: 300; margin-top: 2px; letter-spacing: 1px;}
+        
+        .header-kpi-summary { display: flex; align-items: center; gap: 25px; border-left: 1px solid var(--border-color); padding-left: 20px; }
+        
+        .kpi-item { display: flex; flex-direction: column; align-items: flex-start; justify-content: center;}
+        .val { display: flex; flex-direction: column; align-items: flex-start; }
+        
+        .val-unit { font-size: 0.85rem; font-weight: bold; color: var(--krn-light-blue); text-transform: uppercase; margin-bottom: 0px; line-height: 1;}
+        .val-num { font-size: 1.8rem; font-weight: bold; line-height: 1; color: var(--krn-blue); margin-bottom: 4px; }
+        .lbl { font-size: 0.75rem; color: var(--text-secondary); font-weight: normal; margin-top: 0px; line-height: 1; font-family: Calibri, sans-serif !important;}
+        
+        #topKpiVariance .val-num, #topKpiBurn .val-num, #mStatV .val-num { color: var(--krn-blue) !important; }
+
+        .val-num-inline { font-weight: 500; font-size: 0.9rem; } 
+        .val-unit-inline { font-size: 0.7em; font-weight: 300; color: var(--text-secondary); font-family: Calibri, sans-serif !important; } 
+
+        .toggles-container { display: flex; gap: 15px; align-items: center; margin-left: 10px; border-left: 1px solid var(--border-color); padding-left: 15px;}
+        .theme-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.65rem; font-weight: 400; color: var(--text-secondary); cursor: pointer; text-transform: uppercase;}
+        .switch-track { width: 30px; height: 14px; background-color: var(--border-color); border-radius: 10px; position: relative; transition: background 0.3s;}
+        .switch-thumb { width: 10px; height: 10px; background-color: var(--krn-blue); border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: transform 0.3s ease; }
+        
+        .active-toggle { background-color: var(--krn-light-blue) !important; }
+        .active-toggle .switch-thumb { transform: translateX(16px); background-color: #ffffff; }
+
+        /* ---------------- MAIN LAYOUT ---------------- */
+        .main-layout-wrapper { display: flex; width: 100%; gap: 12px; align-items: stretch; transition: all 0.4s ease; }
+
+        #summaryPanel, .details-dept-card, .details-overview-card {
+            height: calc(100vh - 90px);
+            min-height: 520px;
+        }
+
+        #summaryPanel {
+            background-color: transparent; border: none; border-radius: 0; padding: 0;
+            display: flex; flex-direction: column; gap: 10px;
+            transition: all 0.4s ease; flex: 0 0 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; 
+        }
+        
+        body.view-details #summaryPanel { flex: 0 0 15%; max-width: 15%; margin: 0; }
+        
+        body.view-summary #summaryPanel .val-num { font-size: 2.8rem; margin-bottom: 4px; font-weight: bold;}
+        body.view-summary #summaryPanel .val-unit { font-size: 0.95rem; }
+        body.view-summary #summaryPanel .lbl { font-size: 0.8rem; }
+        
+        body.view-details #summaryPanel .val-num { font-size: 1.6rem; margin-bottom: 2px;}
+        body.view-details #summaryPanel .val-unit { font-size: 0.75rem; }
+        body.view-details #summaryPanel .lbl { font-size: 0.7rem; }
+
+        .controls-block {
+            background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;
+            padding: 12px 15px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--card-shadow);
+            flex-shrink: 0;
+        }
+
+        #detailsPanel {
+            transition: all 0.4s ease; flex: 0 0 0%; width: 0; opacity: 0; overflow: hidden; transform: translateX(10px);
+            pointer-events: none; visibility: hidden; display: flex; gap: 12px;
+        }
+        body.view-details #detailsPanel { flex: 0 0 calc(85% - 12px); width: calc(85% - 12px); opacity: 1; transform: translateX(0); pointer-events: auto; visibility: visible; }
+
+        .details-dept-card {
+            flex: 1; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); 
+            padding: 14px; display: flex; flex-direction: column; box-shadow: var(--card-shadow);
+        }
+
+        .details-overview-card {
+            flex: 1.5; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); 
+            padding: 14px; display: flex; flex-direction: column; box-shadow: var(--card-shadow);
+        }
+
+        .back-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 4px 10px; border-radius: 4px; font-family: inherit; font-size: 0.7rem; font-weight: 300; cursor: pointer; transition: all 0.2s; width: 100%;}
+        .back-btn:hover { border-color: var(--text-primary); color: var(--text-primary); }
+
+        .card-title { font-size: 0.85rem; font-weight: 400; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin: 0; }
+        
+        .control-group-row { display: flex; gap: 8px; }
+        body.view-details .control-group-row { flex-direction: column; }
+        
+        .granularity-btn-group { display: flex; background-color: transparent; border-radius: 6px; padding: 2px; border: 1px solid var(--border-color); flex: 1; }
+        .gran-btn { flex: 1; border: none; background: transparent; padding: 6px 4px; font-family: inherit; font-size: 0.65rem; font-weight: 400; color: var(--text-secondary); cursor: pointer; border-radius: 4px; transition: all 0.2s ease; }
+        .gran-btn.active { background-color: var(--border-color); color: var(--text-primary); }
+        body.light-mode .gran-btn.active { background-color: var(--krn-blue-light); color: #ffffff; }
+
+        .select-input { 
+            display: block; width: 100%; padding: 6px 10px; border-radius: 6px; 
+            border: 1px solid var(--border-color); background-color: transparent; 
+            color: var(--text-primary); font-family: inherit; font-size: 0.75rem; 
+            font-weight: 300; outline: none; cursor: pointer; appearance: none;
+        }
+        .select-mini { padding: 3px 6px; font-size: 0.65rem; border-radius: 4px; border: 1px solid var(--border-color); background-color: transparent; color: var(--text-secondary); cursor: pointer; outline: none;}
+        .select-input option, .select-mini option { background-color: var(--bg-card); color: var(--text-primary); }
+
+        .summary-split-layout { display: flex; gap: 12px; align-items: stretch; flex: 1; min-height: 0; }
+        .summary-left-card {
+            flex: 1.1; background-color: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 15px; display: flex; flex-direction: column; box-shadow: var(--card-shadow);
+            overflow-y: auto; overflow-x: hidden;
+        }
+        .summary-right-card {
+            flex: 1.5; background-color: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 15px; display: flex; flex-direction: column; box-shadow: var(--card-shadow);
+            min-width: 0;
+        }
+
+        body.view-details .summary-split-layout { flex-direction: column; }
+        body.view-details .summary-right-card { display: none; }
+        
+        .period-metrics-horizontal { 
+            display: flex; flex-direction: row; justify-content: space-around; align-items: center;
+            border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+        
+        body.view-details .period-metrics-horizontal { 
+            flex-direction: column; align-items: center; gap: 15px; 
+            border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 15px;
+        }
+        body.view-details .period-metrics-horizontal .kpi-item {
+            align-items: center !important; text-align: center !important;
+        }
+        body.view-details .period-metrics-horizontal .val {
+            align-items: center !important; 
+        }
+
+        /* ---------------- LIST & GRID CONTAINERS ---------------- */
+        
+        /* OVERVIEW CARD DONUT LAYOUT */
+        #card3DonutContainer {
+            display: flex; 
+            gap: 20px; 
+            align-items: flex-start; 
+            justify-content: space-around; 
+            margin-top: 15px; 
+            margin-bottom: 15px; 
+            flex-wrap: wrap;
+        }
+
+        #card3DonutContainer .donut-chart-box {
+            width: 70px;
+            height: 70px;
+            margin-top: 5px; 
+            margin-bottom: 6px;
+        }
+
+        /* SQUARE GRID FOR DEPARTMENTS (CARD 2) */
+        .dept-grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 4px;
+            margin: -4px; 
+            margin-top: 12px;
+            align-content: start;
+        }
+
+        .dept-grid-card {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            aspect-ratio: 1 / 1; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        .dept-grid-card:hover { border-color: var(--krn-light-blue); background-color: rgba(74, 150, 210, 0.05); }
+        
+        .dept-grid-card.active {
+            border: 1px solid var(--krn-blue);
+            background-color: rgba(0, 104, 144, 0.08);
+            box-shadow: inset 0 0 0 1px var(--krn-blue), 0 4px 12px rgba(0, 104, 144, 0.15);
+        }
+        body.light-mode .dept-grid-card.active { background-color: rgba(0, 104, 144, 0.08); }
+
+        .dept-card-title {
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-align: center;
+            color: var(--text-primary);
+            line-height: 1.2;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .dept-card-metrics {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-top: auto;
+            margin-bottom: 12px;
+        }
+
+        .dept-card-metric-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            white-space: nowrap;
+        }
+
+        .dept-card-metric-val {
+            font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+
+        .dept-card-metric-pct {
+            font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: var(--krn-blue);
+            line-height: 1;
+        }
+
+        .dept-card-metric-lbl {
+            font-size: 0.6rem;
+            color: var(--text-primary);
+            margin-top: 4px;
+        }
+
+        .dept-card-metric-unit {
+            font-size: 0.55rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* SQUARE GRID FOR STREAMS (CARD 3) */
+        .stream-grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 12px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 4px;
+            margin: -4px; 
+            margin-top: 12px;
+            align-content: start;
+        }
+
+        .stream-grid-card {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            aspect-ratio: 1 / 1; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        .stream-grid-card:hover { border-color: var(--krn-light-blue); background-color: rgba(74, 150, 210, 0.05); }
+        .stream-grid-card.disabled-row { cursor: default !important; opacity: 0.4; border-color: var(--border-color); }
+        .stream-grid-card.disabled-row:hover { background-color: transparent; }
+
+        .stream-grid-card.active {
+            border: 1px solid var(--krn-blue);
+            background-color: rgba(0, 104, 144, 0.08);
+            box-shadow: inset 0 0 0 1px var(--krn-blue), 0 4px 12px rgba(0, 104, 144, 0.15);
+        }
+        body.light-mode .stream-grid-card.active { background-color: rgba(0, 104, 144, 0.08); }
+
+        .stream-card-title {
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-align: center;
+            color: var(--text-primary);
+            line-height: 1.2;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .stream-card-metrics {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-top: auto;
+            margin-bottom: 8px;
+        }
+
+        .stream-card-metric-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            white-space: nowrap;
+            min-width: 0;
+        }
+
+        .stream-card-metric-val {
+            font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+
+        .stream-card-metric-pct {
+            font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
+            font-size: 1.35rem;
+            font-weight: bold;
+            color: var(--krn-blue);
+            line-height: 1;
+        }
+
+        .stream-card-metric-lbl {
+            font-size: 0.55rem;
+            color: var(--text-primary);
+            margin-top: 3px;
+            text-transform: uppercase;
+        }
+
+        .stream-card-metric-unit {
+            font-size: 0.5rem;
+            color: var(--text-secondary);
+            margin-top: 1px;
+            text-transform: uppercase;
+        }
+
+        .progress-bg { background-color: rgba(255,255,255,0.03); border-radius: 2px; overflow: hidden; height: 6px; }
+        body.light-mode .progress-bg { background-color: #cbd5e1; }
+        .progress-fill { height: 100%; background-color: var(--krn-blue); width: 0%; transition: width 1.4s ease; border-radius: 2px;}
+
+        /* ---------------- SVG DONUTS ---------------- */
+        .donuts-triplet-container { display: flex; justify-content: space-around; gap: 10px; width: 100%; flex-wrap: wrap; }
+        body.view-details #summaryPanel .donuts-triplet-container { flex-direction: column; gap: 20px; padding-bottom: 10px; align-items: center; }
+        .svg-donut-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; gap: 0px; }
+        
+        .donut-chart-box { position: relative; width: 75px; height: 75px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.4s ease; }
+        .donut-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+        
+        body.view-summary #summaryPanel .donut-chart-box { width: 80px; height: 80px; }
+        body.view-summary #summaryPanel .donut-center-pct { font-size: 0.95rem; font-weight: 500;}
+        body.view-summary #summaryPanel .donut-center-sub { font-size: 0.4rem; font-family: Calibri, sans-serif !important;} 
+        body.view-summary #summaryPanel .donut-bottom-badge { font-size: 0.55rem; }
+        body.view-summary #summaryPanel .donut-bottom-badge strong { font-size: 0.65rem; }
+        body.view-summary #summaryPanel .donut-legend-item { font-size: 0.55rem; gap: 6px; }
+        
+        body.view-details #summaryPanel .donut-chart-box { width: 55px; height: 55px; }
+        body.view-details #summaryPanel .donut-center-pct { font-size: 0.65rem; margin-bottom: 0px; }
+        body.view-details #summaryPanel .donut-center-sub { font-size: 0.3rem; font-family: Calibri, sans-serif !important;}
+        body.view-details #summaryPanel .donut-bottom-badge { font-size: 0.45rem; }
+        body.view-details #summaryPanel .donut-bottom-badge strong { font-size: 0.55rem; }
+        body.view-details #summaryPanel .donut-legend-item { font-size: 0.45rem; gap: 4px; }
+
+        .donut-center-badge { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; width: 100%; }
+        .donut-center-pct { font-size: 0.75rem; font-weight: bold; color: var(--text-primary); line-height: 1; margin-bottom: 1px;}
+        .donut-center-sub { font-size: 0.35rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 300; font-family: Calibri, sans-serif !important;}
+        .donut-bottom-badge { margin-top: 0px; font-size: 0.5rem; color: var(--text-secondary); font-weight: 300; text-align: center; }
+        .donut-bottom-badge strong { color: var(--text-primary); font-size: 0.6rem; font-weight: 500;}
+        
+        .donut-legend-list { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; width: fit-content; margin-left: auto; margin-right: auto; }
+        .donut-legend-item { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 0.5rem; color: var(--text-secondary); font-weight: 300; width: 100%; font-family: Calibri, sans-serif !important;}
+        .donut-legend-item-left { display: flex; align-items: center; gap: 5px; }
+        .donut-legend-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+        
+        /* THICKER SVG CIRCLES globally */
+        circle { transition: stroke-width 0.2s ease; stroke-width: 12px; }
+        circle:hover { stroke-width: 14px; cursor: pointer; }
+
+        body.view-summary #summaryPanel circle { stroke-width: 16px; }
+        body.view-summary #summaryPanel circle:hover { stroke-width: 18px; }
+        
+        body.view-details #summaryPanel circle { stroke-width: 10px; }
+        body.view-details #summaryPanel circle:hover { stroke-width: 12px; }
+
+        #card3DonutContainer svg circle { stroke-width: 14px; }
+        #card3DonutContainer svg circle:hover { stroke-width: 16px; }
+        
+        /* ---------------- MODAL / TABLES ---------------- */
+        .table-wrapper { overflow-y: auto; flex: 1; border: 1px solid var(--border-color); border-radius: 6px; }
+        .detail-table { width: 100%; border-collapse: collapse; }
+        .detail-table th { text-align: left; padding: 8px 10px; background-color: rgba(255,255,255,0.02); color: var(--text-secondary); font-size: 0.58rem; text-transform: uppercase; font-weight: 400; position: sticky; top: 0; z-index: 2; border-bottom: 1px solid var(--border-color); backdrop-filter: blur(4px);}
+        body.light-mode .detail-table th { background-color: rgba(0,0,0,0.02); }
+        .detail-table td { padding: 10px 10px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; font-weight: 300; color: var(--text-primary); vertical-align: middle;}
+
+        .summary-table-row td { padding: 14px 10px; font-size: 1.15rem; font-weight: 400; }
+        .summary-table-row td:first-child { font-weight: 500; }
+        .clickable-tr { cursor: pointer; transition: all 0.2s ease; }
+        .clickable-tr:hover { background-color: rgba(74, 150, 210, 0.1); }
+        body.light-mode .clickable-tr:hover { background-color: rgba(0, 104, 144, 0.05); }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(19, 22, 25, 0.85); backdrop-filter: blur(4px); }
+        body.light-mode .modal { background-color: rgba(255, 255, 255, 0.85); }
+        .modal-content { background-color: var(--bg-card); margin: 3% auto; padding: 18px; border-radius: 8px; width: 90%; max-width: 850px; border: 1px solid var(--border-color); display: flex; flex-direction: column; max-height: 88vh; box-shadow: var(--card-shadow); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px; }
+        .modal-controls { display: flex; gap: 8px; align-items: center; }
+        .search-box { padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border-color); background-color: transparent; color: var(--text-primary); font-family: inherit; font-size: 0.72rem; width: 160px; outline: none; font-weight:300;}
+        .export-btn { background-color: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); padding: 5px 8px; border-radius: 6px; font-family: inherit; font-size: 0.65rem; font-weight: 400; cursor: pointer; transition: all 0.2s; }
+        .export-btn:hover { color: var(--text-primary); border-color: var(--text-primary); }
+        .close-btn { font-size: 20px; font-weight: 300; color: var(--text-secondary); cursor: pointer; margin-left: 6px;}
+        .close-btn:hover { color: var(--krn-orange); }
+
+        /* ---------------- TOOLTIP ---------------- */
+        .hover-tooltip {
+            position: fixed; background: var(--bg-card); color: var(--text-primary); padding: 5px 8px;
+            border-radius: 4px; font-size: 0.65rem; pointer-events: none; z-index: 10000;
+            border: 1px solid var(--border-color); opacity: 0; transform: translateY(10px);
+            transition: opacity 0.2s ease, transform 0.2s ease; white-space: nowrap; font-weight: 300;
+            box-shadow: var(--card-shadow);
+        }
+        .hover-tooltip.visible { opacity: 1; transform: translateY(0); }
+        .hover-tooltip strong { color: var(--text-secondary); font-size: 0.6rem; font-weight: 400; display:block; margin-bottom:2px; text-transform: uppercase; font-family: Calibri, sans-serif !important;}
+    </style>
+</head>
+<body class="view-summary light-mode"> 
+
+<div id="hoverTooltip" class="hover-tooltip"></div>
+
+<!-- LOADING SCREEN -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loader-content">
+        <div class="logo-container">
+            <div class="app-spinner"></div>
+            <div class="app-spinner-inner"></div>
+            <img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz" class="loader-logo">
+        </div>
+        <h2 class="loader-title">Karandaaz</h2>
+        <div class="loader-progress-container">
+            <div class="loader-progress-bar"></div>
+        </div>
+        <div id="loaderStatusText" class="loader-status-text">INITIALIZING SYSTEM...</div>
+    </div>
+</div>
+
+<div class="dashboard-container">
+    
+    <!-- HEADER -->
+    <div class="header-banner">
+        <div class="header-left">
+            <div class="header-logo">
+                <img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz Pakistan Logo">
+            </div>
+            <div class="header-title-group">
+                <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;">Budget vs Actual</h1>
+                <div class="sub-title" style="font-size: 0.95rem; color: var(--text-secondary); font-weight: 300; margin-top: 2px; letter-spacing: 1px;">FY 2026-27</div>
+            </div>
+        </div>
+
+        <div class="header-kpi-summary">
+            <div class="toggles-container">
+                <div class="theme-toggle" onclick="toggleDarkMode()">
+                    <span id="themeLabel">Dark</span>
+                    <div class="switch-track active-toggle" id="themeTrack">
+                        <div class="switch-thumb" style="transform: translateX(16px); background-color: #ffffff;"></div>
+                    </div>
+                </div>
+            </div>
+        
+            <div class="kpi-item">
+                <div class="val" id="topKpiBudget" data-val="0">
+                    <span class="val-unit">M PKR</span>
+                    <span class="val-num">0</span>
+                </div>
+                <span class="lbl">FY Total Budget</span>
+            </div>
+            <div class="kpi-item">
+                <div class="val" id="topKpiActual" data-val="0">
+                    <span class="val-unit">M PKR</span>
+                    <span class="val-num">0</span>
+                </div>
+                <span class="lbl" id="lblTopActual">FY Total Actual</span>
+            </div>
+            <div class="kpi-item">
+                <div class="val" id="topKpiVariance" data-val="0">
+                    <span class="val-unit">M PKR</span>
+                    <span class="val-num">0</span>
+                </div>
+                <span class="lbl" id="lblTopVariance">FY Variance</span>
+            </div>
+            <div class="kpi-item">
+                <div class="val" id="topKpiBurn" data-val="0">
+                    <span class="val-unit">RATE</span>
+                    <span class="val-num">0%</span>
+                </div>
+                <span class="lbl">FY Burn Rate</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DYNAMIC LAYOUT -->
+    <div class="main-layout-wrapper">
+        
+        <!-- CARD 1: OVERALL SUMMARY AREA -->
+        <div id="summaryPanel">
+            
+            <div class="controls-block">
+                <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="font-size: 0.8rem; color: var(--text-primary);">View & Granularity</span>
+                    <button id="btnBackToSummary" class="back-btn" style="display:none; width: auto;" onclick="toggleViewMode()">&#8592; Back</button>
+                </div>
+                <div class="control-group-row">
+                    <div class="granularity-btn-group">
+                        <button class="gran-btn" id="btnMonthly" onclick="setGranularity('Monthly', this)">Monthly</button>
+                        <button class="gran-btn active" id="btnQuarterly" onclick="setGranularity('Quarterly', this)">Quarterly</button>
+                        <button class="gran-btn" onclick="setGranularity('Yearly', this)">Yearly</button>
+                    </div>
+                    <div class="granularity-btn-group" style="flex: 0.6;">
+                        <button class="gran-btn" id="btnPeriod" onclick="setViewMode('Period', this)">Period</button>
+                        <button class="gran-btn active" id="btnQTD" onclick="setViewMode('QTD', this)">QTD</button>
+                        <button class="gran-btn" id="btnYTD" onclick="setViewMode('YTD', this)">YTD</button>
+                    </div>
+                </div>
+                <select id="periodDropdown" class="select-input" onchange="onPeriodChange()"></select>
+            </div>
+
+            <div class="summary-split-layout">
+                <div class="summary-left-card">
+                    <div class="period-metrics-horizontal">
+                        <div class="kpi-item" style="align-items: center;">
+                            <div class="val" id="card1Budget" data-val="0" style="align-items: center;">
+                                <span class="val-unit">M PKR</span>
+                                <span class="val-num">0</span>
+                            </div>
+                            <span class="lbl" id="lblPeriodBudget">Period Budget</span>
+                        </div>
+                        <div class="kpi-item" style="align-items: center;">
+                            <div class="val" id="card1Actual" data-val="0" style="align-items: center;">
+                                <span class="val-unit">M PKR</span>
+                                <span class="val-num">0</span>
+                            </div>
+                            <span class="lbl" id="lblPeriodActual">Period Actual</span>
+                        </div>
+                    </div>
+                    
+                    <div class="donuts-triplet-container" id="summaryDonutContainer" style="grid-template-columns: repeat(3, 1fr);">
+                        <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
+                            <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">BvA</div>
+                            <div id="periodBvaDonut" style="width: 100%;"></div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
+                            <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Spent (Donor)</div>
+                            <div id="periodActualDonorDonut" style="width: 100%;"></div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
+                            <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Budget (Donor)</div>
+                            <div id="periodBudgetDonorDonut" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-right-card summary-table-container">
+                    <div style="font-size: 0.6rem; font-weight: 400; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase;">Departmental Spend (Click to view)</div>
+                    <div class="table-wrapper">
+                        <table class="detail-table" style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th>Trend</th>
+                                    <th>Budget</th>
+                                    <th id="thActualCol">Actual</th>
+                                    <th>%</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETAILS PANEL: EQUAL HEIGHT DISCONNECTED CARDS 2 & 3 -->
+        <div id="detailsPanel">
+            <!-- CARD 2: Department Split (Grid View) -->
+            <div class="details-dept-card">
+                <h2 class="card-title">
+                    <span>Departments</span>
+                    <select class="select-mini" id="sortDept" onchange="updateDashboard()">
+                        <option value="Spend">High Spend</option>
+                        <option value="Variance">Over Budget</option>
+                    </select>
+                </h2>
+                <div class="dept-grid-container" id="deptListContainer"></div>
+            </div>
+
+            <!-- CARD 3: Department Details -->
+            <div class="details-overview-card">
+                <h2 class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span id="card3Title" style="color: var(--text-primary)">Overview</span>
+                    
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <select class="select-mini" id="sortStream" onchange="renderCard3Details()">
+                            <option value="Spend">High Spend</option>
+                            <option value="Variance">Over Budget</option>
+                        </select>
+                    </div>
+                </h2>
+
+                <div style="display: flex; gap: 20px; align-items: flex-start; justify-content: space-around; margin-top: 10px; margin-bottom: 15px; flex-wrap: wrap;" id="card3DonutContainer">
+                    <!-- Javascript generates donuts here dynamically -->
+                </div>
+
+                <div style="font-size: 0.6rem; font-weight: 400; color: var(--text-secondary); margin-top: 15px; margin-bottom: 5px; text-transform: uppercase;" id="listLabel">Streams & Workstreams (Click to drill)</div>
+                <div class="stream-grid-container" id="streamListContainer"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- LEVEL 3 POPUP MODAL -->
+<div id="streamModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div>
+                <h2 id="modalStreamTitle" style="margin: 0; color: var(--text-primary); font-size: 0.95rem; font-weight: 400;">Account Details</h2>
+                <span id="modalStreamSubtitle" style="font-size: 0.62rem; color: var(--text-secondary);"></span>
+            </div>
+            <div class="modal-controls">
+                <input type="text" id="modalSearch" class="search-box" placeholder="Search accounts..." onkeyup="filterModalTable()">
+                <button class="export-btn" onclick="exportModalCSV()">Export</button>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+            </div>
+        </div>
+
+        <div id="modalSummaryStats" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; flex-shrink: 0;">
+            <!-- Summary metrics injected here -->
+        </div>
+
+        <div class="table-wrapper">
+            <table class="detail-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Account Name</th>
+                        <th>Budget</th>
+                        <th id="modalActualCol">Actual</th>
+                        <th>Variance</th>
+                    </tr>
+                </thead>
+                <tbody id="modalTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========================================================================
+    // 1. CONFIGURATION & STATE
+    // ========================================================================
+    const config = {
+        budgetMasterCSV: 'Data/BvA-202627 - Budget (1).csv', 
+        tbDonorCSV: 'Data/BvA-202627 - ActualDonor.csv',      
+        tbProgramCSV: 'Data/BvA-202627 - ActualProgram.csv',
+        adminCSV: 'Data/BvA-202627 - AdminActual.csv',
+        iiCSV: 'Data/Innovation.csv',
+        cicCSV: 'Data/CIC.csv'
+    };
+
+    const fiscalMonths = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const quarterMap = {
+        'Jul': 'Q1', 'Aug': 'Q1', 'Sep': 'Q1',
+        'Oct': 'Q2', 'Nov': 'Q2', 'Dec': 'Q2',
+        'Jan': 'Q3', 'Feb': 'Q3', 'Mar': 'Q3',
+        'Apr': 'Q4', 'May': 'Q4', 'Jun': 'Q4'
+    };
+
+    let rawData = [];
+    let currentGranularity = 'Quarterly';
+    let viewMode = 'QTD'; 
+    let selectedPeriod = 'Q1';
+    let selectedDepartment = '';
+    let isDarkMode = false; 
+    let isSummaryView = true;
+    let currentModalData = []; 
+
+    const getBrandColors = () => ['#006890', '#4a96d2', '#f97316', '#f6a505', '#14532d', '#06969c'];
+
+    function getDeptSortIndex(deptName) {
+        if (!deptName) return 999;
+        const clean = deptName.trim().toUpperCase();
+        if (clean === 'DFS' || clean.includes('DIGITAL FINANCIAL')) return 0;
+        if (clean === 'CIC' || clean.includes('CHALLENGE INNOVATION') || clean.includes('CORPORATE INVESTMENT')) return 1;
+        if (clean === 'II' || clean.includes('INCLUSIVE INNOVATION') || clean.includes('INNOVATION INVESTMENT')) return 2;
+        if (clean === 'DI' || clean.includes('DIGITAL INCLUSION')) return 3;
+        if (clean === 'RMC' || clean.includes('RESEARCH')) return 4;
+        if (clean === 'STAFF AND ADMIN' || clean.includes('STAFF') || clean.includes('ADMIN')) return 5;
+        return 999;
+    }
+
+    // ========================================================================
+    // 2. UTILITY & FORMATTING
+    // ========================================================================
+    function getFormattedParts(num) {
+        const val = parseFloat(num) || 0;
+        const absVal = Math.abs(val);
+        if (absVal >= 1000000) return { v: (val / 1000000).toFixed(2), u: 'M PKR' };
+        if (absVal >= 1000) return { v: (val / 1000).toFixed(1), u: 'K PKR' };
+        return { v: val.toLocaleString('en-PK', { maximumFractionDigits: 0 }), u: 'PKR' };
+    }
+
+    function formatPKRInline(num) {
+        const parts = getFormattedParts(num);
+        return `<span class="val-unit-inline">${parts.u}</span> <span class="val-num-inline">${parts.v}</span>`;
+    }
+
+    function getSafeNum(val) {
+        if (val === undefined || val === null) return 0;
+        let str = String(val).trim();
+        if (str === '' || str === '-') return 0;
+        let isNegative = (str.includes('(') && str.includes(')')) || str.startsWith('-');
+        let cleaned = str.replace(/[^0-9.-]/g, ''); 
+        let num = parseFloat(cleaned);
+        return isNaN(num) ? 0 : (isNegative && num > 0 ? -num : num);
+    }
+
+    function animateCounter(elementId, targetValue) {
+        const elem = document.getElementById(elementId);
+        if (!elem) return;
+        const startVal = parseFloat(elem.getAttribute('data-val')) || 0;
+        elem.setAttribute('data-val', targetValue);
+
+        const duration = 1400;
+        const startTime = performance.now();
+
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const ease = 1 - Math.pow(1 - progress, 3);
+            const currentVal = startVal + (targetValue - startVal) * ease;
+            
+            const parts = getFormattedParts(currentVal);
+            elem.innerHTML = `<span class="val-unit">${parts.u}</span><span class="val-num">${parts.v}</span>`;
+
+            if (progress < 1) requestAnimationFrame(update);
+            else {
+                const finalParts = getFormattedParts(targetValue);
+                elem.innerHTML = `<span class="val-unit">${finalParts.u}</span><span class="val-num">${finalParts.v}</span>`;
+            }
+        }
+        requestAnimationFrame(update);
+    }
+
+    function animateCounterPct(elementId, targetValue) {
+        const elem = document.getElementById(elementId);
+        if (!elem) return;
+        const startVal = parseFloat(elem.getAttribute('data-val')) || 0;
+        elem.setAttribute('data-val', targetValue);
+        const duration = 1400;
+        const startTime = performance.now();
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const ease = 1 - Math.pow(1 - progress, 3);
+            const currentVal = startVal + (targetValue - startVal) * ease;
+            elem.innerHTML = `<span class="val-unit">RATE</span><span class="val-num">${Math.round(currentVal)}%</span>`;
+            if (progress < 1) requestAnimationFrame(update);
+            else elem.innerHTML = `<span class="val-unit">RATE</span><span class="val-num">${Math.round(targetValue)}%</span>`;
+        }
+        requestAnimationFrame(update);
+    }
+
+    function generateSparkline(data) {
+        if (!data || data.length < 2) return '<div style="width:40px; height:15px;"></div>';
+        const max = Math.max(...data) || 1;
+        const min = Math.min(...data);
+        const range = max - min || 1;
+        const w = 45, h = 18;
+        const step = w / (data.length - 1);
+        
+        let d = `M 0 ${h - ((data[0] - min) / range) * h}`;
+        for (let i = 1; i < data.length; i++) {
+            d += ` L ${i * step} ${h - ((data[i] - min) / range) * h}`;
+        }
+        
+        return `<svg width="${w}" height="${h}" style="overflow:visible;">
+                    <path d="${d}" fill="none" stroke="var(--krn-light-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>`;
+    }
+
+    function generateCardSparkline(data) {
+        if (!data || data.length < 2) return '<div style="width:100px; height:25px;"></div>';
+        const max = Math.max(...data) || 1;
+        const min = Math.min(...data);
+        const range = max - min || 1;
+        const w = 100, h = 25;
+        const step = w / (data.length - 1);
+        
+        let d = `M 0 ${h - ((data[0] - min) / range) * h}`;
+        for (let i = 1; i < data.length; i++) {
+            d += ` L ${i * step} ${h - ((data[i] - min) / range) * h}`;
+        }
+        
+        return `<svg width="${w}" height="${h}" style="overflow:visible;">
+                    <path d="${d}" fill="none" stroke="var(--krn-light-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>`;
+    }
+
+    function generateMiniSparkline(data) {
+        if (!data || data.length < 2) return '<div style="width:70px; height:20px;"></div>';
+        const max = Math.max(...data) || 1;
+        const min = Math.min(...data);
+        const range = max - min || 1;
+        const w = 70, h = 20;
+        const step = w / (data.length - 1);
+        
+        let d = `M 0 ${h - ((data[0] - min) / range) * h}`;
+        for (let i = 1; i < data.length; i++) {
+            d += ` L ${i * step} ${h - ((data[i] - min) / range) * h}`;
+        }
+        
+        return `<svg width="${w}" height="${h}" style="overflow:visible;">
+                    <path d="${d}" fill="none" stroke="var(--krn-light-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>`;
+    }
+
+    const tooltip = document.getElementById('hoverTooltip');
+    function showTooltip(e, label, value, pct) {
+        const parts = getFormattedParts(value);
+        tooltip.innerHTML = `<strong>${label}</strong><span class="val-num-inline" style="color:inherit">${parts.v}</span> ${parts.u} (<span class="val-num-inline" style="color:inherit">${pct}</span>%)`;
+        tooltip.classList.add('visible');
+        moveTooltip(e);
+    }
+    function moveTooltip(e) {
+        tooltip.style.left = (e.clientX + 15) + 'px';
+        tooltip.style.top = (e.clientY + 15) + 'px';
+    }
+    function hideTooltip() { tooltip.classList.remove('visible'); }
+
+    // ========================================================================
+    // 3. SVG DONUT ENGINE
+    // ========================================================================
+    function renderSvgDonut(containerId, items, centerBadge = null, bottomLabel = null, showLegend = true) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const total = items.reduce((acc, it) => acc + (parseFloat(it.value) || 0), 0);
+        const radius = 42; 
+        const C = 2 * Math.PI * radius;
+
+        let cumulativePercent = 0;
+        let circlesHtml = `<circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--border-color)" />`;
+        let legendHtml = '';
+
+        if (total === 0) {
+            if (showLegend) legendHtml = `<div style="color: var(--text-secondary); text-align: center; width: 100%; margin-top:0px; font-size: 0.6rem;">No data</div>`;
+        } else {
+            items.forEach((it) => {
+                const fraction = it.value / total;
+                const sliceLen = fraction * C;
+                const offset = cumulativePercent * C;
+                cumulativePercent += fraction;
+
+                circlesHtml += `
+                    <circle class="donut-slice-${containerId}" 
+                        cx="50" cy="50" r="${radius}" fill="none" stroke="${it.color}" 
+                        stroke-dasharray="0 ${C}" stroke-dashoffset="-${offset}" data-target-len="${sliceLen}"
+                        onmouseenter="showTooltip(event, '${it.label.replace(/'/g, "\\'")}', ${it.value}, '${Math.round(fraction*100)}')"
+                        onmousemove="moveTooltip(event)" onmouseleave="hideTooltip()"
+                        style="transform: rotate(-90deg); transform-origin: 50% 50%; pointer-events: stroke; transition: stroke-dasharray 1.4s cubic-bezier(0.16, 1, 0.3, 1), stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);"
+                    />
+                `;
+
+                if (showLegend) {
+                    legendHtml += `
+                        <div class="donut-legend-item">
+                            <div class="donut-legend-item-left">
+                                <div class="donut-legend-dot" style="background-color: ${it.color};"></div>
+                                <span style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden; font-family: Calibri, sans-serif !important;">${it.label}</span>
+                            </div>
+                            <strong style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight:400;">${Math.round(fraction * 100)}%</strong>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        let centerBadgeHtml = centerBadge ? `<div class="donut-center-badge"><div class="donut-center-pct">${centerBadge.pct}%</div><div class="donut-center-sub">${centerBadge.label}</div></div>` : '';
+        let bottomBadgeHtml = bottomLabel ? `<div class="donut-bottom-badge">${bottomLabel}</div>` : '';
+
+        container.innerHTML = `
+            <div class="svg-donut-wrapper">
+                <div class="donut-chart-box">
+                    <svg viewBox="0 0 100 100" class="donut-svg">
+                        ${circlesHtml}
+                    </svg>
+                    ${centerBadgeHtml}
+                </div>
+                ${bottomBadgeHtml}
+                ${showLegend && legendHtml ? `<div class="donut-legend-list">${legendHtml}</div>` : ''}
+            </div>
+        `;
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                container.querySelectorAll(`.donut-slice-${containerId}`).forEach(slice => {
+                    const targetLen = parseFloat(slice.getAttribute('data-target-len')) || 0;
+                    slice.style.strokeDasharray = `${targetLen} ${C - targetLen}`;
+                });
+            });
+        });
+    }
+
+    // ========================================================================
+    // 4. MULTI-LINK DATA PARSING ENGINE (With Anti-Duplication Shield)
+    // ========================================================================
+    function parseCSV(text) {
+        let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length < 2) return [];
+        
+        function parseCSVLine(line) {
+            let result = [];
+            let inQuotes = false;
+            let val = '';
+            for (let c = 0; c < line.length; c++) {
+                let char = line[c];
+                if (char === '"' && inQuotes && line[c+1] === '"') { val += '"'; c++; }
+                else if (char === '"') { inQuotes = !inQuotes; }
+                else if (char === ',' && !inQuotes) { result.push(val); val = ''; }
+                else { val += char; }
+            }
+            result.push(val);
+            return result.map(v => v.trim());
+        }
+
+        const rawHeaders = parseCSVLine(lines[0]);
+        const headers = rawHeaders.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+        
+        const objects = [];
+        for(let i = 1; i < lines.length; i++) {
+            const currentline = parseCSVLine(lines[i]);
+            if (currentline.join('').trim() === '') continue;
+            
+            const obj = { _raw: {} };
+            for(let j = 0; j < headers.length; j++){
+                obj[headers[j]] = currentline[j] || '';
+                obj._raw[rawHeaders[j]] = currentline[j] || ''; 
+            }
+            objects.push(obj);
+        }
+        return objects;
+    }
+
+    function parseMultiLinkData(budgetRows, donorTBRows, programTBRows, adminRows, iiRows, cicRows) {
+        const masterRecords = {};
+        function getKey(m, c, p) { return `${m}|${c}|${p}`; }
+
+        const coaMap = {}; 
+        let pseudoCounter = 1;
+
+        // 1. Process Budget Master
+        budgetRows.forEach(r => {
+            const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase() === 'acct');
+            const rawCode = codeKey ? r._raw[codeKey] : '';
+            let code = String(rawCode).trim().toUpperCase();
+            
+            const accName = String(r['accountname'] || r['name'] || r['description'] || r['accountdescription'] || code || 'Unnamed');
+            const dept = String(r['department'] || r['dept'] || 'Uncategorized');
+            
+            if (accName.toUpperCase().includes('TOTAL') || dept.toUpperCase().includes('TOTAL')) return; 
+
+            if (!code || code === 'NAN' || code === '') {
+                code = 'UNMAPPED_BUDGET_' + pseudoCounter++;
+            }
+
+            const stream = r['stream'] || r['expenseitems'] || r['workstream'] || 'General';
+            const program = r['program'] || 'Unallocated';
+            
+            let donorKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('donor') || k.toLowerCase().includes('fund'));
+            let donor = donorKey ? String(r._raw[donorKey] || '').trim() : 'OSR';
+            if (!donor || donor === '') donor = 'OSR';
+
+            coaMap[code] = { Dept: dept, Stream: stream, Name: accName, Program: program, Donor: donor, Code: code };
+
+            let q1 = getSafeNum(r['q1budget']) || getSafeNum(r['q1']);
+            let q2 = getSafeNum(r['q2budget']) || getSafeNum(r['q2']);
+            let q3 = getSafeNum(r['q3budget']) || getSafeNum(r['q3']);
+            let q4 = getSafeNum(r['q4budget']) || getSafeNum(r['q4']);
+            
+            let q4_1_key = Object.keys(r._raw).find(k => k.toLowerCase().replace(/\s/g, '') === 'q4budget1' || k.toLowerCase() === 'q4 budget.1');
+            let q4_key = Object.keys(r._raw).find(k => k.toLowerCase().replace(/\s/g, '') === 'q4budget' || k.toLowerCase() === 'q4 budget');
+            
+            if (q3 === 0 && q4_key && q4_1_key) {
+                q3 = getSafeNum(r._raw[q4_key]);
+                q4 = getSafeNum(r._raw[q4_1_key]);
+            }
+
+            if (q1 === 0 && q2 === 0 && q3 === 0 && q4 === 0) {
+                let yKey = Object.keys(r._raw).find(k => {
+                    let clean = k.toLowerCase().replace(/[^a-z]/g, '');
+                    return clean === 'yearlybudget' || clean === 'totalbudget' || clean === 'budget' || clean === 'total' || clean === 'annual' || clean === 'annualbudget';
+                });
+                if (yKey) {
+                    let yBud = getSafeNum(r._raw[yKey]);
+                    q1 = q2 = q3 = q4 = yBud / 4;
+                }
+            }
+
+            const qToMonths = { 
+                'Q1': ['Jul','Aug','Sep'], 
+                'Q2': ['Oct','Nov','Dec'], 
+                'Q3': ['Jan','Feb','Mar'], 
+                'Q4': ['Apr','May','Jun'] 
+            };
+
+            const qs = {'Q1': q1, 'Q2': q2, 'Q3': q3, 'Q4': q4};
+            Object.keys(qs).forEach(q => {
+                if (qs[q] === 0) return;
+                let monthlyBud = qs[q] / 3;
+                qToMonths[q].forEach(m => {
+                    const key = getKey(m, code, program);
+                    if (!masterRecords[key]) {
+                        masterRecords[key] = {
+                            Department: dept, Stream: stream, Program: program,
+                            Code: code, NaturalAccount: accName, Month: m,
+                            Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
+                        };
+                    }
+                    masterRecords[key].Budget += monthlyBud;
+                    masterRecords[key].BudgetDonors[donor] = (masterRecords[key].BudgetDonors[donor] || 0) + monthlyBud;
+                });
+            });
+        });
+
+        // 2. Parse Donor TB
+        donorTBRows.forEach(r => {
+            const codeKey = Object.keys(r._raw).find(k => (k.toLowerCase().includes('natural') && k.toLowerCase().includes('value')) || k.toLowerCase() === 'naturalaccount' || k.toLowerCase() === 'accountcode');
+            const code = String(r._raw[codeKey] || r['acct'] || r['code'] || '').trim().toUpperCase();
+            if (!code) return;
+
+            if (code.startsWith('C') || code.startsWith('I')) return; 
+
+            const typeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'acct_type' || k.toLowerCase() === 'accttype');
+            if (typeKey && String(r._raw[typeKey]).trim().toUpperCase() !== 'E') return;
+
+            const periodKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('period') || k.toLowerCase().includes('month'));
+            const month = String(r._raw[periodKey] || 'Jul').split('-')[0].substring(0, 3);
+            
+            const drKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('dr') || k.toLowerCase().includes('debit'));
+            const crKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('cr') || k.toLowerCase().includes('credit'));
+            const actual = getSafeNum(r._raw[drKey]) - getSafeNum(r._raw[crKey]);
+            if (actual === 0) return;
+
+            let mapping = coaMap[code];
+
+            if (!mapping) {
+                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') && k.toLowerCase().includes('natural'));
+                const desc = String(r._raw[descKey] || code).trim();
+                
+                if (code.startsWith('D')) {
+                    mapping = { Dept: 'Digital Financial Services', Stream: desc, Name: desc, Program: 'Unallocated', Donor: 'OSR' };
+                } else if (code.startsWith('K')) {
+                    mapping = { Dept: 'Research, Marketing & Communications', Stream: desc, Name: desc, Program: 'Unallocated', Donor: 'OSR' };
+                } else if (code.startsWith('H') || code.startsWith('S') || code.startsWith('SS')) {
+                    mapping = { Dept: 'Administrative Expenses', Stream: 'Unmapped Admin', Name: desc, Program: 'Unallocated', Donor: 'OSR' };
+                } else {
+                    mapping = { Dept: 'Unmapped Actuals', Stream: 'Unmapped', Name: desc, Program: 'Unmapped', Donor: 'OSR' };
+                }
+            } else {
+                mapping = { ...mapping }; 
+                if (code.startsWith('D')) mapping.Dept = 'Digital Financial Services';
+            }
+
+            if (mapping.Dept.includes('Admin') || code.startsWith('H') || code.startsWith('S') || code.startsWith('SS')) return; 
+
+            const donorKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('additionalsegmentdesc') || k.toLowerCase() === 'donor' || k.toLowerCase() === 'fund');
+            let rawDonor = String(r._raw[donorKey] || r['additionalsegmentdesc'] || r['donor'] || mapping.Donor || 'OSR').trim();
+            if (rawDonor === '' || rawDonor.toLowerCase() === 'nan' || rawDonor === '0' || rawDonor === 'undefined') rawDonor = 'OSR';
+            
+            let finalDonor = rawDonor;
+            if (mapping.Dept !== 'Digital Financial Services' && mapping.Dept !== 'DFS') {
+                const dLower = String(rawDonor).toLowerCase();
+                if (dLower.includes('fcdo') || dLower.includes('n/a') || dLower.includes('nan') || dLower === '0') {
+                    finalDonor = 'OSR';
+                }
+            }
+
+            const key = getKey(month, code, mapping.Program);
+            if (!masterRecords[key]) {
+                masterRecords[key] = {
+                    Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program,
+                    Code: code, NaturalAccount: mapping.Name, Month: month,
+                    Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
+                };
+            }
+            masterRecords[key].Actual += actual;
+            masterRecords[key].ActualDonors[finalDonor] = (masterRecords[key].ActualDonors[finalDonor] || 0) + actual;
+        });
+
+        // 3. Admin TB Integrator (With Deduplication Shield)
+        const processedAdminCodes = new Set();
+        adminRows.forEach(r => {
+            const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase().includes('heads') || k.toLowerCase().includes('acctsegment'));
+            let code = String(r._raw[codeKey] || '').trim().toUpperCase();
+            
+            // STRICT SHIELD: Ignore Subtotals, "Non Programme Cost", "Admin Cost", etc. 
+            if (!code || code === 'NAN' || code.includes('TOTAL') || code.length < 3) return;
+            
+            // ANTI-DOUBLE COUNTING SHIELD
+            if (processedAdminCodes.has(code)) return;
+            processedAdminCodes.add(code);
+            
+            const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense'));
+            const desc = String(r._raw[descKey] || '').trim();
+
+            fiscalMonths.forEach(m => {
+                let mKey = Object.keys(r._raw).find(k => k.toLowerCase().startsWith(m.toLowerCase()));
+                if (mKey) {
+                    let actual = getSafeNum(r._raw[mKey]);
+                    if (actual !== 0) {
+                         let mapping = coaMap[code];
+                         
+                         // FUZZY MATCHER: If no direct code mapping, match text name to budget
+                         if (!mapping) {
+                             let foundKey = Object.keys(coaMap).find(k => {
+                                 let cleanName = coaMap[k].Name.toLowerCase();
+                                 let cleanStream = coaMap[k].Stream.toLowerCase();
+                                 let cleanDesc = desc.toLowerCase();
+                                 let cleanCode = code.toLowerCase();
+                                 return (cleanName === cleanDesc || cleanStream === cleanDesc || cleanName === cleanCode || cleanStream === cleanCode);
+                             });
+                             
+                             if (foundKey) {
+                                 mapping = coaMap[foundKey];
+                             } else {
+                                 mapping = { Dept: 'Administrative Expenses', Stream: desc || 'Unmapped Admin', Name: desc || code, Program: 'Unallocated', Donor: 'OSR', Code: code };
+                             }
+                         }
+
+                         const key = getKey(m, mapping.Code || code, mapping.Program);
+                         if (!masterRecords[key]) {
+                             masterRecords[key] = { Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program, Code: mapping.Code || code, NaturalAccount: mapping.Name, Month: m, Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {} };
+                         }
+                         masterRecords[key].Actual += actual;
+                         masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
+                    }
+                }
+            });
+        });
+
+        // 4 & 5. Innovation and CIC Investment Integrator
+        function processInvestmentRows(invRows, deptName) {
+            invRows.forEach(r => {
+                let party = String(r['party'] || r._raw['Party'] || '').trim();
+                let stream = String(r['type'] || r._raw['Type'] || '').trim();
+                
+                if (!party || party.toUpperCase().includes('TOTAL')) return;
+                if (!stream) stream = 'General';
+
+                let pseudoCode = 'INV_' + pseudoCounter++;
+                
+                fiscalMonths.forEach(m => {
+                    let mKey = Object.keys(r._raw).find(k => k.toLowerCase().startsWith(m.toLowerCase()));
+                    if (mKey) {
+                        let actual = getSafeNum(r._raw[mKey]);
+                        if (actual !== 0) {
+                            const key = getKey(m, pseudoCode, 'Unallocated');
+                            if (!masterRecords[key]) {
+                                masterRecords[key] = {
+                                    Department: deptName, Stream: stream, Program: 'Unallocated',
+                                    Code: pseudoCode, NaturalAccount: party, Month: m,
+                                    Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
+                                };
+                            }
+                            masterRecords[key].Actual += actual;
+                            masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
+                        }
+                    }
+                });
+            });
+        }
+        processInvestmentRows(iiRows, 'Innovation Investment');
+        processInvestmentRows(cicRows, 'Corporate Investment and Credit');
+
+        return Object.values(masterRecords);
+    }
+
+    // ========================================================================
+    // 5. CONTROL HANDLERS (Period, QTD, YTD)
+    // ========================================================================
+    function toggleDarkMode() {
+        isDarkMode = !isDarkMode;
+        document.body.classList.toggle('light-mode', !isDarkMode);
+        const track = document.getElementById('themeTrack');
+        if (!isDarkMode) track.classList.add('active-toggle');
+        else track.classList.remove('active-toggle');
+        updateDashboard();
+    }
+
+    function toggleViewMode() {
+        isSummaryView = !isSummaryView;
+        if (isSummaryView) {
+            document.body.classList.remove('view-details');
+            document.getElementById('btnBackToSummary').style.display = 'none';
+        } else {
+            document.body.classList.add('view-details');
+            document.getElementById('btnBackToSummary').style.display = 'inline-block';
+        }
+    }
+
+    function setGranularity(type, btn) {
+        currentGranularity = type;
+        document.getElementById('btnMonthly').classList.remove('active');
+        document.getElementById('btnQuarterly').classList.remove('active');
+        document.getElementById('btnQuarterly').nextElementSibling.classList.remove('active');
+        btn.classList.add('active');
+        populatePeriodDropdown();
+        updateDashboard();
+    }
+
+    function setViewMode(mode, btn) {
+        viewMode = mode;
+        document.getElementById('btnPeriod').classList.remove('active');
+        document.getElementById('btnQTD').classList.remove('active');
+        document.getElementById('btnYTD').classList.remove('active');
+        btn.classList.add('active');
+        updateDashboard();
+    }
+
+    function populatePeriodDropdown() {
+        const dropdown = document.getElementById('periodDropdown');
+        dropdown.innerHTML = '';
+        if (currentGranularity === 'Monthly') {
+            fiscalMonths.forEach(m => dropdown.add(new Option(m, m, false, m === selectedPeriod)));
+            if (!fiscalMonths.includes(selectedPeriod)) selectedPeriod = 'Jul';
+        } else if (currentGranularity === 'Quarterly') {
+            const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+            quarters.forEach(q => dropdown.add(new Option(q, q, false, q === selectedPeriod)));
+            if (!quarters.includes(selectedPeriod)) selectedPeriod = 'Q1';
+        } else {
+            dropdown.add(new Option('Full Fiscal Year (Jul-Jun)', 'FY Total', false, true));
+            selectedPeriod = 'FY Total';
+            viewMode = 'Period'; 
+            document.getElementById('btnPeriod').classList.add('active');
+            document.getElementById('btnQTD').classList.remove('active');
+            document.getElementById('btnYTD').classList.remove('active');
+        }
+    }
+
+    function onPeriodChange() {
+        selectedPeriod = document.getElementById('periodDropdown').value;
+        updateDashboard();
+    }
+
+    function openDepartmentDetails(deptName) {
+        if (isSummaryView) {
+            toggleViewMode();
+        }
+        selectDepartment(deptName);
+    }
+
+    function selectDepartment(deptName) {
+        selectedDepartment = deptName;
+        const cards = document.getElementById('deptListContainer').getElementsByClassName('dept-grid-card');
+        for (let i = 0; i < cards.length; i++) {
+            if (cards[i].getAttribute('data-dept') === deptName) {
+                cards[i].classList.add('active');
+            } else {
+                cards[i].classList.remove('active');
+            }
+        }
+        renderCard3Details();
+    }
+
+    function isRowInViewScope(monthStr) {
+        if (currentGranularity === 'Yearly' || selectedPeriod === 'FY Total') return true;
+        const rMonthIdx = fiscalMonths.indexOf(monthStr);
+        if (rMonthIdx === -1) return false;
+
+        const selMonthIdx = fiscalMonths.indexOf(selectedPeriod);
+        const rQtr = quarterMap[monthStr];
+        const selQtr = quarterMap[selectedPeriod];
+
+        if (viewMode === 'YTD') {
+            if (currentGranularity === 'Monthly') return rMonthIdx <= selMonthIdx;
+            if (currentGranularity === 'Quarterly') {
+                const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+                return quarters.indexOf(rQtr) <= quarters.indexOf(selectedPeriod);
+            }
+        } else if (viewMode === 'QTD') {
+            if (currentGranularity === 'Monthly') {
+                return rQtr === selQtr && rMonthIdx <= selMonthIdx;
+            }
+            if (currentGranularity === 'Quarterly') {
+                return rQtr === selectedPeriod; 
+            }
+        } else { 
+            if (currentGranularity === 'Monthly') return monthStr === selectedPeriod;
+            if (currentGranularity === 'Quarterly') return rQtr === selectedPeriod;
+        }
+        return false;
+    }
+
+    // ========================================================================
+    // 6. DASHBOARD RENDERING 
+    // ========================================================================
+    function updateDashboard() {
+        if (!rawData || rawData.length === 0) return;
+
+        const depts = [...new Set(rawData.map(r => r.Department))];
+        if (!selectedDepartment && depts.length > 0) selectedDepartment = depts[0];
+
+        let topBudget = 0, topActual = 0;
+        rawData.forEach(r => { 
+            topBudget += r.Budget; 
+            topActual += r.Actual; 
+        });
+
+        document.getElementById('lblTopActual').innerText = 'FY Total Actual';
+        document.getElementById('lblTopVariance').innerText = 'FY Variance';
+
+        animateCounter('topKpiBudget', topBudget);
+        animateCounter('topKpiActual', topActual);
+        animateCounter('topKpiVariance', Math.abs(topBudget - topActual));
+        
+        const burnRate = topBudget > 0 ? (topActual / topBudget) * 100 : 0;
+        animateCounterPct('topKpiBurn', burnRate);
+
+        document.getElementById('lblPeriodBudget').innerText = `${viewMode} Budget`;
+        document.getElementById('lblPeriodActual').innerText = `${viewMode} Actual`;
+
+        const filteredRows = rawData.filter(r => isRowInViewScope(r.Month));
+
+        let card1Budget = 0, card1Actual = 0;
+        const periodActualDonors = {};
+        const periodBudgetDonors = {};
+
+        filteredRows.forEach(r => {
+            card1Budget += r.Budget; 
+            card1Actual += r.Actual;
+            
+            Object.keys(r.ActualDonors).forEach(k => periodActualDonors[k] = (periodActualDonors[k] || 0) + r.ActualDonors[k]);
+            Object.keys(r.BudgetDonors).forEach(k => periodBudgetDonors[k] = (periodBudgetDonors[k] || 0) + r.BudgetDonors[k]);
+        });
+
+        animateCounter('card1Budget', card1Budget);
+        animateCounter('card1Actual', card1Actual);
+
+        const bvaData = [];
+        let bvaPct = card1Budget > 0 ? Math.round((card1Actual / card1Budget) * 100) : 0;
+
+        bvaData.push({ label: 'Spent', value: card1Actual, color: 'var(--krn-blue)' });
+        bvaData.push({ label: 'Remaining', value: Math.max(0, card1Budget - card1Actual), color: 'var(--border-color)' });
+
+        renderSvgDonut('periodBvaDonut', bvaData, { pct: bvaPct, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPct)}%</strong>`, false);
+        
+        const currentBrandColors = getBrandColors();
+        const pActDonItems = Object.keys(periodActualDonors).filter(d => periodActualDonors[d] > 0).map((d, i) => ({ label: d, value: periodActualDonors[d], color: currentBrandColors[i % currentBrandColors.length] }));
+        renderSvgDonut('periodActualDonorDonut', pActDonItems, null, null, true);
+
+        const pBudDonItems = Object.keys(periodBudgetDonors).filter(d => periodBudgetDonors[d] > 0).map((d, i) => ({ label: d, value: periodBudgetDonors[d], color: currentBrandColors[i % currentBrandColors.length] }));
+        renderSvgDonut('periodBudgetDonorDonut', pBudDonItems, null, null, true);
+
+        const summaryDonutContainer = document.getElementById('summaryDonutContainer');
+        if (summaryDonutContainer) {
+            summaryDonutContainer.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
+                    <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">BvA</div>
+                    <div id="periodBvaDonut" style="width: 100%;"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
+                    <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Spent (Donor)</div>
+                    <div id="periodActualDonorDonut" style="width: 100%;"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
+                    <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Budget (Donor)</div>
+                    <div id="periodBudgetDonorDonut" style="width: 100%;"></div>
+                </div>
+            `;
+
+            renderSvgDonut('periodBvaDonut', bvaData, { pct: bvaPct, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPct)}%</strong>`, false);
+            renderSvgDonut('periodActualDonorDonut', pActDonItems, null, null, true);
+            renderSvgDonut('periodBudgetDonorDonut', pBudDonItems, null, null, true);
+        }
+
+        document.getElementById('thActualCol').innerText = 'Actual';
+        document.getElementById('modalActualCol').innerText = 'Actual';
+
+        renderSummaryTable(filteredRows);
+        renderCard2Departments(filteredRows);
+        renderCard3Details(filteredRows);
+    }
+
+    function renderSummaryTable(displayRows) {
+        const tbody = document.getElementById('summaryTableBody');
+        tbody.innerHTML = '';
+        const deptAgg = {};
+        
+        displayRows.forEach(r => {
+            if (!deptAgg[r.Department]) deptAgg[r.Department] = { b: 0, a: 0, monthlyTrend: {} };
+            deptAgg[r.Department].b += r.Budget;
+            deptAgg[r.Department].a += r.Actual;
+        });
+
+        rawData.forEach(r => {
+            if (!deptAgg[r.Department]) return; 
+            if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
+            deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
+        });
+
+        const sortedDepts = Object.keys(deptAgg).sort((a, b) => getDeptSortIndex(a) - getDeptSortIndex(b));
+
+        sortedDepts.forEach(d => {
+            const item = deptAgg[d];
+            if (item.b === 0 && item.a === 0) return; 
+
+            const pct = item.b > 0 ? Math.round((item.a / item.b) * 100) : 0;
+            const badgeClass = item.a > item.b ? 'badge-orange' : 'badge-primary';
+            
+            const trendData = fiscalMonths.map(m => item.monthlyTrend[m] || 0);
+            const endIdx = fiscalMonths.indexOf(selectedPeriod === 'FY Total' ? 'Jun' : selectedPeriod.replace(/Q[1-4]/, function(match) { return {Q1:'Sep',Q2:'Dec',Q3:'Mar',Q4:'Jun'}[match]; }));
+            const relevantTrendData = endIdx >= 0 ? trendData.slice(0, endIdx + 1) : trendData;
+            
+            tbody.innerHTML += `
+                <tr class="clickable-tr summary-table-row" onclick="openDepartmentDetails('${d.replace(/'/g, "\\'")}')">
+                    <td style="color: var(--text-primary); vertical-align: middle;">${d}</td>
+                    <td style="vertical-align: middle;">${generateSparkline(relevantTrendData)}</td>
+                    <td style="font-variant-numeric: tabular-nums; vertical-align: middle;">${formatPKRInline(item.b)}</td>
+                    <td style="font-variant-numeric: tabular-nums; color: var(--krn-blue); font-weight: 500; vertical-align: middle;">${formatPKRInline(item.a)}</td>
+                    <td style="vertical-align: middle;"><span class="badge-pill ${badgeClass}">${pct}%</span></td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderCard2Departments(displayRows) {
+        const container = document.getElementById('deptListContainer');
+        const sortMode = document.getElementById('sortDept').value;
+        container.innerHTML = '';
+
+        const deptAgg = {};
+        displayRows.forEach(r => {
+            if (!deptAgg[r.Department]) deptAgg[r.Department] = { b: 0, a: 0, monthlyTrend: {} };
+            deptAgg[r.Department].b += r.Budget;
+            deptAgg[r.Department].a += r.Actual;
+        });
+
+        rawData.forEach(r => {
+            if (!deptAgg[r.Department]) return; 
+            if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
+            deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
+        });
+
+        let sortedDepts = Object.keys(deptAgg).filter(d => deptAgg[d].b !== 0 || deptAgg[d].a !== 0);
+
+        if (sortMode === 'Spend') sortedDepts.sort((a, b) => deptAgg[b].a - deptAgg[a].a);
+        else if (sortMode === 'Variance') sortedDepts.sort((a, b) => (deptAgg[b].a - deptAgg[b].b) - (deptAgg[a].a - deptAgg[a].b));
+
+        const progressElements = [];
+
+        sortedDepts.forEach((deptName, idx) => {
+            const item = deptAgg[deptName];
+            const pct = item.b > 0 ? Math.min(100, Math.round((item.a / item.b) * 100)) : 0;
+            const badgeColor = item.a > item.b ? 'var(--krn-orange)' : 'var(--krn-blue)';
+            const isActive = deptName === selectedDepartment ? 'active' : '';
+
+            const actualParts = getFormattedParts(item.a);
+            const budgetParts = getFormattedParts(item.b);
+            
+            const variance = item.b - item.a;
+            
+            const trendData = fiscalMonths.map(m => item.monthlyTrend[m] || 0);
+            const endIdx = fiscalMonths.indexOf(selectedPeriod === 'FY Total' ? 'Jun' : selectedPeriod.replace(/Q[1-4]/, function(match) { return {Q1:'Sep',Q2:'Dec',Q3:'Mar',Q4:'Jun'}[match]; }));
+            const relevantTrendData = endIdx >= 0 ? trendData.slice(0, endIdx + 1) : trendData;
+
+            const card = document.createElement('div');
+            card.className = `dept-grid-card ${isActive}`;
+            card.style.animationDelay = `${idx * 0.05}s`;
+            card.setAttribute('data-dept', deptName); 
+            card.onclick = () => selectDepartment(deptName);
+            
+            card.innerHTML = `
+                <div class="dept-card-title">${deptName}</div>
+                
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 8px;">
+                    <div style="font-size: 0.8rem; font-weight: 500; color: ${variance >= 0 ? 'var(--text-secondary)' : 'var(--krn-orange)'}; font-family: Calibri, sans-serif !important;">
+                        ${variance >= 0 ? 'Remaining:' : 'Over:'} ${formatPKRInline(Math.abs(variance))}
+                    </div>
+                    <div style="opacity: 0.8;">
+                        ${generateCardSparkline(relevantTrendData)}
+                    </div>
+                </div>
+
+                <div class="dept-card-metrics">
+                    <div class="dept-card-metric-col">
+                        <span class="dept-card-metric-val">${actualParts.v}</span>
+                        <span class="dept-card-metric-unit">${actualParts.u}</span>
+                        <span class="dept-card-metric-lbl">Actual</span>
+                    </div>
+                    <div class="dept-card-metric-col">
+                        <span class="dept-card-metric-pct" style="color: ${badgeColor};">${pct}%</span>
+                        <span class="dept-card-metric-lbl">Spent</span>
+                    </div>
+                    <div class="dept-card-metric-col">
+                        <span class="dept-card-metric-val">${budgetParts.v}</span>
+                        <span class="dept-card-metric-unit">${budgetParts.u}</span>
+                        <span class="dept-card-metric-lbl">Budget</span>
+                    </div>
+                </div>
+                <div class="progress-bg"><div class="progress-fill" id="deptProg-${idx}" style="background-color: ${badgeColor};"></div></div>
+            `;
+            container.appendChild(card);
+            progressElements.push({ id: `deptProg-${idx}`, width: pct });
+        });
+
+        requestAnimationFrame(() => setTimeout(() => progressElements.forEach(p => { const el = document.getElementById(p.id); if(el) el.style.width = p.width+'%'; }), 50));
+    }
+
+    function renderCard3Details(displayRows = null) {
+        if (!displayRows) displayRows = rawData.filter(r => isRowInViewScope(r.Month));
+
+        document.getElementById('card3Title').innerText = `Overview`;
+        const sortMode = document.getElementById('sortStream').value;
+        const viewGroup = 'Stream'; 
+
+        const rows = displayRows.filter(r => r.Department === selectedDepartment);
+
+        let dB = 0, dA = 0;
+        const groupAgg = {};
+        const dActDon = {};
+        const dBudDon = {};
+
+        rows.forEach(r => {
+            dB += r.Budget; dA += r.Actual;
+            
+            let gKey = r.Stream;
+            
+            if (!groupAgg[gKey]) groupAgg[gKey] = { b: 0, a: 0, monthlyTrend: {} };
+            groupAgg[gKey].b += r.Budget; groupAgg[gKey].a += r.Actual;
+            groupAgg[gKey].monthlyTrend[r.Month] = (groupAgg[gKey].monthlyTrend[r.Month] || 0) + r.Actual;
+            
+            Object.keys(r.ActualDonors).forEach(k => dActDon[k] = (dActDon[k] || 0) + r.ActualDonors[k]);
+            Object.keys(r.BudgetDonors).forEach(k => dBudDon[k] = (dBudDon[k] || 0) + r.BudgetDonors[k]);
+        });
+
+        const bvaPct = dB > 0 ? Math.round((dA / dB) * 100) : 0;
+        
+        const card3DonutContainer = document.getElementById('card3DonutContainer');
+
+        card3DonutContainer.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; min-width: 100px;">
+                <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 5px;">Dept BvA</div>
+                <div id="deptBvaDonut" style="width: 85px; height: 85px; display: flex; justify-content: center;"></div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; min-width: 100px;">
+                <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 5px;">Spent (Donor)</div>
+                <div id="deptActualDonorDonut" style="width: 85px; height: 85px; display: flex; justify-content: center;"></div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; min-width: 100px;">
+                <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 5px;">Budget (Donor)</div>
+                <div id="deptBudgetDonorDonut" style="width: 85px; height: 85px; display: flex; justify-content: center;"></div>
+            </div>
+        `;
+
+        renderSvgDonut('deptBvaDonut', [
+            { label: 'Spent', value: dA, color: 'var(--krn-blue)' },
+            { label: 'Remaining', value: Math.max(0, dB - dA), color: 'var(--border-color)' }
+        ], { pct: bvaPct, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPct)}%</strong>`, false);
+
+        if (selectedDepartment.includes('Admin')) {
+            document.getElementById('deptActualDonorDonut').innerHTML = `<div style="color:var(--text-secondary); font-size:0.6rem; text-align:center; padding: 20px;">N/A for Admins</div>`;
+            document.getElementById('deptBudgetDonorDonut').innerHTML = `<div style="color:var(--text-secondary); font-size:0.6rem; text-align:center; padding: 20px;">N/A for Admins</div>`;
+        } else {
+            const currentBrandColors = getBrandColors();
+            const aDonItems = Object.keys(dActDon).filter(d => dActDon[d] > 0).map((d, i) => ({ label: d, value: dActDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
+            renderSvgDonut('deptActualDonorDonut', aDonItems, null, null, true);
+
+            const bDonItems = Object.keys(dBudDon).filter(d => dBudDon[d] > 0).map((d, i) => ({ label: d, value: dBudDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
+            renderSvgDonut('deptBudgetDonorDonut', bDonItems, null, null, true);
+        }
+
+        const streamContainer = document.getElementById('streamListContainer');
+        streamContainer.innerHTML = '';
+        document.getElementById('listLabel').innerText = 'Streams & Workstreams (Click to drill)';
+        
+        let sortedGroups = Object.keys(groupAgg).filter(g => groupAgg[g].b !== 0 || groupAgg[g].a !== 0);
+        if (sortMode === 'Spend') sortedGroups.sort((a, b) => groupAgg[b].a - groupAgg[a].a);
+        else if (sortMode === 'Variance') sortedGroups.sort((a, b) => (groupAgg[b].a - groupAgg[b].b) - (groupAgg[a].a - groupAgg[a].b));
+
+        const progs = [];
+        sortedGroups.forEach((gName, idx) => {
+            const st = groupAgg[gName];
+            const pct = st.b > 0 ? Math.min(100, Math.round((st.a / st.b) * 100)) : 0;
+            const badgeColor = st.a > st.b ? 'var(--krn-orange)' : 'var(--krn-blue)';
+            const clickAttr = st.a > 0 ? `onclick="openGroupModal('${gName.replace(/'/g, "\\'")}', '${viewGroup}')"` : '';
+
+            const actualParts = getFormattedParts(st.a);
+            const budgetParts = getFormattedParts(st.b);
+            const variance = st.b - st.a;
+            
+            const trendData = fiscalMonths.map(m => st.monthlyTrend[m] || 0);
+            const endIdx = fiscalMonths.indexOf(selectedPeriod === 'FY Total' ? 'Jun' : selectedPeriod.replace(/Q[1-4]/, function(match) { return {Q1:'Sep',Q2:'Dec',Q3:'Mar',Q4:'Jun'}[match]; }));
+            const relevantTrendData = endIdx >= 0 ? trendData.slice(0, endIdx + 1) : trendData;
+
+            const card = document.createElement('div');
+            card.className = `stream-grid-card ${st.a > 0 ? '' : 'disabled-row'}`;
+            card.style.animationDelay = `${idx * 0.05}s`;
+            if(clickAttr) card.setAttribute('onclick', `openGroupModal('${gName.replace(/'/g, "\\'")}', '${viewGroup}')`);
+            
+            card.innerHTML = `
+                <div class="stream-card-title" title="${gName}">${gName}</div>
+                
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 4px; margin: 8px 0;">
+                    <div style="font-size: 0.7rem; font-weight: 500; color: ${variance >= 0 ? 'var(--text-secondary)' : 'var(--krn-orange)'}; font-family: Calibri, sans-serif !important;">
+                        ${variance >= 0 ? 'Remaining:' : 'Over:'} ${formatPKRInline(Math.abs(variance))}
+                    </div>
+                    <div style="opacity: 0.8;">
+                        ${generateMiniSparkline(relevantTrendData)}
+                    </div>
+                </div>
+
+                <div class="stream-card-metrics">
+                    <div class="stream-card-metric-col">
+                        <span class="stream-card-metric-val">${actualParts.v}</span>
+                        <span class="stream-card-metric-unit">${actualParts.u}</span>
+                        <span class="stream-card-metric-lbl">Actual</span>
+                    </div>
+                    <div class="stream-card-metric-col">
+                        <span class="stream-card-metric-pct" style="color: ${badgeColor};">${pct}%</span>
+                        <span class="stream-card-metric-lbl">Spent</span>
+                    </div>
+                    <div class="stream-card-metric-col">
+                        <span class="stream-card-metric-val">${budgetParts.v}</span>
+                        <span class="stream-card-metric-unit">${budgetParts.u}</span>
+                        <span class="stream-card-metric-lbl">Budget</span>
+                    </div>
+                </div>
+                <div class="progress-bg"><div class="progress-fill" id="groupProg-${idx}" style="background-color: ${badgeColor};"></div></div>
+            `;
+            streamContainer.appendChild(card);
+            progs.push({ id: `groupProg-${idx}`, width: pct });
+        });
+
+        requestAnimationFrame(() => setTimeout(() => progs.forEach(p => { const el = document.getElementById(p.id); if(el) el.style.width = p.width+'%'; }), 50));
+    }
+
+    // ========================================================================
+    // 7. POPUP MODAL DRILL-DOWN & EXPORT
+    // ========================================================================
+    function openGroupModal(groupName, groupType) {
+        document.getElementById('modalSearch').value = ''; 
+        document.getElementById('streamModal').style.display = 'block';
+        document.getElementById('modalStreamTitle').innerText = `Account Details: ${groupName}`;
+        document.getElementById('modalStreamSubtitle').innerText = `${viewMode}: ${selectedPeriod}`;
+
+        const rows = rawData.filter(r => r.Department === selectedDepartment && r[groupType] === groupName && isRowInViewScope(r.Month));
+
+        const naAggMap = {};
+        let tB = 0, tA = 0;
+
+        rows.forEach(r => {
+            const key = `${r.Month}_${r.NaturalAccount}`; 
+            if (!naAggMap[key]) naAggMap[key] = { month: r.Month, na: r.NaturalAccount, code: r.Code, b: 0, a: 0 };
+            naAggMap[key].b += r.Budget;
+            naAggMap[key].a += r.Actual;
+            tB += r.Budget; tA += r.Actual;
+        });
+
+        document.getElementById('modalSummaryStats').innerHTML = `
+            <div style="background-color: transparent; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;">
+                <div class="val" id="mStatB" data-val="0"><span class="val-unit">M PKR</span><span class="val-num">0</span></div>
+                <div style="font-size: 0.6rem; color: var(--text-secondary); font-weight: 400; text-transform: uppercase; font-family: Calibri, sans-serif !important; margin-top:4px;">Total Budget</div>
+            </div>
+            <div style="background-color: transparent; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;">
+                <div class="val" style="color:var(--krn-blue)" id="mStatA" data-val="0"><span class="val-unit">M PKR</span><span class="val-num">0</span></div>
+                <div style="font-size: 0.6rem; color: var(--text-secondary); font-weight: 400; text-transform: uppercase; font-family: Calibri, sans-serif !important; margin-top:4px;">Total Spend (Actual)</div>
+            </div>
+            <div style="background-color: transparent; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;">
+                <div class="val" style="color: ${tB >= tA ? 'var(--krn-green)' : 'var(--krn-orange)'};" id="mStatV" data-val="0"><span class="val-unit">M PKR</span><span class="val-num">0</span></div>
+                <div style="font-size: 0.6rem; color: var(--text-secondary); font-weight: 400; text-transform: uppercase; font-family: Calibri, sans-serif !important; margin-top:4px;">Variance</div>
+            </div>
+        `;
+        animateCounter('mStatB', tB); animateCounter('mStatA', tA); animateCounter('mStatV', Math.abs(tB - tA));
+
+        currentModalData = Object.values(naAggMap).filter(i => i.a !== 0 || i.b !== 0); 
+        renderModalTable();
+    }
+
+    function renderModalTable(searchTerm = '') {
+        const tbody = document.getElementById('modalTableBody');
+        tbody.innerHTML = '';
+        const term = searchTerm.toLowerCase();
+
+        const filteredItems = currentModalData.filter(item => item.na.toLowerCase().includes(term) || item.month.toLowerCase().includes(term));
+
+        if (filteredItems.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.75rem;">No relevant spend records found.</td></tr>`;
+        } else {
+            filteredItems.forEach(item => {
+                const v = item.b - item.a;
+                const bCls = v < 0 ? 'badge-orange' : 'badge-primary';
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${item.month}</strong></td>
+                        <td><strong style="color: var(--krn-blue); font-weight: 400;">${item.na}</strong><br><span style="font-size: 0.62rem; color: var(--text-secondary);">Code: ${item.code}</span></td>
+                        <td style="font-variant-numeric: tabular-nums;">${formatPKRInline(item.b)}</td>
+                        <td style="font-variant-numeric: tabular-nums; color: var(--krn-blue); font-weight: 400;">${formatPKRInline(item.a)}</td>
+                        <td><span class="badge-pill ${bCls}">${formatPKRInline(Math.abs(v))} ${v < 0 ? 'Over' : 'Under'}</span></td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    function filterModalTable() {
+        renderModalTable(document.getElementById('modalSearch').value);
+    }
+
+    function exportModalCSV() {
+        if (!currentModalData || currentModalData.length === 0) return alert("No data to export.");
+        let csv = "Month,Code,Natural Account,Budget,Actual,Variance\n";
+        currentModalData.forEach(i => {
+            const v = i.b - i.a;
+            csv += `${i.month},"${i.code}","${i.na}",${i.b},${i.a},${v}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            link.setAttribute("href", URL.createObjectURL(blob));
+            link.setAttribute("download", `LineItems_${selectedDepartment}_${selectedPeriod}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+
+    function closeModal() { document.getElementById('streamModal').style.display = 'none'; hideTooltip(); }
+    window.onclick = function(e) { if (e.target == document.getElementById('streamModal')) closeModal(); }
+
+    // ========================================================================
+    // 8. DASHBOARD INITIALIZATION 
+    // ========================================================================
+    let isInitialized = false;
+
+    async function init() {
+        if (isInitialized) return;
+        isInitialized = true;
+
+        try {
+            const errElem = document.getElementById('loaderStatusText');
+            
+            if (errElem) errElem.innerText = "FETCHING BUDGET (1/5)...";
+            const bRes = await fetch(config.budgetMasterCSV);
+            if (!bRes.ok) throw new Error("Budget Master fetch failed");
+            
+            if (errElem) errElem.innerText = "FETCHING DONOR TB (2/5)...";
+            const tdRes = await fetch(config.tbDonorCSV);
+            if (!tdRes.ok) throw new Error("Donor TB fetch failed");
+            
+            if (errElem) errElem.innerText = "FETCHING ADMIN ACTUALS (3/5)...";
+            const adminRes = await fetch(config.adminCSV);
+            if (!adminRes.ok) throw new Error("Admin TB fetch failed");
+            
+            if (errElem) errElem.innerText = "FETCHING INNOVATION (4/5)...";
+            const iiRes = await fetch(config.iiCSV);
+            if (!iiRes.ok) throw new Error("Innovation Investment fetch failed");
+            
+            if (errElem) errElem.innerText = "FETCHING CIC (5/5)...";
+            const cicRes = await fetch(config.cicCSV);
+            if (!cicRes.ok) throw new Error("CIC Investment fetch failed");
+            
+            if (errElem) errElem.innerText = "PROCESSING DATA...";
+            
+            const bData = parseCSV(await bRes.text());
+            const tdData = parseCSV(await tdRes.text());
+            const adminData = parseCSV(await adminRes.text());
+            const iiData = parseCSV(await iiRes.text());
+            const cicData = parseCSV(await cicRes.text());
+            
+            rawData = parseMultiLinkData(bData, tdData, [], adminData, iiData, cicData);
+            
+            if (rawData.length === 0) throw new Error("No data parsed. Check CSV structures.");
+            
+            // Auto-detect latest active Quarter
+            let maxMonthIdx = -1;
+            rawData.forEach(r => {
+                if (Math.abs(r.Actual) > 0) {
+                    let idx = fiscalMonths.indexOf(r.Month);
+                    if (idx > maxMonthIdx) maxMonthIdx = idx;
+                }
+            });
+            
+            if (maxMonthIdx >= 0) {
+                let latestMonth = fiscalMonths[maxMonthIdx];
+                selectedPeriod = quarterMap[latestMonth];
+            } else {
+                selectedPeriod = 'Q1';
+            }
+
+            if (errElem) {
+                errElem.innerHTML = `<span style="color:var(--krn-green); font-weight:bold;">Success!</span> Ready.`;
+            }
+
+            populatePeriodDropdown();
+            updateDashboard();
+        } catch (err) {
+            console.error("Initialization error:", err);
+            const errElem = document.getElementById('loaderStatusText');
+            if (errElem) errElem.innerHTML = `<span style="color:var(--krn-orange); font-weight:bold;">ERROR:</span> ${err.message}`;
+        } finally {
+            if (!document.getElementById('loaderStatusText').innerHTML.includes("ERROR")) {
+                setTimeout(() => {
+                    const loader = document.getElementById('loadingOverlay');
+                    if (loader) loader.classList.add('hidden');
+                }, 2200); 
+            }
+        }
+    }
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(init, 1);
+    } else {
+        window.addEventListener('DOMContentLoaded', init);
+        window.addEventListener('load', init);
+    }
+    
+    window.onresize = updateDashboard;
+</script>
+</body>
+</html>
