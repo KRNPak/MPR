@@ -655,8 +655,8 @@
                 </div>
                 <div class="control-group-row">
                     <div class="granularity-btn-group">
-                        <button class="gran-btn" id="btnMonthly" onclick="setGranularity('Monthly', this)">Monthly</button>
-                        <button class="gran-btn active" id="btnQuarterly" onclick="setGranularity('Quarterly', this)">Quarterly</button>
+                        <button class="gran-btn active" id="btnMonthly" onclick="setGranularity('Monthly', this)">Monthly</button>
+                        <button class="gran-btn" id="btnQuarterly" onclick="setGranularity('Quarterly', this)">Quarterly</button>
                         <button class="gran-btn" onclick="setGranularity('Yearly', this)">Yearly</button>
                     </div>
                     <div class="granularity-btn-group" style="flex: 0.6;">
@@ -820,9 +820,9 @@
     };
 
     let rawData = [];
-    let currentGranularity = 'Quarterly';
+    let currentGranularity = 'Monthly';
     let viewMode = 'QTD'; 
-    let selectedPeriod = 'Q1';
+    let selectedPeriod = 'Jul';
     let selectedDepartment = '';
     let isDarkMode = false; 
     let isSummaryView = true;
@@ -1056,7 +1056,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE (With Anti-Duplication Shield)
+    // 4. MULTI-LINK DATA PARSING ENGINE (With Fuzzy Fallbacks)
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1241,22 +1241,23 @@
             masterRecords[key].ActualDonors[finalDonor] = (masterRecords[key].ActualDonors[finalDonor] || 0) + actual;
         });
 
-        // 3. Admin TB Integrator (With Deduplication Shield)
+        // 3. Admin TB Integrator
         const processedAdminCodes = new Set();
         adminRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase().includes('heads') || k.toLowerCase().includes('acctsegment'));
             let code = String(r._raw[codeKey] || '').trim().toUpperCase();
             
-            // STRICT SHIELD: Ignore Subtotals, "Non Programme Cost", "Admin Cost", etc. 
-            if (!code || code === 'NAN' || code.includes('TOTAL') || code.length < 3) return;
-            
-            // ANTI-DOUBLE COUNTING SHIELD
-            if (processedAdminCodes.has(code)) return;
-            processedAdminCodes.add(code);
-            
             const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense'));
             const desc = String(r._raw[descKey] || '').trim();
 
+            if (!code || code.includes('TOTAL') || code === 'NAN') {
+                if (!desc || desc.toUpperCase().includes('TOTAL')) return;
+                code = desc.toUpperCase(); // Fallback code to description if missing
+            }
+            
+            if (processedAdminCodes.has(code)) return;
+            processedAdminCodes.add(code);
+            
             fiscalMonths.forEach(m => {
                 let mKey = Object.keys(r._raw).find(k => k.toLowerCase().startsWith(m.toLowerCase()));
                 if (mKey) {
@@ -1264,7 +1265,6 @@
                     if (actual !== 0) {
                          let mapping = coaMap[code];
                          
-                         // FUZZY MATCHER: If no direct code mapping, match text name to budget
                          if (!mapping) {
                              let foundKey = Object.keys(coaMap).find(k => {
                                  let cleanName = coaMap[k].Name.toLowerCase();
@@ -1894,6 +1894,8 @@
         try {
             const errElem = document.getElementById('loaderStatusText');
             
+            const cb = '&cb=' + Date.now(); 
+            
             if (errElem) errElem.innerText = "FETCHING BUDGET (1/5)...";
             const bRes = await fetch(config.budgetMasterCSV);
             if (!bRes.ok) throw new Error("Budget Master fetch failed");
@@ -1926,7 +1928,7 @@
             
             if (rawData.length === 0) throw new Error("No data parsed. Check CSV structures.");
             
-            // Auto-detect latest active Quarter
+            // Auto-detect latest active Month for Default Selection
             let maxMonthIdx = -1;
             rawData.forEach(r => {
                 if (Math.abs(r.Actual) > 0) {
@@ -1936,10 +1938,9 @@
             });
             
             if (maxMonthIdx >= 0) {
-                let latestMonth = fiscalMonths[maxMonthIdx];
-                selectedPeriod = quarterMap[latestMonth];
+                selectedPeriod = fiscalMonths[maxMonthIdx];
             } else {
-                selectedPeriod = 'Q1';
+                selectedPeriod = 'Jul';
             }
 
             if (errElem) {
