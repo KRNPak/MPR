@@ -1038,7 +1038,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE (With Anti-Duplication Shield)
+    // 4. MULTI-LINK DATA PARSING ENGINE (With Fuzzy Fallbacks & Splitting)
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1083,9 +1083,9 @@
 
         const coaMap = {}; 
         let pseudoCounter = 1;
+        const adminDonorRatios = {}; // Used to catch Admin Donors specifically from the TB
 
         // 1. Process Budget Master
-        const processedBudgetCodes = new Set();
         budgetRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase() === 'acct');
             const rawCode = codeKey ? r._raw[codeKey] : '';
@@ -1099,9 +1099,6 @@
             if (!code || code === 'NAN' || code === '') {
                 code = 'UNMAPPED_BUDGET_' + pseudoCounter++;
             }
-            
-            if (processedBudgetCodes.has(code)) return;
-            processedBudgetCodes.add(code);
 
             const stream = r['stream'] || r['expenseitems'] || r['workstream'] || 'General';
             const program = r['program'] || 'Unallocated';
@@ -1221,8 +1218,6 @@
                 if (code.startsWith('D')) mapping.Dept = 'Digital Financial Services';
             }
 
-            if (mapping.Dept.includes('Admin') || code.startsWith('H') || code.startsWith('S') || code.startsWith('SS')) return; 
-
             const donorKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('additionalsegmentdesc') || k.toLowerCase() === 'donor' || k.toLowerCase() === 'fund');
             let rawDonor = String(r._raw[donorKey] || r['additionalsegmentdesc'] || r['donor'] || mapping.Donor || 'OSR').trim();
             if (rawDonor === '' || rawDonor.toLowerCase() === 'nan' || rawDonor === '0' || rawDonor === 'undefined') rawDonor = 'OSR';
@@ -1234,6 +1229,15 @@
                     finalDonor = 'OSR';
                 }
             }
+
+            // Capture specific donor splits for Admin here to use later, but skip adding Admin actuals globally
+            let isAdmin = mapping.Dept.includes('Admin') || code.startsWith('H') || code.startsWith('S') || code.startsWith('SS');
+            if (isAdmin) { 
+                let k = `${month}|${code}`;
+                if (!adminDonorRatios[k]) adminDonorRatios[k] = {};
+                adminDonorRatios[k][finalDonor] = (adminDonorRatios[k][finalDonor] || 0) + actual;
+                return; 
+            } 
 
             const key = getKey(month, code, mapping.Program);
             if (!masterRecords[key]) {
@@ -1256,7 +1260,7 @@
             if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') return;
             code = code.trim().toUpperCase();
             
-            if (code.includes('TOTAL')) return;
+            if (code.includes('TOTAL') || code.length < 3) return;
             
             if (processedAdminCodes.has(code)) return;
             processedAdminCodes.add(code);
@@ -1296,7 +1300,23 @@
                              masterRecords[key] = { Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program, Code: mapping.Code || code, NaturalAccount: mapping.Name, Month: m, Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {} };
                          }
                          masterRecords[key].Actual += actual;
-                         masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
+                         
+                         // Apply the recorded ratio from the TB to specifically slice Admin Donors accurately
+                         let tbSplit = adminDonorRatios[`${m}|${code}`];
+                         if (tbSplit && Object.keys(tbSplit).length > 0) {
+                             let totalTb = Object.values(tbSplit).reduce((a,b) => a+b, 0);
+                             if (totalTb !== 0) {
+                                 Object.keys(tbSplit).forEach(d => {
+                                     let ratio = tbSplit[d] / totalTb;
+                                     let distActual = actual * ratio;
+                                     masterRecords[key].ActualDonors[d] = (masterRecords[key].ActualDonors[d] || 0) + distActual;
+                                 });
+                             } else {
+                                 masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
+                             }
+                         } else {
+                             masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
+                         }
                     }
                 }
             });
@@ -1518,7 +1538,6 @@
         const summaryDonutContainer = document.getElementById('summaryDonutContainer');
         if (summaryDonutContainer) {
             
-            // Generate EOD Dynamic Metrics based on Selected Month
             let targetMonthStr = '';
             if (currentGranularity === 'Monthly') targetMonthStr = selectedPeriod;
             else if (currentGranularity === 'Quarterly') {
@@ -1578,21 +1597,9 @@
                     
                 } else {
                     eodHtml = `
-                    <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid var(--border-color); width: 100%;">
-                        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.65rem;">
-                            <div style="display:flex; justify-content: space-between; align-items:center;">
-                                <span style="color:var(--text-secondary);">Last month</span>
-                                <strong style="color:var(--text-primary); font-size:0.8rem;">${lastMonthObj.pct.toFixed(2)}%</strong>
-                            </div>
-                            <div style="display:flex; justify-content: space-between; align-items:center;">
-                                <span style="color:var(--text-secondary);">3 months avg</span>
-                                <strong style="color:var(--text-primary); font-size:0.8rem;">${avg3.toFixed(2)}%</strong>
-                            </div>
-                            <div style="display:flex; justify-content: space-between; align-items:center;">
-                                <span style="color:var(--text-secondary);">12 months avg</span>
-                                <strong style="color:var(--text-primary); font-size:0.8rem;">${avg12.toFixed(2)}%</strong>
-                            </div>
-                        </div>
+                    <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid var(--border-color); width: 100%; text-align: center;">
+                        <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">EOD</div>
+                        <div style="font-size: 1.6rem; font-weight: bold; color: var(--krn-blue); font-family: 'Oswald', 'Chivo', sans-serif; line-height: 1;">${lastMonthObj.pct.toFixed(2)}%</div>
                     </div>`;
                 }
             } else {
@@ -2117,6 +2124,7 @@
             
             if (rawData.length === 0) throw new Error("No data parsed. Check CSV structures.");
             
+            // Auto-detect latest active Month for Default Selection
             let maxMonthIdx = -1;
             rawData.forEach(r => {
                 if (Math.abs(r.Actual) > 0) {
