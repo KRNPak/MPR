@@ -1,90 +1,90 @@
-Natural Account,Expense Items,GL Account Heads,Jul-26,Aug-26,Sep-26,Qtr1-27,Oct-26,Nov-26,Dec-26,Qtr2-27,Jan-27,Feb-27,Mar-27,Qtr3-27,Apr-27,May-27,Jun-27,Qtr4-27,2027
-,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,
-,Staff Cost - Total,,"66,297,298","71,056,366",0,########,0,0,0,0,0,0,0,0,0,0,0,0,########
-SS5H100,Staff cost,SS5H100-Staff Salaries,"48,220,237","49,693,488",0,"97,913,725",0,0,0,0,0,0,0,0,0,0,0,0,"97,913,725"
-SS5H200,,SS5H200-Staff Provident Fund,"4,795,685","4,899,183",0,"9,694,868",0,0,0,0,0,0,0,0,0,0,0,0,"9,694,868"
-SS5H300,,SS5H300-Staff Over time,"366,932","2,099,181",0,"2,466,113",0,0,0,0,0,0,0,0,0,0,0,0,"2,466,113"
-SS5H400,,SS5H400-Staff Car Monetization,"5,907,832","6,074,892",0,"11,982,724",0,0,0,0,0,0,0,0,0,0,0,0,"11,982,724"
-SS5H500,,SS5H500-Staff Child care assistance,"245,000","245,000",0,"490,000",0,0,0,0,0,0,0,0,0,0,0,0,"490,000"
-SS5H700,,SS5H700-Staff Arrears,"-40,629","-30,000",0,"-70,629",0,0,0,0,0,0,0,0,0,0,0,0,"-70,629"
-SS5H800,,SS5H800-Other Deductions,"255,000","245,000",0,"500,000",0,0,0,0,0,0,0,0,0,0,0,0,"500,000"
-SS5H900,,SS5H900-Other Reimbursement Expenses,"2,165,633","3,645,323",0,"5,810,956",0,0,0,0,0,0,0,0,0,0,0,0,"5,810,956"
-H123006,,H123006-EOBI Expense,"199,977","244,364",0,"444,341",0,0,0,0,0,0,0,0,0,0,0,0,"444,341"
-H123003,,H123003-Daily Wages,0,"12,000",0,"12,000",0,0,0,0,0,0,0,0,0,0,0,0,"12,000"
-H105001,,H105001-HR Consultancies & Internships,"593,085","173,536",0,"766,621",0,0,0,0,0,0,0,0,0,0,0,0,"766,621"
-H110002,,H110002-Health Insurance - Amortization,"2,964,585","3,441,439",0,"6,406,024",0,0,0,0,0,0,0,0,0,0,0,0,"6,406,024"
-H129021,,H129021-Life Insurance - Amortization,"193,961","193,960",0,"387,921",0,0,0,0,0,0,0,0,0,0,0,0,"387,921"
-SS5H600,,SS5H600-Performance payout,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-SS5H201,,SS5H201-Gratuity expense (Staff Salaries),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H126005,,H126005-SPOT recognition,"430,000","119,000",0,"549,000",0,0,0,0,0,0,0,0,0,0,0,0,"549,000"
-H123005,,H123005-Staff Training,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-,,,,,,,,,,,,,,,,,,,
-,Admin Cost,,"11,825,817","10,755,558",0,"22,581,375",0,0,0,0,0,0,0,0,0,0,0,0,"22,581,375"
-,Office Expenses Total,,"190,493","280,469",0,"470,962",0,0,0,0,0,0,0,0,0,0,0,0,"470,962"
-H116001,Office Expenses,Kitchen Supplies,"131,491","239,460",0,"370,951",0,0,0,0,0,0,0,0,0,0,0,0,"370,951"
-H116002,,Cleaning Material,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H116003,,Postage & Courier,0,"11,116",0,"11,116",0,0,0,0,0,0,0,0,0,0,0,0,"11,116"
-H116004,,Office Supplies,"59,002","29,893",0,"88,895",0,0,0,0,0,0,0,0,0,0,0,0,"88,895"
-H126001,Fee and subscription Total,Fee & Subscription,"1,000","145,884",0,"146,884",0,0,0,0,0,0,0,0,0,0,0,0,"146,884"
-H123007,Advertisement Cost Total,Advertisement Expenses,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H121002,Printing and Stationery Total,Stationery Printing,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-,Utilities Total,,"578,497","649,573",0,"1,228,070",0,0,0,0,0,0,0,0,0,0,0,0,"1,228,070"
-H106001,Utilities,Electricity,"331,664","303,326",0,"634,990",0,0,0,0,0,0,0,0,0,0,0,0,"634,990"
-H106002,,Telephone & Internet,"114,341","114,341",0,"228,682",0,0,0,0,0,0,0,0,0,0,0,0,"228,682"
-H106006,,Generator Expenses,"132,492","231,906",0,"364,398",0,0,0,0,0,0,0,0,0,0,0,0,"364,398"
-H117001,Office Rent Total,Office Rent- Islamabad,"3,165,602","3,165,602",0,"6,331,204",0,0,0,0,0,0,0,0,0,0,0,0,"6,331,204"
-,Repair and Maintenance Total,,360,"25,390",0,"25,750",0,0,0,0,0,0,0,0,0,0,0,0,"25,750"
-H124001,Repair and Maintenance,Office Repair & Maintenance,360,"25,390",0,"25,750",0,0,0,0,0,0,0,0,0,0,0,0,"25,750"
-H124002,,Equipment Repair & Maintenance,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-,Professional Charges Total,,"661,664","299,933",0,"961,597",0,0,0,0,0,0,0,0,0,0,0,0,"961,597"
-H122002,Professional Charges,External Audit,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H122010,,External Audit Fee - Group Audits,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H122003,,Internal Audit,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H122004,,Legal Charges,"604,164","120,833",0,"724,997",0,0,0,0,0,0,0,0,0,0,0,0,"724,997"
-H122005,,Out of Pocket Ext-Audit,0,"121,600",0,"121,600",0,0,0,0,0,0,0,0,0,0,0,0,"121,600"
-H122006,,Out of Pocket Internal-Audit,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H122007,,Tax Consultancy,"57,500","57,500",0,"115,000",0,0,0,0,0,0,0,0,0,0,0,0,"115,000"
-H122008,,PCP Professional Charges,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-,Travel Total,,"515,521","154,394",0,"669,915",0,0,0,0,0,0,0,0,0,0,0,0,"669,915"
-H104001,Travel,Travel,"263,105","64,394",0,"327,499",0,0,0,0,0,0,0,0,0,0,0,0,"327,499"
-H104002,,BoD-Travel,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H119003,,Perdiem,"252,416","90,000",0,"342,416",0,0,0,0,0,0,0,0,0,0,0,0,"342,416"
-H104003,,International travel,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H108001,,Road Transportation,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-,Boarding and Lodging Total,,"219,596","10,000",0,"229,596",0,0,0,0,0,0,0,0,0,0,0,0,"229,596"
-H119001,Boarding and Lodging,Boarding & Lodging,"46,864","10,000",0,"56,864",0,0,0,0,0,0,0,0,0,0,0,0,"56,864"
-H119002,,BoD-Boarding & Lodging,"172,732",0,0,"172,732",0,0,0,0,0,0,0,0,0,0,0,0,"172,732"
-,Meeting and Conferences Total,,"138,442","26,979",0,"165,421",0,0,0,0,0,0,0,0,0,0,0,0,"165,421"
-H115001,Meeting and Conferences,Meeting & Conferences,"138,442","26,979",0,"165,421",0,0,0,0,0,0,0,0,0,0,0,0,"165,421"
-,Vehicle OM Total,,"11,025","379,996",0,"391,021",0,0,0,0,0,0,0,0,0,0,0,0,"391,021"
-H108002,Vehicle OM,Vehicle Operations,700,"321,920",0,"322,620",0,0,0,0,0,0,0,0,0,0,0,0,"322,620"
-H108003,,Vehicle Maintenance,200,"23,804",0,"24,004",0,0,0,0,0,0,0,0,0,0,0,0,"24,004"
-H108004,,Vehicle Insurance - Amortization,"10,125","34,272",0,"44,397",0,0,0,0,0,0,0,0,0,0,0,0,"44,397"
-H128001,Guards and Janitorial services,Guards & Janitorial Services,"666,736","358,271",0,"1,025,007",0,0,0,0,0,0,0,0,0,0,0,0,"1,025,007"
-,Board and Committee Meetings Total,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H130003,Directors - Trainings & Workshops,Board and Committee Meetings,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H109001,,Directors - Trainings & Workshops,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H114001,,Investment / Credit Committee,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H118001,Asset Insurance Total,Amortization - Asset and Vehicles Insurance,"38,138","38,138",0,"76,277",0,0,0,0,0,0,0,0,0,0,0,0,"76,277"
-H129006,Directors and officers liability insurance,Directors & officers liability insurance,"271,192","271,192",0,"542,383",0,0,0,0,0,0,0,0,0,0,0,0,"542,383"
-,IT related costs Total,,"307,012","285,867",0,"592,879",0,0,0,0,0,0,0,0,0,0,0,0,"592,879"
-H116006,IT related costs,IT Supplies,"32,500","26,000",0,"58,500",0,0,0,0,0,0,0,0,0,0,0,0,"58,500"
-H125001,,Software Annual Support Services,"265,308","259,867",0,"525,175",0,0,0,0,0,0,0,0,0,0,0,0,"525,175"
-H116008,,Printer Monthly Rental and Usage,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H116007,,IT - Repair and Maintenance,"9,204",0,0,"9,204",0,0,0,0,0,0,0,0,0,0,0,0,"9,204"
-H125003,,ERP support and maintenance cost,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H122001,,IT Consultancy,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-,HR related costs Total,,"5,060,540","4,663,869",0,"9,724,410",0,0,0,0,0,0,0,0,0,0,0,0,"9,724,410"
-H106003,HR related costs,Communication reimbursement,"218,735","220,538",0,"439,273",0,0,0,0,0,0,0,0,0,0,0,0,"439,273"
-H106007,,Fuel reimbursement,"4,841,805","4,443,331",0,"9,285,136",0,0,0,0,0,0,0,0,0,0,0,0,"9,285,136"
-H118002,,"Job evaluation, survey & benchmarking",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H126003,,Rewards & Compensation Survey,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-,,,,,,,,,,,,,,,,,,,
-H128002,Corporate Social Responsibility,Corporate Social Responsibility,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-,,,,,,,,,,,,,,,,,,,
-,Capacity Building Total,,"549,368","4,252,196",0,"4,801,564",0,0,0,0,0,0,0,0,0,0,0,0,"4,801,564"
-H129031,Capacity Building of KRN,LT Gov Framework Exercise/Study,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H126002,Software Development and Maintenance,Employee Engagement,"41,261","15,720",0,"56,981",0,0,0,0,0,0,0,0,0,0,0,0,"56,981"
-H103002,Capacity Building,Capacity Building,"508,107","4,236,476",0,"4,744,583",0,0,0,0,0,0,0,0,0,0,0,0,"4,744,583"
+Natural Account,Expense Items,GL Account Heads,Jul-26,Aug-26,Sept-26,Oct-26,Nov-26,Dec-26,Jan-27,Feb-27,Mar-27,Apr-27,May-27,Jun-27
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,Staff Cost - Total,,"66,297,298","71,056,366",0,0,0,0,0,0,0,0,0,0
+SS5H100,Staff cost,SS5H100-Staff Salaries,"48,220,237","49,693,488",0,0,0,0,0,0,0,0,0,0
+SS5H200,,SS5H200-Staff Provident Fund,"4,795,685","4,899,183",0,0,0,0,0,0,0,0,0,0
+SS5H300,,SS5H300-Staff Over time,"366,932","2,099,181",0,0,0,0,0,0,0,0,0,0
+SS5H400,,SS5H400-Staff Car Monetization,"5,907,832","6,074,892",0,0,0,0,0,0,0,0,0,0
+SS5H500,,SS5H500-Staff Child care assistance,"245,000","245,000",0,0,0,0,0,0,0,0,0,0
+SS5H700,,SS5H700-Staff Arrears,"-40,629","-30,000",0,0,0,0,0,0,0,0,0,0
+SS5H800,,SS5H800-Other Deductions,"255,000","245,000",0,0,0,0,0,0,0,0,0,0
+SS5H900,,SS5H900-Other Reimbursement Expenses,"2,165,633","3,645,323",0,0,0,0,0,0,0,0,0,0
+H123006,,H123006-EOBI Expense,"199,977","244,364",0,0,0,0,0,0,0,0,0,0
+H123003,,H123003-Daily Wages,0,"12,000",0,0,0,0,0,0,0,0,0,0
+H105001,,H105001-HR Consultancies & Internships,"593,085","173,536",0,0,0,0,0,0,0,0,0,0
+H110002,,H110002-Health Insurance - Amortization,"2,964,585","3,441,439",0,0,0,0,0,0,0,0,0,0
+H129021,,H129021-Life Insurance - Amortization,"193,961","193,960",0,0,0,0,0,0,0,0,0,0
+SS5H600,,SS5H600-Performance payout,0,0,0,0,0,0,0,0,0,0,0,0
+SS5H201,,SS5H201-Gratuity expense (Staff Salaries),0,0,0,0,0,0,0,0,0,0,0,0
+H126005,,H126005-SPOT recognition,"430,000","119,000",0,0,0,0,0,0,0,0,0,0
+H123005,,H123005-Staff Training,0,0,0,0,0,0,0,0,0,0,0,0
+,,,,,,,,,,,,,,
+,Admin Cost,,"11,825,817","10,755,558",0,0,0,0,0,0,0,0,0,0
+,Office Expenses Total,,"190,493","280,469",0,0,0,0,0,0,0,0,0,0
+H116001,Office Expenses,Kitchen Supplies,"131,491","239,460",0,0,0,0,0,0,0,0,0,0
+H116002,,Cleaning Material,0,0,0,0,0,0,0,0,0,0,0,0
+H116003,,Postage & Courier,0,"11,116",0,0,0,0,0,0,0,0,0,0
+H116004,,Office Supplies,"59,002","29,893",0,0,0,0,0,0,0,0,0,0
+H126001,Fee and subscription Total,Fee & Subscription,"1,000","145,884",0,0,0,0,0,0,0,0,0,0
+H123007,Advertisement Cost Total,Advertisement Expenses,0,0,0,0,0,0,0,0,0,0,0,0
+H121002,Printing and Stationery Total,Stationery Printing,0,0,0,0,0,0,0,0,0,0,0,0
+,Utilities Total,,"578,497","649,573",0,0,0,0,0,0,0,0,0,0
+H106001,Utilities,Electricity,"331,664","303,326",0,0,0,0,0,0,0,0,0,0
+H106002,,Telephone & Internet,"114,341","114,341",0,0,0,0,0,0,0,0,0,0
+H106006,,Generator Expenses,"132,492","231,906",0,0,0,0,0,0,0,0,0,0
+H117001,Office Rent Total,Office Rent- Islamabad,"3,165,602","3,165,602",0,0,0,0,0,0,0,0,0,0
+,Repair and Maintenance Total,,360,"25,390",0,0,0,0,0,0,0,0,0,0
+H124001,Repair and Maintenance,Office Repair & Maintenance,360,"25,390",0,0,0,0,0,0,0,0,0,0
+H124002,,Equipment Repair & Maintenance,0,0,0,0,0,0,0,0,0,0,0,0
+,Professional Charges Total,,"661,664","299,933",0,0,0,0,0,0,0,0,0,0
+H122002,Professional Charges,External Audit,0,0,0,0,0,0,0,0,0,0,0,0
+H122010,,External Audit Fee - Group Audits,0,0,0,0,0,0,0,0,0,0,0,0
+H122003,,Internal Audit,0,0,0,0,0,0,0,0,0,0,0,0
+H122004,,Legal Charges,"604,164","120,833",0,0,0,0,0,0,0,0,0,0
+H122005,,Out of Pocket Ext-Audit,0,"121,600",0,0,0,0,0,0,0,0,0,0
+H122006,,Out of Pocket Internal-Audit,0,0,0,0,0,0,0,0,0,0,0,0
+H122007,,Tax Consultancy,"57,500","57,500",0,0,0,0,0,0,0,0,0,0
+H122008,,PCP Professional Charges,0,0,0,0,0,0,0,0,0,0,0,0
+,Travel Total,,"515,521","154,394",0,0,0,0,0,0,0,0,0,0
+H104001,Travel,Travel,"263,105","64,394",0,0,0,0,0,0,0,0,0,0
+H104002,,BoD-Travel,0,0,0,0,0,0,0,0,0,0,0,0
+H119003,,Perdiem,"252,416","90,000",0,0,0,0,0,0,0,0,0,0
+H104003,,International travel,0,0,0,0,0,0,0,0,0,0,0,0
+H108001,,Road Transportation,0,0,0,0,0,0,0,0,0,0,0,0
+,Boarding and Lodging Total,,"219,596","10,000",0,0,0,0,0,0,0,0,0,0
+H119001,Boarding and Lodging,Boarding & Lodging,"46,864","10,000",0,0,0,0,0,0,0,0,0,0
+H119002,,BoD-Boarding & Lodging,"172,732",0,0,0,0,0,0,0,0,0,0,0
+,Meeting and Conferences Total,,"138,442","26,979",0,0,0,0,0,0,0,0,0,0
+H115001,Meeting and Conferences,Meeting & Conferences,"138,442","26,979",0,0,0,0,0,0,0,0,0,0
+,Vehicle OM Total,,"11,025","379,996",0,0,0,0,0,0,0,0,0,0
+H108002,Vehicle OM,Vehicle Operations,700,"321,920",0,0,0,0,0,0,0,0,0,0
+H108003,,Vehicle Maintenance,200,"23,804",0,0,0,0,0,0,0,0,0,0
+H108004,,Vehicle Insurance - Amortization,"10,125","34,272",0,0,0,0,0,0,0,0,0,0
+H128001,Guards and Janitorial services,Guards & Janitorial Services,"666,736","358,271",0,0,0,0,0,0,0,0,0,0
+,Board and Committee Meetings Total,,0,0,0,0,0,0,0,0,0,0,0,0
+H130003,Directors - Trainings & Workshops,Board and Committee Meetings,0,0,0,0,0,0,0,0,0,0,0,0
+H109001,,Directors - Trainings & Workshops,0,0,0,0,0,0,0,0,0,0,0,0
+H114001,,Investment / Credit Committee,0,0,0,0,0,0,0,0,0,0,0,0
+H118001,Asset Insurance Total,Amortization - Asset and Vehicles Insurance,"38,138","38,138",0,0,0,0,0,0,0,0,0,0
+H129006,Directors and officers liability insurance,Directors & officers liability insurance,"271,192","271,192",0,0,0,0,0,0,0,0,0,0
+,IT related costs Total,,"307,012","285,867",0,0,0,0,0,0,0,0,0,0
+H116006,IT related costs,IT Supplies,"32,500","26,000",0,0,0,0,0,0,0,0,0,0
+H125001,,Software Annual Support Services,"265,308","259,867",0,0,0,0,0,0,0,0,0,0
+H116008,,Printer Monthly Rental and Usage,0,0,0,0,0,0,0,0,0,0,0,0
+H116007,,IT - Repair and Maintenance,"9,204",0,0,0,0,0,0,0,0,0,0,0
+H125003,,ERP support and maintenance cost,0,0,0,0,0,0,0,0,0,0,0,0
+H122001,,IT Consultancy,0,0,0,0,0,0,0,0,0,0,0,0
+,HR related costs Total,,"5,060,540","4,663,869",0,0,0,0,0,0,0,0,0,0
+H106003,HR related costs,Communication reimbursement,"218,735","220,538",0,0,0,0,0,0,0,0,0,0
+H106007,,Fuel reimbursement,"4,841,805","4,443,331",0,0,0,0,0,0,0,0,0,0
+H118002,,"Job evaluation, survey & benchmarking",0,0,0,0,0,0,0,0,0,0,0,0
+H126003,,Rewards & Compensation Survey,0,0,0,0,0,0,0,0,0,0,0,0
+,,,,,,,,,,,,,,
+H128002,Corporate Social Responsibility,Corporate Social Responsibility,0,0,0,0,0,0,0,0,0,0,0,0
+,,,,,,,,,,,,,,
+,Capacity Building Total,,"549,368","4,252,196",0,0,0,0,0,0,0,0,0,0
+H129031,Capacity Building of KRN,LT Gov Framework Exercise/Study,0,0,0,0,0,0,0,0,0,0,0,0
+H126002,Software Development and Maintenance,Employee Engagement,"41,261","15,720",0,0,0,0,0,0,0,0,0,0
+H103002,Capacity Building,Capacity Building,"508,107","4,236,476",0,0,0,0,0,0,0,0,0,0
