@@ -822,6 +822,7 @@
         if (clean === 'DI' || clean.includes('DIGITAL INCLUSION')) return 3;
         if (clean === 'RMC' || clean.includes('RESEARCH')) return 4;
         if (clean === 'STAFF AND ADMIN' || clean.includes('STAFF') || clean.includes('ADMIN')) return 5;
+        if (clean === 'CAPEX' || clean.includes('CAPITAL')) return 6;
         return 999;
     }
 
@@ -1039,7 +1040,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE 
+    // 4. MULTI-LINK DATA PARSING ENGINE (With Fuzzy Fallbacks & Splitting)
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1124,7 +1125,7 @@
             }
 
             // CAPITAL COST FULL YEARLY BYPASS
-            let isCapital = dept.toLowerCase().includes('capital') || stream.toLowerCase().includes('capital');
+            let isCapital = dept.toLowerCase().includes('capital') || stream.toLowerCase().includes('capital') || dept.toLowerCase().includes('capex') || stream.toLowerCase().includes('capex');
 
             if (isCapital) {
                 let yBud = getSafeNum(r['yearlybudget']) || getSafeNum(r['totalbudget']) || getSafeNum(r['budget']) || getSafeNum(r['total']) || getSafeNum(r['annual']) || getSafeNum(r['annualbudget']);
@@ -1254,19 +1255,27 @@
         // 3. Admin TB Integrator
         const processedAdminCodes = new Set();
         adminRows.forEach(r => {
-            const codeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'natural account' || k.toLowerCase() === 'accountcode' || k.toLowerCase().includes('natural'));
-            let code = r._raw[codeKey];
+            const codeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'natural account' || k.toLowerCase() === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code');
+            const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense'));
             
-            if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') return;
-            code = code.trim().toUpperCase();
+            let code = codeKey ? r._raw[codeKey] : '';
+            const desc = String(descKey ? r._raw[descKey] : '').trim();
+
+            if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') {
+                if (!desc || desc.toUpperCase().includes('TOTAL') || desc.toUpperCase().includes('SUBTOTAL')) return;
+                code = desc.toUpperCase(); // Fallback to description
+            } else {
+                code = code.trim().toUpperCase();
+            }
             
-            if (code.includes('TOTAL') || code.length < 3) return;
+            // STRICT SHIELD: Ignore Subtotals, but ALLOW "Transaction Cost" even if it lacks a standard code
+            let isTotal = (code.includes('TOTAL') || desc.toUpperCase().includes('TOTAL'));
+            let isTransaction = (code.includes('TRANSACTION') || desc.toUpperCase().includes('TRANSACTION'));
+            
+            if (isTotal && !isTransaction) return; 
             
             if (processedAdminCodes.has(code)) return;
             processedAdminCodes.add(code);
-            
-            const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense'));
-            const desc = String(r._raw[descKey] || '').trim();
 
             fiscalMonths.forEach(m => {
                 let mKey = Object.keys(r._raw).find(k => {
@@ -1360,18 +1369,23 @@
         if (capexRows) {
             capexRows.forEach(r => {
                 const codeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'natural account' || k.toLowerCase() === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code');
-                let code = r._raw[codeKey];
+                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense') || k.toLowerCase().includes('desc'));
                 
-                if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') return;
-                code = code.trim().toUpperCase();
+                let code = codeKey ? r._raw[codeKey] : '';
+                const desc = String(descKey ? r._raw[descKey] : '').trim();
+
+                if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') {
+                    if (!desc || desc.toUpperCase().includes('TOTAL') || desc.toUpperCase().includes('SUBTOTAL')) return;
+                    code = desc.toUpperCase(); 
+                } else {
+                    code = code.trim().toUpperCase();
+                }
                 
-                if (code.includes('TOTAL') || code.length < 3) return;
+                let isTotal = (code.includes('TOTAL') || desc.toUpperCase().includes('TOTAL'));
+                if (isTotal) return;
                 
                 if (processedCapexCodes.has(code)) return;
                 processedCapexCodes.add(code);
-                
-                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense') || k.toLowerCase().includes('desc'));
-                const desc = String(r._raw[descKey] || '').trim();
 
                 fiscalMonths.forEach(m => {
                     let mKey = Object.keys(r._raw).find(k => {
@@ -1396,7 +1410,11 @@
                                  if (foundKey) {
                                      mapping = coaMap[foundKey];
                                  } else {
-                                     mapping = { Dept: 'Capital Cost', Stream: desc || 'Capital Expenditure', Name: desc || code, Program: 'Unallocated', Donor: 'OSR', Code: code };
+                                     let capexDeptName = 'CAPEX';
+                                     let existingCapex = Object.values(coaMap).find(mapObj => mapObj.Dept.toUpperCase().includes('CAPEX') || mapObj.Dept.toUpperCase().includes('CAPITAL'));
+                                     if (existingCapex) capexDeptName = existingCapex.Dept;
+
+                                     mapping = { Dept: capexDeptName, Stream: desc || 'Capital Expenditure', Name: desc || code, Program: 'Unallocated', Donor: 'OSR', Code: code };
                                  }
                              }
 
