@@ -2249,5 +2249,161 @@
     
     window.onresize = updateDashboard;
 </script>
+<script>
+/* --- CSV loader + normalization (uses PapaParse) --- */
+
+const CSVS_TO_LOAD = [
+  { key: 'budgetMasterCSV', path: config.budgetMasterCSV },
+  { key: 'tbDonorCSV', path: config.tbDonorCSV },
+  { key: 'tbProgramCSV', path: config.tbProgramCSV },
+  { key: 'adminCSV', path: config.adminCSV },
+  { key: 'iiCSV', path: config.iiCSV },
+  { key: 'cicCSV', path: config.cicCSV },
+  { key: 'eodCSV', path: config.eodCSV },
+  { key: 'capexCSV', path: config.capexCSV }
+];
+
+// Improved numeric sanitizer — returns integer PKR
+function improvedGetSafeNum(val) {
+  if (val === undefined || val === null) return 0;
+  let str = String(val).trim().replace(/\u00A0/g, ''); // remove NBSP
+  if (str === '' || str === '-') return 0;
+  // support trailing shorthand like "1.2M" or "350K" (optional)
+  let mul = 1;
+  const last = str.slice(-1).toUpperCase();
+  if (last === 'M') { mul = 1_000_000; str = str.slice(0, -1); }
+  if (last === 'K') { mul = 1_000; str = str.slice(0, -1); }
+  const isNegative = (str.indexOf('(') >= 0 && str.indexOf(')') >= 0) || str.trim().startsWith('-');
+  // remove everything except digits, dot and minus
+  const cleaned = str.replace(/[^\d.\-]/g, '');
+  const num = parseFloat(cleaned);
+  if (isNaN(num)) return 0;
+  const final = (isNegative && num > 0) ? -num : num;
+  return Math.round(final * mul);
+}
+
+// Canonicalize a parsed CSV row into the app's shape.
+// Returns { Department, Program, Stream, AccountCode, AccountName, Donor, months: {Jul...Jun}, FYBudget }
+function normalizeBudgetRow(row) {
+  const monthKeys = ['Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun'];
+  const canonical = {
+    Department: (row['Department'] || row['DEPARTMENT'] || row['department'] || '').trim(),
+    Program: (row['Program'] || row['PROGRAM'] || '').trim(),
+    Stream: (row['Stream'] || row['STREAM'] || '').trim(),
+    AccountCode: (row['Account code'] || row['AccountCode'] || row['Account Code'] || '').trim(),
+    AccountName: (row['Account Name'] || row['AccountName'] || row['Account'] || '').trim(),
+    Donor: (row['Donor'] || row['donor'] || '').trim(),
+    months: {}
+  };
+
+  // try to find direct month columns (case-insensitive)
+  const headers = Object.keys(row || {});
+  const hasDirectMonths = monthKeys.some(m => headers.some(h => h && h.trim().toLowerCase() === m.toLowerCase()));
+
+  if (hasDirectMonths) {
+    monthKeys.forEach(m => {
+      const header = headers.find(h => h && h.trim().toLowerCase() === m.toLowerCase());
+      canonical.months[m] = improvedGetSafeNum(header ? row[header] : 0);
+    });
+  } else {
+    // fallback: look for Q1..Q4 columns and distribute evenly across months in quarter
+    const qHeaders = {};
+    headers.forEach(h => {
+      if (!h) return;
+      const hh = h.trim().toUpperCase();
+      if (hh.includes('Q1')) qHeaders.Q1 = h;
+      if (hh.includes('Q2')) qHeaders.Q2 = h;
+      if (hh.includes('Q3')) qHeaders.Q3 = h;
+      if (hh.includes('Q4')) qHeaders.Q4 = h;
+    });
+
+    if (Object.keys(qHeaders).length > 0) {
+      const quarterToMonths = { Q1: ['Jul','Aug','Sep'], Q2: ['Oct','Nov','Dec'], Q3: ['Jan','Feb','Mar'], Q4: ['Apr','May','Jun'] };
+      Object.entries(quarterToMonths).forEach(([q, months]) => {
+        const rawVal = qHeaders[q] ? improvedGetSafeNum(row[qHeaders[q]]) : 0;
+        const perMonth = Math.round(rawVal / months.length);
+        months.forEach(m => canonical.months[m] = perMonth);
+      });
+    } else {
+      // no months or quarters found — try any column named "Budget" or "Q1 Budget" etc as sensible fallback
+      monthKeys.forEach(m => canonical.months[m] = 0);
+    }
+  }
+
+  canonical.FYBudget = Object.values(canonical.months).reduce((a,b) => a + (parseInt(b)||0), 0);
+  canonical.__raw = row;
+  return canonical;
+}
+
+function validateParsedData(rows) {
+  const missingDept = rows.filter(r => !r.Department);
+  if (missingDept.length) {
+    console.warn('Parsed rows with missing Department:', missingDept.length);
+  }
+  const totalBudget = rows.reduce((s, r) => s + (r.FYBudget || 0), 0);
+  console.debug('Normalized rows:', rows.length, 'Total FYBudget (PKR):', totalBudget);
+  const statusEl = document.getElementById('loaderStatusText');
+  if (statusEl) {
+    statusEl.innerText = `Loaded ${rows.length} rows • Total budget ${Math.round(totalBudget/1e6)} M PKR`;
+  }
+}
+
+function loadAllCSVsAndNormalize(onComplete) {
+  if (typeof Papa === 'undefined') {
+    console.error('PapaParse not loaded — cannot parse CSVs.');
+    if (typeof onComplete === 'function') onComplete();
+    return;
+  }
+
+  const promises = CSVS_TO_LOAD.map(cfg => {
+    return new Promise(resolve => {
+      Papa.parse(cfg.path, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: h => h && h.trim(),
+        complete: (results) => {
+          console.debug(`Parsed ${cfg.path}: ${results.data.length} rows`);
+          const normalized = (results.data || []).map(r => normalizeBudgetRow(r));
+          resolve({ key: cfg.key, rows: normalized });
+        },
+        error: (err) => {
+          console.error('CSV parse error for', cfg.path, err);
+          resolve({ key: cfg.key, rows: [] });
+        }
+      });
+    });
+  });
+
+  Promise.all(promises).then(all => {
+    // merge into rawData while preserving existing structure (append)
+    rawData = []; // reset to normalized set
+    all.forEach(item => {
+      rawData = rawData.concat(item.rows || []);
+    });
+    validateParsedData(rawData);
+
+    // call existing dashboard update/render function if present
+    if (typeof updateDashboard === 'function') {
+      try { updateDashboard(); } catch (e) { console.error('updateDashboard error', e); }
+    } else if (typeof renderCard3Details === 'function') {
+      try { renderCard3Details(); } catch (e) { console.error('renderCard3Details error', e); }
+    }
+
+    // hide loading overlay
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.classList.add('hidden');
+
+    if (typeof onComplete === 'function') onComplete();
+  });
+}
+
+// Start loader on page ready (defensive)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => loadAllCSVsAndNormalize());
+} else {
+  loadAllCSVsAndNormalize();
+}
+</script>
 </body>
 </html>
