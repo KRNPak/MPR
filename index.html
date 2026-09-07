@@ -29,7 +29,7 @@
             --badge-primary: rgba(0, 104, 144, 0.2); 
             --badge-orange: rgba(249, 115, 22, 0.15);
 
-            /* LIGHT THEME - Contrast Improved */
+            /* LIGHT THEME */
             --bg-page-light: #f4f6f8;
             --bg-card-light: #ffffff;
             --bg-header-light: #ffffff;
@@ -270,7 +270,6 @@
 
         /* ---------------- LIST & GRID CONTAINERS ---------------- */
         
-        /* OVERVIEW CARD DONUT LAYOUT */
         #card3DonutContainer {
             display: flex; 
             gap: 20px; 
@@ -288,7 +287,6 @@
             margin-bottom: 6px;
         }
 
-        /* SQUARE GRID FOR DEPARTMENTS (CARD 2) */
         .dept-grid-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -380,7 +378,6 @@
             margin-top: 2px;
         }
 
-        /* SQUARE GRID FOR STREAMS (CARD 3) */
         .stream-grid-container {
             display: grid;
             grid-template-columns: repeat(3, 1fr); 
@@ -688,18 +685,7 @@
                     </div>
                     
                     <div class="donuts-triplet-container" id="summaryDonutContainer" style="grid-template-columns: repeat(3, 1fr);">
-                        <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
-                            <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">BvA</div>
-                            <div id="periodBvaDonut" style="width: 100%;"></div>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
-                            <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Spent (Donor)</div>
-                            <div id="periodActualDonorDonut" style="width: 100%;"></div>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
-                            <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Budget (Donor)</div>
-                            <div id="periodBudgetDonorDonut" style="width: 100%;"></div>
-                        </div>
+                        <!-- Managed dynamically via JS depending on view state -->
                     </div>
                 </div>
 
@@ -777,20 +763,14 @@
             </div>
         </div>
 
-        <div id="modalSummaryStats" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; flex-shrink: 0;">
-            <!-- Summary metrics injected here -->
+        <div id="modalSummaryStats" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; flex-shrink: 0;">
+            <!-- Summary metrics injected here dynamically -->
         </div>
 
         <div class="table-wrapper">
             <table class="detail-table">
                 <thead>
-                    <tr>
-                        <th>Month</th>
-                        <th>Account Name</th>
-                        <th>Budget</th>
-                        <th id="modalActualCol">Actual</th>
-                        <th>Variance</th>
-                    </tr>
+                    <!-- Headers managed by JS for cross-tab mode -->
                 </thead>
                 <tbody id="modalTableBody"></tbody>
             </table>
@@ -826,7 +806,7 @@
     let selectedDepartment = '';
     let isDarkMode = false; 
     let isSummaryView = true;
-    let currentModalData = []; 
+    let currentModalData = {}; 
 
     const getBrandColors = () => ['#006890', '#4a96d2', '#f97316', '#f6a505', '#14532d', '#06969c'];
 
@@ -1056,7 +1036,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE (With Fuzzy Fallbacks)
+    // 4. MULTI-LINK DATA PARSING ENGINE 
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1139,41 +1119,61 @@
                 q4 = getSafeNum(r._raw[q4_1_key]);
             }
 
-            if (q1 === 0 && q2 === 0 && q3 === 0 && q4 === 0) {
-                let yKey = Object.keys(r._raw).find(k => {
-                    let clean = k.toLowerCase().replace(/[^a-z]/g, '');
-                    return clean === 'yearlybudget' || clean === 'totalbudget' || clean === 'budget' || clean === 'total' || clean === 'annual' || clean === 'annualbudget';
-                });
-                if (yKey) {
-                    let yBud = getSafeNum(r._raw[yKey]);
-                    q1 = q2 = q3 = q4 = yBud / 4;
+            // CAPITAL COST FULL YEARLY BYPASS
+            let isCapital = dept.toLowerCase().includes('capital') || stream.toLowerCase().includes('capital');
+
+            if (isCapital) {
+                let yBud = getSafeNum(r['yearlybudget']) || getSafeNum(r['totalbudget']) || getSafeNum(r['budget']) || getSafeNum(r['total']) || getSafeNum(r['annual']) || getSafeNum(r['annualbudget']);
+                if (yBud === 0) yBud = (q1 + q2 + q3 + q4);
+                
+                const key = getKey('ALL_MONTHS', code, program);
+                if (!masterRecords[key]) {
+                    masterRecords[key] = {
+                        Department: dept, Stream: stream, Program: program,
+                        Code: code, NaturalAccount: accName, Month: 'ALL_MONTHS',
+                        Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
+                    };
                 }
-            }
-
-            const qToMonths = { 
-                'Q1': ['Jul','Aug','Sep'], 
-                'Q2': ['Oct','Nov','Dec'], 
-                'Q3': ['Jan','Feb','Mar'], 
-                'Q4': ['Apr','May','Jun'] 
-            };
-
-            const qs = {'Q1': q1, 'Q2': q2, 'Q3': q3, 'Q4': q4};
-            Object.keys(qs).forEach(q => {
-                if (qs[q] === 0) return;
-                let monthlyBud = qs[q] / 3;
-                qToMonths[q].forEach(m => {
-                    const key = getKey(m, code, program);
-                    if (!masterRecords[key]) {
-                        masterRecords[key] = {
-                            Department: dept, Stream: stream, Program: program,
-                            Code: code, NaturalAccount: accName, Month: m,
-                            Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
-                        };
+                masterRecords[key].Budget += yBud;
+                masterRecords[key].BudgetDonors[donor] = (masterRecords[key].BudgetDonors[donor] || 0) + yBud;
+                
+            } else {
+                if (q1 === 0 && q2 === 0 && q3 === 0 && q4 === 0) {
+                    let yKey = Object.keys(r._raw).find(k => {
+                        let clean = k.toLowerCase().replace(/[^a-z]/g, '');
+                        return clean === 'yearlybudget' || clean === 'totalbudget' || clean === 'budget' || clean === 'total' || clean === 'annual' || clean === 'annualbudget';
+                    });
+                    if (yKey) {
+                        let yBud = getSafeNum(r._raw[yKey]);
+                        q1 = q2 = q3 = q4 = yBud / 4;
                     }
-                    masterRecords[key].Budget += monthlyBud;
-                    masterRecords[key].BudgetDonors[donor] = (masterRecords[key].BudgetDonors[donor] || 0) + monthlyBud;
+                }
+
+                const qToMonths = { 
+                    'Q1': ['Jul','Aug','Sep'], 
+                    'Q2': ['Oct','Nov','Dec'], 
+                    'Q3': ['Jan','Feb','Mar'], 
+                    'Q4': ['Apr','May','Jun'] 
+                };
+
+                const qs = {'Q1': q1, 'Q2': q2, 'Q3': q3, 'Q4': q4};
+                Object.keys(qs).forEach(q => {
+                    if (qs[q] === 0) return;
+                    let monthlyBud = qs[q] / 3;
+                    qToMonths[q].forEach(m => {
+                        const key = getKey(m, code, program);
+                        if (!masterRecords[key]) {
+                            masterRecords[key] = {
+                                Department: dept, Stream: stream, Program: program,
+                                Code: code, NaturalAccount: accName, Month: m,
+                                Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
+                            };
+                        }
+                        masterRecords[key].Budget += monthlyBud;
+                        masterRecords[key].BudgetDonors[donor] = (masterRecords[key].BudgetDonors[donor] || 0) + monthlyBud;
+                    });
                 });
-            });
+            }
         });
 
         // 2. Parse Donor TB
@@ -1252,7 +1252,7 @@
 
             if (!code || code.includes('TOTAL') || code === 'NAN') {
                 if (!desc || desc.toUpperCase().includes('TOTAL')) return;
-                code = desc.toUpperCase(); // Fallback code to description if missing
+                code = desc.toUpperCase();
             }
             
             if (processedAdminCodes.has(code)) return;
@@ -1350,6 +1350,7 @@
             document.body.classList.add('view-details');
             document.getElementById('btnBackToSummary').style.display = 'inline-block';
         }
+        updateDashboard(); 
     }
 
     function setGranularity(type, btn) {
@@ -1416,7 +1417,12 @@
         renderCard3Details();
     }
 
-    function isRowInViewScope(monthStr) {
+    function isRowInViewScope(r) {
+        const monthStr = r.Month || r.Month;
+        
+        // Capital Cost Budget Bypass
+        if (monthStr === 'ALL_MONTHS') return true; 
+
         if (currentGranularity === 'Yearly' || selectedPeriod === 'FY Total') return true;
         const rMonthIdx = fiscalMonths.indexOf(monthStr);
         if (rMonthIdx === -1) return false;
@@ -1473,7 +1479,7 @@
         document.getElementById('lblPeriodBudget').innerText = `${viewMode} Budget`;
         document.getElementById('lblPeriodActual').innerText = `${viewMode} Actual`;
 
-        const filteredRows = rawData.filter(r => isRowInViewScope(r.Month));
+        const filteredRows = rawData.filter(r => isRowInViewScope(r));
 
         let card1Budget = 0, card1Actual = 0;
         const periodActualDonors = {};
@@ -1495,36 +1501,62 @@
 
         bvaData.push({ label: 'Spent', value: card1Actual, color: 'var(--krn-blue)' });
         bvaData.push({ label: 'Remaining', value: Math.max(0, card1Budget - card1Actual), color: 'var(--border-color)' });
-
-        renderSvgDonut('periodBvaDonut', bvaData, { pct: bvaPct, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPct)}%</strong>`, false);
         
         const currentBrandColors = getBrandColors();
         const pActDonItems = Object.keys(periodActualDonors).filter(d => periodActualDonors[d] > 0).map((d, i) => ({ label: d, value: periodActualDonors[d], color: currentBrandColors[i % currentBrandColors.length] }));
-        renderSvgDonut('periodActualDonorDonut', pActDonItems, null, null, true);
-
         const pBudDonItems = Object.keys(periodBudgetDonors).filter(d => periodBudgetDonors[d] > 0).map((d, i) => ({ label: d, value: periodBudgetDonors[d], color: currentBrandColors[i % currentBrandColors.length] }));
-        renderSvgDonut('periodBudgetDonorDonut', pBudDonItems, null, null, true);
 
         const summaryDonutContainer = document.getElementById('summaryDonutContainer');
         if (summaryDonutContainer) {
-            summaryDonutContainer.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
-                    <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">BvA</div>
-                    <div id="periodBvaDonut" style="width: 100%;"></div>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
-                    <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Spent (Donor)</div>
-                    <div id="periodActualDonorDonut" style="width: 100%;"></div>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
-                    <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Budget (Donor)</div>
-                    <div id="periodBudgetDonorDonut" style="width: 100%;"></div>
-                </div>
-            `;
-
-            renderSvgDonut('periodBvaDonut', bvaData, { pct: bvaPct, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPct)}%</strong>`, false);
-            renderSvgDonut('periodActualDonorDonut', pActDonItems, null, null, true);
-            renderSvgDonut('periodBudgetDonorDonut', pBudDonItems, null, null, true);
+            if (isSummaryView) {
+                summaryDonutContainer.style.display = 'grid';
+                summaryDonutContainer.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
+                        <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">BvA</div>
+                        <div id="periodBvaDonut" style="width: 100%;"></div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
+                        <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Spent (Donor)</div>
+                        <div id="periodActualDonorDonut" style="width: 100%;"></div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
+                        <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Budget (Donor)</div>
+                        <div id="periodBudgetDonorDonut" style="width: 100%;"></div>
+                    </div>
+                `;
+                renderSvgDonut('periodBvaDonut', bvaData, { pct: bvaPct, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPct)}%</strong>`, false);
+                renderSvgDonut('periodActualDonorDonut', pActDonItems, null, null, true);
+                renderSvgDonut('periodBudgetDonorDonut', pBudDonItems, null, null, true);
+                
+                let placeholder = document.getElementById('eodPlaceholder');
+                if (placeholder) placeholder.remove();
+                
+            } else {
+                summaryDonutContainer.style.display = 'flex';
+                summaryDonutContainer.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
+                        <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Spent (Donor)</div>
+                        <div id="periodActualDonorDonut" style="width: 100%;"></div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
+                        <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Budget (Donor)</div>
+                        <div id="periodBudgetDonorDonut" style="width: 100%;"></div>
+                    </div>
+                `;
+                renderSvgDonut('periodActualDonorDonut', pActDonItems, { pct: bvaPct, label: 'SPENT' }, null, true);
+                renderSvgDonut('periodBudgetDonorDonut', pBudDonItems, { pct: Math.max(0, 100 - bvaPct), label: 'REMAINING' }, null, true);
+                
+                let placeholder = document.getElementById('eodPlaceholder');
+                if (!placeholder) {
+                    placeholder = document.createElement('div');
+                    placeholder.id = 'eodPlaceholder';
+                    placeholder.style.marginTop = '20px';
+                    placeholder.style.padding = '15px';
+                    placeholder.style.borderTop = '1px solid var(--border-color)';
+                    placeholder.innerHTML = '<div style="font-size:0.65rem; font-weight:bold; color:var(--text-secondary); text-align:center;">EOD DATA TABLE PLACEHOLDER</div><div style="font-size:0.55rem; color:var(--text-secondary); text-align:center; margin-top:4px;">(Will fetch from EOD.csv)</div>';
+                    summaryDonutContainer.parentNode.appendChild(placeholder);
+                }
+            }
         }
 
         document.getElementById('thActualCol').innerText = 'Actual';
@@ -1547,7 +1579,7 @@
         });
 
         rawData.forEach(r => {
-            if (!deptAgg[r.Department]) return; 
+            if (!deptAgg[r.Department] || r.Month === 'ALL_MONTHS') return; 
             if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
             deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
         });
@@ -1590,7 +1622,7 @@
         });
 
         rawData.forEach(r => {
-            if (!deptAgg[r.Department]) return; 
+            if (!deptAgg[r.Department] || r.Month === 'ALL_MONTHS') return; 
             if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
             deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
         });
@@ -1661,7 +1693,7 @@
     }
 
     function renderCard3Details(displayRows = null) {
-        if (!displayRows) displayRows = rawData.filter(r => isRowInViewScope(r.Month));
+        if (!displayRows) displayRows = rawData.filter(r => isRowInViewScope(r));
 
         document.getElementById('card3Title').innerText = `Overview`;
         const sortMode = document.getElementById('sortStream').value;
@@ -1681,7 +1713,10 @@
             
             if (!groupAgg[gKey]) groupAgg[gKey] = { b: 0, a: 0, monthlyTrend: {} };
             groupAgg[gKey].b += r.Budget; groupAgg[gKey].a += r.Actual;
-            groupAgg[gKey].monthlyTrend[r.Month] = (groupAgg[gKey].monthlyTrend[r.Month] || 0) + r.Actual;
+            
+            if (r.Month !== 'ALL_MONTHS') {
+                groupAgg[gKey].monthlyTrend[r.Month] = (groupAgg[gKey].monthlyTrend[r.Month] || 0) + r.Actual;
+            }
             
             Object.keys(r.ActualDonors).forEach(k => dActDon[k] = (dActDon[k] || 0) + r.ActualDonors[k]);
             Object.keys(r.BudgetDonors).forEach(k => dBudDon[k] = (dBudDon[k] || 0) + r.BudgetDonors[k]);
@@ -1725,7 +1760,6 @@
 
         const streamContainer = document.getElementById('streamListContainer');
         streamContainer.innerHTML = '';
-        document.getElementById('listLabel').innerText = 'Streams & Workstreams (Click to drill)';
         
         let sortedGroups = Object.keys(groupAgg).filter(g => groupAgg[g].b !== 0 || groupAgg[g].a !== 0);
         if (sortMode === 'Spend') sortedGroups.sort((a, b) => groupAgg[b].a - groupAgg[a].a);
@@ -1797,18 +1831,28 @@
         document.getElementById('modalStreamTitle').innerText = `Account Details: ${groupName}`;
         document.getElementById('modalStreamSubtitle').innerText = `${viewMode}: ${selectedPeriod}`;
 
-        const rows = rawData.filter(r => r.Department === selectedDepartment && r[groupType] === groupName && isRowInViewScope(r.Month));
+        const rows = rawData.filter(r => r.Department === selectedDepartment && r[groupType] === groupName && isRowInViewScope(r));
 
-        const naAggMap = {};
+        currentModalData = {};
         let tB = 0, tA = 0;
+        
+        window.activeModalMonths = fiscalMonths.filter(m => isRowInViewScope({Month: m}));
 
         rows.forEach(r => {
-            const key = `${r.Month}_${r.NaturalAccount}`; 
-            if (!naAggMap[key]) naAggMap[key] = { month: r.Month, na: r.NaturalAccount, code: r.Code, b: 0, a: 0 };
-            naAggMap[key].b += r.Budget;
-            naAggMap[key].a += r.Actual;
-            tB += r.Budget; tA += r.Actual;
+            const code = r.Code; 
+            if (!currentModalData[code]) { 
+                currentModalData[code] = { na: r.NaturalAccount, code: r.Code, budget: 0, actuals: {} };
+                window.activeModalMonths.forEach(m => currentModalData[code].actuals[m] = 0);
+            }
+            currentModalData[code].budget += r.Budget;
+            if(r.Month !== 'ALL_MONTHS') {
+                currentModalData[code].actuals[r.Month] = (currentModalData[code].actuals[r.Month] || 0) + r.Actual;
+            }
+            tB += r.Budget; 
+            tA += r.Actual;
         });
+
+        const pct = tB > 0 ? Math.round((tA / tB) * 100) : 0;
 
         document.getElementById('modalSummaryStats').innerHTML = `
             <div style="background-color: transparent; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;">
@@ -1820,38 +1864,53 @@
                 <div style="font-size: 0.6rem; color: var(--text-secondary); font-weight: 400; text-transform: uppercase; font-family: Calibri, sans-serif !important; margin-top:4px;">Total Spend (Actual)</div>
             </div>
             <div style="background-color: transparent; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;">
+                <div class="val" style="color:var(--krn-orange)" id="mStatPct" data-val="0"><span class="val-num">0%</span></div>
+                <div style="font-size: 0.6rem; color: var(--text-secondary); font-weight: 400; text-transform: uppercase; font-family: Calibri, sans-serif !important; margin-top:4px;">Percentage Spent</div>
+            </div>
+            <div style="background-color: transparent; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;">
                 <div class="val" style="color: ${tB >= tA ? 'var(--krn-green)' : 'var(--krn-orange)'};" id="mStatV" data-val="0"><span class="val-unit">M PKR</span><span class="val-num">0</span></div>
                 <div style="font-size: 0.6rem; color: var(--text-secondary); font-weight: 400; text-transform: uppercase; font-family: Calibri, sans-serif !important; margin-top:4px;">Variance</div>
             </div>
         `;
-        animateCounter('mStatB', tB); animateCounter('mStatA', tA); animateCounter('mStatV', Math.abs(tB - tA));
+        animateCounter('mStatB', tB); 
+        animateCounter('mStatA', tA); 
+        animateCounter('mStatV', Math.abs(tB - tA));
+        document.getElementById('mStatPct').innerHTML = `<span class="val-num">${pct}%</span>`;
 
-        currentModalData = Object.values(naAggMap).filter(i => i.a !== 0 || i.b !== 0); 
         renderModalTable();
     }
 
     function renderModalTable(searchTerm = '') {
         const tbody = document.getElementById('modalTableBody');
+        const thead = document.querySelector('#streamModal .detail-table thead tr');
+        
+        let activeMonths = window.activeModalMonths || [];
+        
+        let thHtml = `<th>Account Name</th>`;
+        activeMonths.forEach(m => thHtml += `<th>${m}</th>`);
+        thHtml += `<th>Period Budget</th>`;
+        thead.innerHTML = thHtml;
+
         tbody.innerHTML = '';
         const term = searchTerm.toLowerCase();
 
-        const filteredItems = currentModalData.filter(item => item.na.toLowerCase().includes(term) || item.month.toLowerCase().includes(term));
+        const items = Object.values(currentModalData).filter(item => item.na.toLowerCase().includes(term) || item.code.toLowerCase().includes(term));
 
-        if (filteredItems.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.75rem;">No relevant spend records found.</td></tr>`;
+        if (items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${activeMonths.length + 2}" style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.75rem;">No relevant spend records found.</td></tr>`;
         } else {
-            filteredItems.forEach(item => {
-                const v = item.b - item.a;
-                const bCls = v < 0 ? 'badge-orange' : 'badge-primary';
-                tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${item.month}</strong></td>
-                        <td><strong style="color: var(--krn-blue); font-weight: 400;">${item.na}</strong><br><span style="font-size: 0.62rem; color: var(--text-secondary);">Code: ${item.code}</span></td>
-                        <td style="font-variant-numeric: tabular-nums;">${formatPKRInline(item.b)}</td>
-                        <td style="font-variant-numeric: tabular-nums; color: var(--krn-blue); font-weight: 400;">${formatPKRInline(item.a)}</td>
-                        <td><span class="badge-pill ${bCls}">${formatPKRInline(Math.abs(v))} ${v < 0 ? 'Over' : 'Under'}</span></td>
-                    </tr>
-                `;
+            items.forEach(item => {
+                let tr = `<tr>`;
+                tr += `<td><strong style="color: var(--krn-blue); font-weight: 400;">${item.na}</strong><br><span style="font-size: 0.62rem; color: var(--text-secondary);">Code: ${item.code}</span></td>`;
+                
+                activeMonths.forEach(m => {
+                    let val = item.actuals[m] || 0;
+                    tr += `<td style="font-variant-numeric: tabular-nums;">${val === 0 ? '-' : val.toLocaleString('en-PK', {maximumFractionDigits:0})}</td>`;
+                });
+                
+                tr += `<td style="font-variant-numeric: tabular-nums; font-weight: 500;">${item.budget.toLocaleString('en-PK', {maximumFractionDigits:0})}</td>`;
+                tr += `</tr>`;
+                tbody.innerHTML += tr;
             });
         }
     }
@@ -1861,12 +1920,19 @@
     }
 
     function exportModalCSV() {
-        if (!currentModalData || currentModalData.length === 0) return alert("No data to export.");
-        let csv = "Month,Code,Natural Account,Budget,Actual,Variance\n";
-        currentModalData.forEach(i => {
-            const v = i.b - i.a;
-            csv += `${i.month},"${i.code}","${i.na}",${i.b},${i.a},${v}\n`;
+        if (!currentModalData || Object.keys(currentModalData).length === 0) return alert("No data to export.");
+        let activeMonths = window.activeModalMonths || [];
+        let csv = "Code,Account Name," + activeMonths.join(",") + ",Budget\n";
+        
+        Object.values(currentModalData).forEach(i => {
+            let row = `"${i.code}","${i.na}",`;
+            activeMonths.forEach(m => {
+                row += `${i.actuals[m] || 0},`;
+            });
+            row += `${i.budget}\n`;
+            csv += row;
         });
+        
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         if (link.download !== undefined) {
@@ -1893,8 +1959,6 @@
 
         try {
             const errElem = document.getElementById('loaderStatusText');
-            
-            const cb = '&cb=' + Date.now(); 
             
             if (errElem) errElem.innerText = "FETCHING BUDGET (1/5)...";
             const bRes = await fetch(config.budgetMasterCSV);
