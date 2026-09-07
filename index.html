@@ -593,7 +593,7 @@
                 <img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz Pakistan Logo">
             </div>
             <div class="header-title-group">
-                <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;}">Budget vs Actual</h1>
+                <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;">Budget vs Actual</h1>
                 <div class="sub-title" style="font-size: 0.95rem; color: var(--text-secondary); font-weight: 300; margin-top: 2px; letter-spacing: 1px;">FY 2026-27</div>
             </div>
         </div>
@@ -1087,7 +1087,7 @@
         let pseudoCounter = 1;
         const adminDonorRatios = {}; 
 
-        // 1. Process Budget Master
+        // 1. Process Budget Master (No Deduplication, Stack Everything)
         budgetRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase() === 'acct');
             const rawCode = codeKey ? r._raw[codeKey] : '';
@@ -1109,6 +1109,7 @@
             let donor = donorKey ? String(r._raw[donorKey] || '').trim() : 'OSR';
             if (!donor || donor === '') donor = 'OSR';
 
+            // Save the map reference for Actuals to look up later
             coaMap[code] = { Dept: dept, Stream: stream, Name: accName, Program: program, Donor: donor, Code: code };
 
             let q1 = getSafeNum(r['q1budget']) || getSafeNum(r['q1']);
@@ -1255,10 +1256,10 @@
         // 3. Admin TB Integrator
         const processedAdminCodes = new Set();
         adminRows.forEach(r => {
-            const codeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'natural account' || k.toLowerCase() === 'accountcode' || k.toLowerCase().includes('natural'));
-            let code = r._raw[codeKey];
+            const codeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'natural account' || k.toLowerCase() === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code') || Object.keys(r._raw)[0];
+            const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense') || k.toLowerCase().includes('desc') || k.toLowerCase().includes('particular')) || Object.keys(r._raw)[1];
             
-            const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense'));
+            let code = r._raw[codeKey];
             const desc = String(r._raw[descKey] || '').trim();
 
             if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') {
@@ -1267,10 +1268,12 @@
                 code = code.trim().toUpperCase();
             }
             
-            // STRICT BLOCKLIST: Ignore specific subtotal rows that double-count data.
+            // STRICT BLOCKLIST logic WITH TRANSACTION BYPASS
             const blockList = ['NON PROGRAMME', 'OPEX', 'STAFF COST - TOTAL', 'ADMIN COST', 'TOTAL', 'SUBTOTAL'];
+            let isTransaction = code.includes('TRANSACTION') || desc.toUpperCase().includes('TRANSACTION') || code.includes('BANK') || desc.toUpperCase().includes('BANK');
             let shouldBlock = blockList.some(b => code.includes(b) || desc.toUpperCase().includes(b));
-            if (shouldBlock) return;
+            
+            if (shouldBlock && !isTransaction) return;
             
             if (processedAdminCodes.has(code)) return;
             processedAdminCodes.add(code);
@@ -1286,6 +1289,13 @@
                     if (actual !== 0) {
                          let mapping = coaMap[code];
                          
+                         // Force mapping for Transaction Cost if not found immediately
+                         if (!mapping && isTransaction) {
+                             let budgetMatchKey = Object.keys(coaMap).find(k => coaMap[k].Name.toUpperCase().includes('TRANSACTION') || coaMap[k].Stream.toUpperCase().includes('TRANSACTION'));
+                             if (budgetMatchKey) mapping = coaMap[budgetMatchKey];
+                         }
+                         
+                         // Fuzzy mapping for anything else without a direct code match
                          if (!mapping) {
                              let foundKey = Object.keys(coaMap).find(k => {
                                  let cleanName = coaMap[k].Name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1364,21 +1374,19 @@
         const processedCapexCodes = new Set();
         if (capexRows) {
             capexRows.forEach(r => {
-                const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('account') || k.toLowerCase().includes('code') || k.toLowerCase().includes('natural'));
-                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') || k.toLowerCase().includes('item') || k.toLowerCase().includes('head') || k.toLowerCase().includes('name') || k.toLowerCase().includes('expense'));
+                const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('account') || k.toLowerCase().includes('code') || k.toLowerCase().includes('natural')) || Object.keys(r._raw)[0];
+                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') || k.toLowerCase().includes('item') || k.toLowerCase().includes('head') || k.toLowerCase().includes('name') || k.toLowerCase().includes('expense') || k.toLowerCase().includes('particular')) || Object.keys(r._raw)[1];
                 
-                let code = codeKey ? r._raw[codeKey] : '';
-                let desc = descKey ? r._raw[descKey] : '';
+                let code = r._raw[codeKey];
+                const desc = String(r._raw[descKey] || '').trim();
 
-                if (!code && desc) code = desc; 
-                if (!desc && code) desc = code;
-
-                code = String(code).trim().toUpperCase();
-                desc = String(desc).trim();
-
-                if (!code || code === 'NAN') return;
+                if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') {
+                    if (!desc || desc.toUpperCase().includes('TOTAL') || desc.toUpperCase().includes('SUBTOTAL')) return;
+                    code = desc.toUpperCase(); 
+                } else {
+                    code = code.trim().toUpperCase();
+                }
                 
-                // Block subtotal rows
                 let isTotal = code.includes('TOTAL') || desc.toUpperCase().includes('TOTAL') || code.includes('BALANCE') || code.includes('SUBTOTAL') || code.includes('NET');
                 if (isTotal) return;
                 
