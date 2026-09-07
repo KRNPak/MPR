@@ -29,7 +29,7 @@
             --badge-primary: rgba(0, 104, 144, 0.2); 
             --badge-orange: rgba(249, 115, 22, 0.15);
 
-            /* LIGHT THEME */
+            /* LIGHT THEME - Contrast Improved */
             --bg-page-light: #f4f6f8;
             --bg-card-light: #ffffff;
             --bg-header-light: #ffffff;
@@ -698,7 +698,7 @@
                                     <th>Department</th>
                                     <th>Trend</th>
                                     <th>Budget</th>
-                                    <th id="thActualCol">Actual</th>
+                                    <th>Actual</th>
                                     <th>%</th>
                                 </tr>
                             </thead>
@@ -1039,7 +1039,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE (With Fuzzy Fallbacks & Splitting)
+    // 4. MULTI-LINK DATA PARSING ENGINE (With Fuzzy Fallbacks)
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1080,14 +1080,13 @@
 
     function parseMultiLinkData(budgetRows, donorTBRows, programTBRows, adminRows, iiRows, cicRows, capexRows) {
         const masterRecords = {};
-        function getKey(m, c, p) { return `${m}|${c}|${p}`; }
+        function getKey(m, c, p, d) { return `${m}|${c}|${p}|${d}`; }
 
         const coaMap = {}; 
         let pseudoCounter = 1;
         const adminDonorRatios = {}; 
 
         // 1. Process Budget Master
-        const processedBudgetCodes = new Set();
         budgetRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase() === 'acct');
             const rawCode = codeKey ? r._raw[codeKey] : '';
@@ -1101,9 +1100,6 @@
             if (!code || code === 'NAN' || code === '') {
                 code = 'UNMAPPED_BUDGET_' + pseudoCounter++;
             }
-            
-            if (processedBudgetCodes.has(code)) return;
-            processedBudgetCodes.add(code);
 
             const stream = r['stream'] || r['expenseitems'] || r['workstream'] || 'General';
             const program = r['program'] || 'Unallocated';
@@ -1134,7 +1130,7 @@
                 let yBud = getSafeNum(r['yearlybudget']) || getSafeNum(r['totalbudget']) || getSafeNum(r['budget']) || getSafeNum(r['total']) || getSafeNum(r['annual']) || getSafeNum(r['annualbudget']);
                 if (yBud === 0) yBud = (q1 + q2 + q3 + q4);
                 
-                const key = getKey('ALL_MONTHS', code, program);
+                const key = getKey('ALL_MONTHS', code, program, donor);
                 if (!masterRecords[key]) {
                     masterRecords[key] = {
                         Department: dept, Stream: stream, Program: program,
@@ -1169,7 +1165,7 @@
                     if (qs[q] === 0) return;
                     let monthlyBud = qs[q] / 3;
                     qToMonths[q].forEach(m => {
-                        const key = getKey(m, code, program);
+                        const key = getKey(m, code, program, donor);
                         if (!masterRecords[key]) {
                             masterRecords[key] = {
                                 Department: dept, Stream: stream, Program: program,
@@ -1223,6 +1219,8 @@
                 if (code.startsWith('D')) mapping.Dept = 'Digital Financial Services';
             }
 
+            if (mapping.Dept.includes('Admin') || code.startsWith('H') || code.startsWith('S') || code.startsWith('SS')) return; 
+
             const donorKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('additionalsegmentdesc') || k.toLowerCase() === 'donor' || k.toLowerCase() === 'fund');
             let rawDonor = String(r._raw[donorKey] || r['additionalsegmentdesc'] || r['donor'] || mapping.Donor || 'OSR').trim();
             if (rawDonor === '' || rawDonor.toLowerCase() === 'nan' || rawDonor === '0' || rawDonor === 'undefined') rawDonor = 'OSR';
@@ -1243,7 +1241,7 @@
                 return; 
             } 
 
-            const key = getKey(month, code, mapping.Program);
+            const key = getKey(month, code, mapping.Program, finalDonor);
             if (!masterRecords[key]) {
                 masterRecords[key] = {
                     Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program,
@@ -1299,7 +1297,7 @@
                              }
                          }
 
-                         const key = getKey(m, mapping.Code || code, mapping.Program);
+                         const key = getKey(m, mapping.Code || code, mapping.Program, 'OSR');
                          if (!masterRecords[key]) {
                              masterRecords[key] = { Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program, Code: mapping.Code || code, NaturalAccount: mapping.Name, Month: m, Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {} };
                          }
@@ -1341,7 +1339,7 @@
                     if (mKey) {
                         let actual = getSafeNum(r._raw[mKey]);
                         if (actual !== 0) {
-                            const key = getKey(m, pseudoCode, 'Unallocated');
+                            const key = getKey(m, pseudoCode, 'Unallocated', 'OSR');
                             if (!masterRecords[key]) {
                                 masterRecords[key] = {
                                     Department: deptName, Stream: stream, Program: 'Unallocated',
@@ -1404,7 +1402,7 @@
                                  }
                              }
 
-                             const key = getKey(m, mapping.Code || code, mapping.Program);
+                             const key = getKey(m, mapping.Code || code, mapping.Program, 'OSR');
                              if (!masterRecords[key]) {
                                  masterRecords[key] = { Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program, Code: mapping.Code || code, NaturalAccount: mapping.Name, Month: m, Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {} };
                              }
@@ -2117,30 +2115,32 @@
         try {
             const errElem = document.getElementById('loaderStatusText');
             
+            const cb = '&cb=' + Date.now(); 
+            
             if (errElem) errElem.innerText = "FETCHING BUDGET (1/7)...";
-            const bRes = await fetch(config.budgetMasterCSV);
+            const bRes = await fetch(config.budgetMasterCSV + cb);
             if (!bRes.ok) throw new Error("Budget Master fetch failed");
             
             if (errElem) errElem.innerText = "FETCHING DONOR TB (2/7)...";
-            const tdRes = await fetch(config.tbDonorCSV);
+            const tdRes = await fetch(config.tbDonorCSV + cb);
             if (!tdRes.ok) throw new Error("Donor TB fetch failed");
             
             if (errElem) errElem.innerText = "FETCHING ADMIN ACTUALS (3/7)...";
-            const adminRes = await fetch(config.adminCSV);
+            const adminRes = await fetch(config.adminCSV + cb);
             if (!adminRes.ok) throw new Error("Admin TB fetch failed");
             
             if (errElem) errElem.innerText = "FETCHING INNOVATION (4/7)...";
-            const iiRes = await fetch(config.iiCSV);
+            const iiRes = await fetch(config.iiCSV + cb);
             if (!iiRes.ok) throw new Error("Innovation Investment fetch failed");
             
             if (errElem) errElem.innerText = "FETCHING CIC (5/7)...";
-            const cicRes = await fetch(config.cicCSV);
+            const cicRes = await fetch(config.cicCSV + cb);
             if (!cicRes.ok) throw new Error("CIC Investment fetch failed");
 
             if (errElem) errElem.innerText = "FETCHING CAPEX (6/7)...";
             let capexRows = [];
             try {
-                const capexRes = await fetch(config.capexCSV);
+                const capexRes = await fetch(config.capexCSV + cb);
                 if (capexRes.ok) capexRows = parseCSV(await capexRes.text());
             } catch (e) {
                 console.warn("CAPEX.csv not found or failed to load. Ensure it exists in the Data folder.");
@@ -2149,7 +2149,7 @@
             if (errElem) errElem.innerText = "FETCHING EOD (7/7)...";
             let eodRows = [];
             try {
-                const eodRes = await fetch(config.eodCSV);
+                const eodRes = await fetch(config.eodCSV + cb);
                 if (eodRes.ok) eodRows = parseCSV(await eodRes.text());
             } catch (e) {
                 console.warn("EOD.csv not found or failed to load. Ensure it exists in the Data folder.");
