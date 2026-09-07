@@ -789,7 +789,8 @@
         adminCSV: 'Data/BvA-202627 - AdminActual.csv',
         iiCSV: 'Data/Innovation.csv',
         cicCSV: 'Data/CIC.csv',
-        eodCSV: 'Data/EOD.csv'
+        eodCSV: 'Data/EOD.csv',
+        capexCSV: 'Data/BvA-202627 - CAPEX.csv'
     };
 
     const fiscalMonths = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
@@ -1038,7 +1039,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE (With Fuzzy Fallbacks & Splitting)
+    // 4. MULTI-LINK DATA PARSING ENGINE (With CAPEX Support)
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1077,15 +1078,15 @@
         return objects;
     }
 
-    function parseMultiLinkData(budgetRows, donorTBRows, programTBRows, adminRows, iiRows, cicRows) {
+    function parseMultiLinkData(budgetRows, donorTBRows, programTBRows, adminRows, iiRows, cicRows, capexRows) {
         const masterRecords = {};
         function getKey(m, c, p) { return `${m}|${c}|${p}`; }
 
         const coaMap = {}; 
         let pseudoCounter = 1;
-        const adminDonorRatios = {}; // Used to catch Admin Donors specifically from the TB
 
         // 1. Process Budget Master
+        const processedBudgetCodes = new Set();
         budgetRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase() === 'acct');
             const rawCode = codeKey ? r._raw[codeKey] : '';
@@ -1099,6 +1100,9 @@
             if (!code || code === 'NAN' || code === '') {
                 code = 'UNMAPPED_BUDGET_' + pseudoCounter++;
             }
+            
+            if (processedBudgetCodes.has(code)) return;
+            processedBudgetCodes.add(code);
 
             const stream = r['stream'] || r['expenseitems'] || r['workstream'] || 'General';
             const program = r['program'] || 'Unallocated';
@@ -1218,6 +1222,8 @@
                 if (code.startsWith('D')) mapping.Dept = 'Digital Financial Services';
             }
 
+            if (mapping.Dept.includes('Admin') || code.startsWith('H') || code.startsWith('S') || code.startsWith('SS')) return; 
+
             const donorKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('additionalsegmentdesc') || k.toLowerCase() === 'donor' || k.toLowerCase() === 'fund');
             let rawDonor = String(r._raw[donorKey] || r['additionalsegmentdesc'] || r['donor'] || mapping.Donor || 'OSR').trim();
             if (rawDonor === '' || rawDonor.toLowerCase() === 'nan' || rawDonor === '0' || rawDonor === 'undefined') rawDonor = 'OSR';
@@ -1229,15 +1235,6 @@
                     finalDonor = 'OSR';
                 }
             }
-
-            // Capture specific donor splits for Admin here to use later, but skip adding Admin actuals globally
-            let isAdmin = mapping.Dept.includes('Admin') || code.startsWith('H') || code.startsWith('S') || code.startsWith('SS');
-            if (isAdmin) { 
-                let k = `${month}|${code}`;
-                if (!adminDonorRatios[k]) adminDonorRatios[k] = {};
-                adminDonorRatios[k][finalDonor] = (adminDonorRatios[k][finalDonor] || 0) + actual;
-                return; 
-            } 
 
             const key = getKey(month, code, mapping.Program);
             if (!masterRecords[key]) {
@@ -1260,7 +1257,7 @@
             if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') return;
             code = code.trim().toUpperCase();
             
-            if (code.includes('TOTAL') || code.length < 3) return;
+            if (code.includes('TOTAL')) return;
             
             if (processedAdminCodes.has(code)) return;
             processedAdminCodes.add(code);
@@ -1300,23 +1297,7 @@
                              masterRecords[key] = { Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program, Code: mapping.Code || code, NaturalAccount: mapping.Name, Month: m, Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {} };
                          }
                          masterRecords[key].Actual += actual;
-                         
-                         // Apply the recorded ratio from the TB to specifically slice Admin Donors accurately
-                         let tbSplit = adminDonorRatios[`${m}|${code}`];
-                         if (tbSplit && Object.keys(tbSplit).length > 0) {
-                             let totalTb = Object.values(tbSplit).reduce((a,b) => a+b, 0);
-                             if (totalTb !== 0) {
-                                 Object.keys(tbSplit).forEach(d => {
-                                     let ratio = tbSplit[d] / totalTb;
-                                     let distActual = actual * ratio;
-                                     masterRecords[key].ActualDonors[d] = (masterRecords[key].ActualDonors[d] || 0) + distActual;
-                                 });
-                             } else {
-                                 masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
-                             }
-                         } else {
-                             masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
-                         }
+                         masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
                     }
                 }
             });
@@ -1355,6 +1336,63 @@
         }
         processInvestmentRows(iiRows, 'Innovation Investment');
         processInvestmentRows(cicRows, 'Corporate Investment and Credit');
+
+        // 6. CAPEX Actuals Integrator
+        const processedCapexCodes = new Set();
+        if (capexRows) {
+            capexRows.forEach(r => {
+                const codeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'natural account' || k.toLowerCase() === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code');
+                let code = r._raw[codeKey];
+                
+                if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') return;
+                code = code.trim().toUpperCase();
+                
+                if (code.includes('TOTAL') || code.length < 3) return;
+                
+                if (processedCapexCodes.has(code)) return;
+                processedCapexCodes.add(code);
+                
+                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense') || k.toLowerCase().includes('desc'));
+                const desc = String(r._raw[descKey] || '').trim();
+
+                fiscalMonths.forEach(m => {
+                    let mKey = Object.keys(r._raw).find(k => {
+                        let lowerK = k.toLowerCase();
+                        return lowerK.startsWith(m.toLowerCase() + '-') || lowerK === m.toLowerCase();
+                    });
+                    
+                    if (mKey) {
+                        let actual = getSafeNum(r._raw[mKey]);
+                        if (actual !== 0) {
+                             let mapping = coaMap[code];
+                             
+                             if (!mapping) {
+                                 let foundKey = Object.keys(coaMap).find(k => {
+                                     let cleanName = coaMap[k].Name.toLowerCase();
+                                     let cleanStream = coaMap[k].Stream.toLowerCase();
+                                     let cleanDesc = desc.toLowerCase();
+                                     let cleanCode = code.toLowerCase();
+                                     return (cleanName === cleanDesc || cleanStream === cleanDesc || cleanName === cleanCode || cleanStream === cleanCode);
+                                 });
+                                 
+                                 if (foundKey) {
+                                     mapping = coaMap[foundKey];
+                                 } else {
+                                     mapping = { Dept: 'Capital Cost', Stream: desc || 'Capital Expenditure', Name: desc || code, Program: 'Unallocated', Donor: 'OSR', Code: code };
+                                 }
+                             }
+
+                             const key = getKey(m, mapping.Code || code, mapping.Program);
+                             if (!masterRecords[key]) {
+                                 masterRecords[key] = { Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program, Code: mapping.Code || code, NaturalAccount: mapping.Name, Month: m, Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {} };
+                             }
+                             masterRecords[key].Actual += actual;
+                             masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
+                        }
+                    }
+                });
+            });
+        }
 
         return Object.values(masterRecords);
     }
@@ -1538,6 +1576,7 @@
         const summaryDonutContainer = document.getElementById('summaryDonutContainer');
         if (summaryDonutContainer) {
             
+            // Generate EOD Dynamic Metrics based on Selected Month
             let targetMonthStr = '';
             if (currentGranularity === 'Monthly') targetMonthStr = selectedPeriod;
             else if (currentGranularity === 'Quarterly') {
@@ -1658,6 +1697,9 @@
                 placeholder.innerHTML = eodHtml;
             }
         }
+
+        document.getElementById('thActualCol').innerText = 'Actual';
+        document.getElementById('modalActualCol').innerText = 'Actual';
 
         renderSummaryTable(filteredRows);
         renderCard2Departments(filteredRows);
@@ -2057,27 +2099,36 @@
         try {
             const errElem = document.getElementById('loaderStatusText');
             
-            if (errElem) errElem.innerText = "FETCHING BUDGET (1/6)...";
+            if (errElem) errElem.innerText = "FETCHING BUDGET (1/7)...";
             const bRes = await fetch(config.budgetMasterCSV);
             if (!bRes.ok) throw new Error("Budget Master fetch failed");
             
-            if (errElem) errElem.innerText = "FETCHING DONOR TB (2/6)...";
+            if (errElem) errElem.innerText = "FETCHING DONOR TB (2/7)...";
             const tdRes = await fetch(config.tbDonorCSV);
             if (!tdRes.ok) throw new Error("Donor TB fetch failed");
             
-            if (errElem) errElem.innerText = "FETCHING ADMIN ACTUALS (3/6)...";
+            if (errElem) errElem.innerText = "FETCHING ADMIN ACTUALS (3/7)...";
             const adminRes = await fetch(config.adminCSV);
             if (!adminRes.ok) throw new Error("Admin TB fetch failed");
             
-            if (errElem) errElem.innerText = "FETCHING INNOVATION (4/6)...";
+            if (errElem) errElem.innerText = "FETCHING INNOVATION (4/7)...";
             const iiRes = await fetch(config.iiCSV);
             if (!iiRes.ok) throw new Error("Innovation Investment fetch failed");
             
-            if (errElem) errElem.innerText = "FETCHING CIC (5/6)...";
+            if (errElem) errElem.innerText = "FETCHING CIC (5/7)...";
             const cicRes = await fetch(config.cicCSV);
             if (!cicRes.ok) throw new Error("CIC Investment fetch failed");
 
-            if (errElem) errElem.innerText = "FETCHING EOD (6/6)...";
+            if (errElem) errElem.innerText = "FETCHING CAPEX (6/7)...";
+            let capexRows = [];
+            try {
+                const capexRes = await fetch(config.capexCSV);
+                if (capexRes.ok) capexRows = parseCSV(await capexRes.text());
+            } catch (e) {
+                console.warn("CAPEX.csv not found or failed to load. Ensure it exists in the Data folder.");
+            }
+
+            if (errElem) errElem.innerText = "FETCHING EOD (7/7)...";
             let eodRows = [];
             try {
                 const eodRes = await fetch(config.eodCSV);
@@ -2120,14 +2171,13 @@
             parsedEOD.sort((a,b) => a.date - b.date);
             globalEODData = parsedEOD;
 
-            rawData = parseMultiLinkData(bData, tdData, [], adminData, iiData, cicData);
+            rawData = parseMultiLinkData(bData, tdData, [], adminData, iiData, cicData, capexRows);
             
             if (rawData.length === 0) throw new Error("No data parsed. Check CSV structures.");
             
-            // Auto-detect latest active Month for Default Selection
             let maxMonthIdx = -1;
             rawData.forEach(r => {
-                if (Math.abs(r.Actual) > 0) {
+                if (Math.abs(r.Actual) > 0 && r.Month !== 'ALL_MONTHS') {
                     let idx = fiscalMonths.indexOf(r.Month);
                     if (idx > maxMonthIdx) maxMonthIdx = idx;
                 }
