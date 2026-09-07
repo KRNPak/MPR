@@ -88,22 +88,3 @@ H128002,Corporate Social Responsibility,Corporate Social Responsibility,0,0,0,0,
 H129031,Capacity Building of KRN,LT Gov Framework Exercise/Study,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 H126002,Software Development and Maintenance,Employee Engagement,"41,261","15,720",0,"56,981",0,0,0,0,0,0,0,0,0,0,0,0,"56,981"
 H103002,Capacity Building,Capacity Building,"508,107","4,236,476",0,"4,744,583",0,0,0,0,0,0,0,0,0,0,0,0,"4,744,583"
-,,,,,,,,,,,,,,,,,,,
-,CIC transaction cost,,0,"2,828,000",0,"2,828,000",0,0,0,0,0,0,0,0,0,0,0,0,"2,828,000"
-C107002,CIC Transaction Cost,Strategic Investment - Pre & post investment cost,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-C108002,,Credit - Pre & post investment cost,0,"942,667",0,"942,667",0,0,0,0,0,0,0,0,0,0,0,0,"942,667"
-C109002,,Equity - Pre & post investment cost,0,"942,667",0,"942,667",0,0,0,0,0,0,0,0,0,0,0,0,"942,667"
-C107003,,Due diligence cost - Pre & post investment cost,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-C110002,,GREEN - Pre & post investment cost,0,"942,666",0,"942,666",0,0,0,0,0,0,0,0,0,0,0,0,"942,666"
-,,,,,,,,,,,,,,,,,,,
-,Capacity Building of Partners Total,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-C130001,Capacity Building of Partners,Capacity Building of Partners,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-C105004,,TA to New Partners,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-,,,,,,,,,,,,,,,,,,,
-,Capital Cost Total,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-F151003,Capital cost,Computers & Printers,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-F151002,,Fixed Assets - Equipments,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-H330001,,ERP Solutions,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-F151004,,Furniture & Fixtures,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-F151001,,Fixed Assets - Vehicles,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-F151005,,GREEN Electrical Equipment,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
