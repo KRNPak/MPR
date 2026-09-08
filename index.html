@@ -384,7 +384,7 @@
 
         .stream-grid-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
             gap: 12px;
             overflow-y: auto;
             overflow-x: hidden;
@@ -1193,26 +1193,23 @@
             const periodKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('period') || k.toLowerCase().includes('month'));
             const month = String(r._raw[periodKey] || 'Jul').split('-')[0].substring(0, 3);
             
-            const drKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('dr') || k.toLowerCase().includes('debit'));
-            const crKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('cr') || k.toLowerCase().includes('credit'));
+            const drKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('dr') || k.toLowerCase().includes('debit') || k.toLowerCase() === 'total_dr');
+            const crKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('cr') || k.toLowerCase().includes('credit') || k.toLowerCase() === 'total_cr');
             const actual = getSafeNum(r._raw[drKey]) - getSafeNum(r._raw[crKey]);
             if (actual === 0) return;
 
             let mapping = coaMap[code];
 
-            // If the code is perfectly mapped in the Budget Master, bypass ALL system filters.
-            // If it is NOT mapped, apply strict accounting filters to prevent blowing up the BvA with assets/liabilities.
             if (!mapping) {
-                // If it starts with C, I, L, A, or Q it is almost certainly a balance sheet item. Drop it if it isn't in the budget.
-                if (code.startsWith('C') || code.startsWith('I') || code.startsWith('L') || code.startsWith('A') || code.startsWith('Q')) return; 
-                
+                // If it is NOT mapped in the budget, apply strict accounting filters to prevent blowing up the BvA with assets/liabilities.
+                // Note: We DO NOT filter by 'C' or 'I' anymore, because Transaction Costs use these codes.
                 const typeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'acct_type' || k.toLowerCase() === 'accttype');
                 if (typeKey) {
                     let val = String(r._raw[typeKey]).trim().toUpperCase();
                     if (val === 'R' || val === 'A' || val === 'L' || val === 'Q') return; 
                 }
                 
-                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') && k.toLowerCase().includes('natural'));
+                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') || k.toLowerCase().includes('natural'));
                 const desc = String(r._raw[descKey] || code).trim();
                 
                 let fuzzyKey = Object.keys(coaMap).find(k => {
@@ -1686,7 +1683,7 @@
         });
 
         rawData.forEach(r => {
-            if (!deptAgg[r.Department] || r.Month === 'ALL_MONTHS') return; 
+            if (!deptAgg[r.Department]) return; 
             if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
             deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
         });
@@ -1729,7 +1726,7 @@
         });
 
         rawData.forEach(r => {
-            if (!deptAgg[r.Department] || r.Month === 'ALL_MONTHS') return; 
+            if (!deptAgg[r.Department]) return; 
             if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
             deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
         });
