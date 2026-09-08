@@ -1,7 +1,6 @@
-Description,Budget,Actual cost,"Variance
-Fav/(Unfav)",VARIANCE        (%)
-Generator,13000000,,13000000,1
-Computers and Printers,2060000,76000,1754018,0.851465049
-Electrical Equipment,1800000,,1800000,1
-ERP Solution,10125000,,10125000,1
-Furniture and fixtures,18500000,,18500000,1
+Description,Budget,Jul-26,Aug-26,Sep-26,Oct-26,Nov-26,Dec-26,Jan-27,Feb-27,Mar-27,Apr-27,May-27,Jun-27
+Generator,13000000,,,,,,,,,,,,
+Computers and Printers,2060000,,76000,,,,,,,,,,
+Electrical Equipment,1800000,,,,,,,,,,,,
+ERP Solution,10125000,,,,,,,,,,,,
+Furniture and fixtures,18500000,,,,,,,,,,,,
