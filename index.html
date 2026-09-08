@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chivo:ital,wght@0,100..900;1,100..900&family=Oswald:wght@200..700&display=swap" rel="stylesheet">
     
-    <!-- Link to the separated CSS file -->
+    <!-- Dynamic Cache-Busting CSS Link -->
     <script>
         document.write('<link rel="stylesheet" href="styles.css?t=' + Date.now() + '">');
     </script>
@@ -44,7 +44,9 @@
             </div>
             <div class="header-title-group">
                 <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;">Budget vs Actual</h1>
-                <div class="sub-title" style="font-size: 0.95rem; color: var(--text-secondary); font-weight: 300; margin-top: 2px; letter-spacing: 1px;">FY 2026-27</div>
+                <div class="sub-title" style="margin-top: 2px;">
+                    <select id="yearDropdown" class="select-mini" style="font-size: 0.95rem; padding: 2px 6px; border-color: transparent; color: var(--text-secondary); background: transparent; font-weight: bold; cursor: pointer; outline: none;" onchange="onYearChange()"></select>
+                </div>
             </div>
         </div>
 
@@ -228,7 +230,7 @@
     </div>
 </div>
 
-<!-- Link to the separated JavaScript file -->
+<!-- Dynamic Cache-Busting JS Link -->
 <script>
     document.write('<script src="app.js?t=' + Date.now() + '"><\/script>');
 </script>
