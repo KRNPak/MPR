@@ -2008,9 +2008,6 @@
                 });
                 
                 tr += `<td style="font-variant-numeric: tabular-nums; font-weight: 500;">${item.budget.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>`;
-                });
-                
-                tr += `<td style="font-variant-numeric: tabular-nums; font-weight: 500;">${item.budget.toLocaleString('en-PK', {maximumFractionDigits:0})}</td>`;
                 tr += `</tr>`;
                 tbody.innerHTML += tr;
             });
