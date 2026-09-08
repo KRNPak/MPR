@@ -1084,7 +1084,7 @@
         const coaMap = {}; 
         let pseudoCounter = 1;
 
-        // 1. Process Budget Master
+        // 1. Process Budget Master (No Deduplication, Stack Everything)
         budgetRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase() === 'acct');
             const rawCode = codeKey ? r._raw[codeKey] : '';
@@ -1106,6 +1106,7 @@
             let donor = donorKey ? String(r._raw[donorKey] || '').trim() : 'OSR';
             if (!donor || donor === '') donor = 'OSR';
 
+            // Save the map reference for Actuals to look up later
             coaMap[code] = { Dept: dept, Stream: stream, Name: accName, Program: program, Donor: donor, Code: code };
 
             let q1 = getSafeNum(r['q1budget']) || getSafeNum(r['q1']);
@@ -1283,7 +1284,10 @@
                 processedCapexCodes.add(code);
 
                 fiscalMonths.forEach(m => {
-                    let mKey = Object.keys(r._raw).find(k => k.toLowerCase().startsWith(m.toLowerCase()));
+                    let mKey = Object.keys(r._raw).find(k => {
+                        let lowerK = k.toLowerCase();
+                        return lowerK.startsWith(m.toLowerCase());
+                    });
                     
                     if (mKey) {
                         let actual = getSafeNum(r._raw[mKey]);
@@ -1620,8 +1624,6 @@
                 placeholder.innerHTML = eodHtml;
             }
         }
-
-        document.getElementById('thActualCol').innerText = 'Actual';
 
         renderSummaryTable(filteredRows);
         renderCard2Departments(filteredRows);
@@ -2016,26 +2018,28 @@
         try {
             const errElem = document.getElementById('loaderStatusText');
             
+            const cb = '&cb=' + Date.now(); 
+            
             if (errElem) errElem.innerText = "FETCHING BUDGET (1/6)...";
-            const bRes = await fetch(config.budgetMasterCSV);
+            const bRes = await fetch(config.budgetMasterCSV + cb);
             if (!bRes.ok) throw new Error("Budget Master fetch failed");
             
             if (errElem) errElem.innerText = "FETCHING DONOR TB (2/6)...";
-            const tdRes = await fetch(config.tbDonorCSV);
+            const tdRes = await fetch(config.tbDonorCSV + cb);
             if (!tdRes.ok) throw new Error("Donor TB fetch failed");
             
             if (errElem) errElem.innerText = "FETCHING INNOVATION (3/6)...";
-            const iiRes = await fetch(config.iiCSV);
+            const iiRes = await fetch(config.iiCSV + cb);
             if (!iiRes.ok) throw new Error("Innovation Investment fetch failed");
             
             if (errElem) errElem.innerText = "FETCHING CIC (4/6)...";
-            const cicRes = await fetch(config.cicCSV);
+            const cicRes = await fetch(config.cicCSV + cb);
             if (!cicRes.ok) throw new Error("CIC Investment fetch failed");
 
             if (errElem) errElem.innerText = "FETCHING CAPEX (5/6)...";
             let capexRows = [];
             try {
-                const capexRes = await fetch(config.capexCSV);
+                const capexRes = await fetch(config.capexCSV + cb);
                 if (capexRes.ok) capexRows = parseCSV(await capexRes.text());
             } catch (e) {
                 console.warn("CAPEX.csv not found or failed to load. Ensure it exists in the Data folder.");
@@ -2044,7 +2048,7 @@
             if (errElem) errElem.innerText = "FETCHING EOD (6/6)...";
             let eodRows = [];
             try {
-                const eodRes = await fetch(config.eodCSV);
+                const eodRes = await fetch(config.eodCSV + cb);
                 if (eodRes.ok) eodRows = parseCSV(await eodRes.text());
             } catch (e) {
                 console.warn("EOD.csv not found or failed to load. Ensure it exists in the Data folder.");
