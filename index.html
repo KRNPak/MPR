@@ -82,7 +82,8 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 
-        .dashboard-container { max-width: 1600px; margin: 0 auto; width: 100%; }
+        /* FULLSCREEN RESPONSIVE CONTAINER */
+        .dashboard-container { width: 100%; max-width: 100%; margin: 0 auto; padding: 0 5px; }
 
         /* ---------------- LOADING SCREEN ---------------- */
         .loading-overlay {
@@ -169,20 +170,20 @@
         .active-toggle .switch-thumb { transform: translateX(16px); background-color: #ffffff; }
 
         /* ---------------- MAIN LAYOUT ---------------- */
-        .main-layout-wrapper { display: flex; width: 100%; gap: 12px; align-items: stretch; transition: all 0.4s ease; }
+        .main-layout-wrapper { display: flex; width: 100%; gap: 12px; align-items: stretch; transition: all 0.4s ease; flex-wrap: wrap; }
 
         #summaryPanel, .details-dept-card, .details-overview-card {
-            height: calc(100vh - 90px);
-            min-height: 520px;
+            height: auto;
+            min-height: calc(100vh - 90px);
         }
 
         #summaryPanel {
             background-color: transparent; border: none; border-radius: 0; padding: 0;
             display: flex; flex-direction: column; gap: 10px;
-            transition: all 0.4s ease; flex: 0 0 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; 
+            transition: all 0.4s ease; flex: 1 1 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; 
         }
         
-        body.view-details #summaryPanel { flex: 0 0 16%; max-width: 16%; margin: 0; }
+        body.view-details #summaryPanel { flex: 0 0 18%; max-width: 18%; margin: 0; }
         
         body.view-summary #summaryPanel .val-num { font-size: 2.8rem; margin-bottom: 4px; font-weight: bold;}
         body.view-summary #summaryPanel .val-unit { font-size: 0.95rem; }
@@ -202,7 +203,7 @@
             transition: all 0.4s ease; flex: 0 0 0%; width: 0; opacity: 0; overflow: hidden; transform: translateX(10px);
             pointer-events: none; visibility: hidden; display: flex; gap: 12px;
         }
-        body.view-details #detailsPanel { flex: 0 0 calc(84% - 12px); width: calc(84% - 12px); opacity: 1; transform: translateX(0); pointer-events: auto; visibility: visible; }
+        body.view-details #detailsPanel { flex: 1 1 calc(82% - 12px); width: calc(82% - 12px); opacity: 1; transform: translateX(0); pointer-events: auto; visibility: visible; }
 
         .details-dept-card {
             flex: 1; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); 
@@ -255,6 +256,8 @@
             display: flex; flex-direction: row; justify-content: space-around; align-items: center;
             border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 15px;
             flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 15px;
         }
         
         body.view-details .period-metrics-horizontal { 
@@ -289,7 +292,7 @@
 
         .dept-grid-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 12px;
             overflow-y: auto;
             overflow-x: hidden;
@@ -380,7 +383,7 @@
 
         .stream-grid-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); 
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
             gap: 12px;
             overflow-y: auto;
             overflow-x: hidden;
@@ -562,6 +565,25 @@
         }
         .hover-tooltip.visible { opacity: 1; transform: translateY(0); }
         .hover-tooltip strong { color: var(--text-secondary); font-size: 0.6rem; font-weight: 400; display:block; margin-bottom:2px; text-transform: uppercase; font-family: Calibri, sans-serif !important;}
+
+        /* ---------------- RESPONSIVE MEDIA QUERIES ---------------- */
+        @media (max-width: 1024px) {
+            .header-banner { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .header-kpi-summary { border-left: none; padding-left: 0; padding-top: 15px; border-top: 1px solid var(--border-color); width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 15px;}
+            
+            body.view-details #summaryPanel { flex: 0 0 100%; max-width: 100%; height: auto; min-height: unset; margin-bottom: 12px; }
+            body.view-details #detailsPanel { flex: 0 0 100%; width: 100%; flex-direction: column; }
+            
+            .summary-split-layout { flex-direction: column; }
+            #summaryPanel, .details-dept-card, .details-overview-card { min-height: 400px; height: auto; flex: 1 1 100%; }
+        }
+
+        @media (max-width: 768px) {
+            .header-title-group h1 { font-size: 1.6rem; }
+            .val-num { font-size: 1.4rem; }
+            .kpi-item { flex: 1 1 40%; }
+            .donuts-triplet-container { flex-direction: column; gap: 20px; }
+        }
     </style>
 </head>
 <body class="view-summary light-mode"> 
@@ -1168,7 +1190,10 @@
             if (code.startsWith('C') || code.startsWith('I')) return; 
 
             const typeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'acct_type' || k.toLowerCase() === 'accttype');
-            if (typeKey && String(r._raw[typeKey]).trim().toUpperCase() !== 'E') return;
+            if (typeKey) {
+                let val = String(r._raw[typeKey]).trim().toUpperCase();
+                if (val === 'R' || val === 'A' || val === 'L' || val === 'Q') return; 
+            }
 
             const periodKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('period') || k.toLowerCase().includes('month'));
             const month = String(r._raw[periodKey] || 'Jul').split('-')[0].substring(0, 3);
@@ -1181,7 +1206,7 @@
             let mapping = coaMap[code];
 
             if (!mapping) {
-                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') && k.toLowerCase().includes('natural'));
+                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') || k.toLowerCase().includes('name') || k.toLowerCase().includes('particular'));
                 const desc = String(r._raw[descKey] || code).trim();
                 
                 if (code.startsWith('D')) {
@@ -1316,8 +1341,14 @@
                              if (!masterRecords[key]) {
                                  masterRecords[key] = { Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program, Code: mapping.Code || code, NaturalAccount: mapping.Name, Month: m, Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {} };
                              }
+                             
+                             // Adding to Actuals
                              masterRecords[key].Actual += actual;
                              masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
+                             
+                             // CAPEX is Actual=Budget: Mirroring the Actual into Budget
+                             masterRecords[key].Budget += actual;
+                             masterRecords[key].BudgetDonors['OSR'] = (masterRecords[key].BudgetDonors['OSR'] || 0) + actual;
                         }
                     }
                 });
