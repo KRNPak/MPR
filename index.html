@@ -1038,7 +1038,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE 
+    // 4. MULTI-LINK DATA PARSING ENGINE
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1084,7 +1084,7 @@
         const coaMap = {}; 
         let pseudoCounter = 1;
 
-        // 1. Process Budget Master (No Deduplication, Stack Everything)
+        // 1. Process Budget Master
         budgetRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase() === 'acct');
             const rawCode = codeKey ? r._raw[codeKey] : '';
@@ -1106,7 +1106,6 @@
             let donor = donorKey ? String(r._raw[donorKey] || '').trim() : 'OSR';
             if (!donor || donor === '') donor = 'OSR';
 
-            // Save the map reference for Actuals to look up later
             coaMap[code] = { Dept: dept, Stream: stream, Name: accName, Program: program, Donor: donor, Code: code };
 
             let q1 = getSafeNum(r['q1budget']) || getSafeNum(r['q1']);
@@ -1122,61 +1121,41 @@
                 q4 = getSafeNum(r._raw[q4_1_key]);
             }
 
-            // CAPITAL COST FULL YEARLY BYPASS
-            let isCapital = dept.toLowerCase().includes('capital') || stream.toLowerCase().includes('capital') || dept.toLowerCase().includes('capex') || stream.toLowerCase().includes('capex');
-
-            if (isCapital) {
-                let yBud = getSafeNum(r['yearlybudget']) || getSafeNum(r['totalbudget']) || getSafeNum(r['budget']) || getSafeNum(r['total']) || getSafeNum(r['annual']) || getSafeNum(r['annualbudget']);
-                if (yBud === 0) yBud = (q1 + q2 + q3 + q4);
-                
-                const key = getKey('ALL_MONTHS', code, program, donor);
-                if (!masterRecords[key]) {
-                    masterRecords[key] = {
-                        Department: dept, Stream: stream, Program: program,
-                        Code: code, NaturalAccount: accName, Month: 'ALL_MONTHS',
-                        Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
-                    };
-                }
-                masterRecords[key].Budget += yBud;
-                masterRecords[key].BudgetDonors[donor] = (masterRecords[key].BudgetDonors[donor] || 0) + yBud;
-                
-            } else {
-                if (q1 === 0 && q2 === 0 && q3 === 0 && q4 === 0) {
-                    let yKey = Object.keys(r._raw).find(k => {
-                        let clean = k.toLowerCase().replace(/[^a-z]/g, '');
-                        return clean === 'yearlybudget' || clean === 'totalbudget' || clean === 'budget' || clean === 'total' || clean === 'annual' || clean === 'annualbudget';
-                    });
-                    if (yKey) {
-                        let yBud = getSafeNum(r._raw[yKey]);
-                        q1 = q2 = q3 = q4 = yBud / 4;
-                    }
-                }
-
-                const qToMonths = { 
-                    'Q1': ['Jul','Aug','Sep'], 
-                    'Q2': ['Oct','Nov','Dec'], 
-                    'Q3': ['Jan','Feb','Mar'], 
-                    'Q4': ['Apr','May','Jun'] 
-                };
-
-                const qs = {'Q1': q1, 'Q2': q2, 'Q3': q3, 'Q4': q4};
-                Object.keys(qs).forEach(q => {
-                    if (qs[q] === 0) return;
-                    let monthlyBud = qs[q] / 3;
-                    qToMonths[q].forEach(m => {
-                        const key = getKey(m, code, program, donor);
-                        if (!masterRecords[key]) {
-                            masterRecords[key] = {
-                                Department: dept, Stream: stream, Program: program,
-                                Code: code, NaturalAccount: accName, Month: m,
-                                Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
-                            };
-                        }
-                        masterRecords[key].Budget += monthlyBud;
-                        masterRecords[key].BudgetDonors[donor] = (masterRecords[key].BudgetDonors[donor] || 0) + monthlyBud;
-                    });
+            if (q1 === 0 && q2 === 0 && q3 === 0 && q4 === 0) {
+                let yKey = Object.keys(r._raw).find(k => {
+                    let clean = k.toLowerCase().replace(/[^a-z]/g, '');
+                    return clean === 'yearlybudget' || clean === 'totalbudget' || clean === 'budget' || clean === 'total' || clean === 'annual' || clean === 'annualbudget';
                 });
+                if (yKey) {
+                    let yBud = getSafeNum(r._raw[yKey]);
+                    q1 = q2 = q3 = q4 = yBud / 4;
+                }
             }
+
+            const qToMonths = { 
+                'Q1': ['Jul','Aug','Sep'], 
+                'Q2': ['Oct','Nov','Dec'], 
+                'Q3': ['Jan','Feb','Mar'], 
+                'Q4': ['Apr','May','Jun'] 
+            };
+
+            const qs = {'Q1': q1, 'Q2': q2, 'Q3': q3, 'Q4': q4};
+            Object.keys(qs).forEach(q => {
+                if (qs[q] === 0) return;
+                let monthlyBud = qs[q] / 3;
+                qToMonths[q].forEach(m => {
+                    const key = getKey(m, code, program, donor);
+                    if (!masterRecords[key]) {
+                        masterRecords[key] = {
+                            Department: dept, Stream: stream, Program: program,
+                            Code: code, NaturalAccount: accName, Month: m,
+                            Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
+                        };
+                    }
+                    masterRecords[key].Budget += monthlyBud;
+                    masterRecords[key].BudgetDonors[donor] = (masterRecords[key].BudgetDonors[donor] || 0) + monthlyBud;
+                });
+            });
         });
 
         // 2. Parse Universal Actuals via Donor TB
@@ -1304,10 +1283,7 @@
                 processedCapexCodes.add(code);
 
                 fiscalMonths.forEach(m => {
-                    let mKey = Object.keys(r._raw).find(k => {
-                        let lowerK = k.toLowerCase();
-                        return lowerK.startsWith(m.toLowerCase() + '-') || lowerK === m.toLowerCase();
-                    });
+                    let mKey = Object.keys(r._raw).find(k => k.toLowerCase().startsWith(m.toLowerCase()));
                     
                     if (mKey) {
                         let actual = getSafeNum(r._raw[mKey]);
@@ -1438,8 +1414,6 @@
     function isRowInViewScope(r) {
         const monthStr = r.Month || r.Month;
         
-        if (monthStr === 'ALL_MONTHS') return true; 
-
         if (currentGranularity === 'Yearly' || selectedPeriod === 'FY Total') return true;
         const rMonthIdx = fiscalMonths.indexOf(monthStr);
         if (rMonthIdx === -1) return false;
@@ -1647,6 +1621,8 @@
             }
         }
 
+        document.getElementById('thActualCol').innerText = 'Actual';
+
         renderSummaryTable(filteredRows);
         renderCard2Departments(filteredRows);
         renderCard3Details(filteredRows);
@@ -1664,7 +1640,7 @@
         });
 
         rawData.forEach(r => {
-            if (!deptAgg[r.Department] || r.Month === 'ALL_MONTHS') return; 
+            if (!deptAgg[r.Department]) return; 
             if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
             deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
         });
@@ -1707,7 +1683,7 @@
         });
 
         rawData.forEach(r => {
-            if (!deptAgg[r.Department] || r.Month === 'ALL_MONTHS') return; 
+            if (!deptAgg[r.Department]) return; 
             if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
             deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
         });
