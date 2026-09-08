@@ -615,7 +615,7 @@
                 <img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz Pakistan Logo">
             </div>
             <div class="header-title-group">
-                <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;">Budget vs Actual</h1>
+                <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;}">Budget vs Actual</h1>
                 <div class="sub-title" style="font-size: 0.95rem; color: var(--text-secondary); font-weight: 300; margin-top: 2px; letter-spacing: 1px;">FY 2026-27</div>
             </div>
         </div>
@@ -720,7 +720,7 @@
                                     <th>Department</th>
                                     <th>Trend</th>
                                     <th>Budget</th>
-                                    <th>Actual</th>
+                                    <th id="thActualCol">Actual</th>
                                     <th>%</th>
                                 </tr>
                             </thead>
@@ -1190,10 +1190,7 @@
             if (code.startsWith('C') || code.startsWith('I')) return; 
 
             const typeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'acct_type' || k.toLowerCase() === 'accttype');
-            if (typeKey) {
-                let val = String(r._raw[typeKey]).trim().toUpperCase();
-                if (val === 'R' || val === 'A' || val === 'L' || val === 'Q') return; 
-            }
+            if (typeKey && String(r._raw[typeKey]).trim().toUpperCase() !== 'E') return;
 
             const periodKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('period') || k.toLowerCase().includes('month'));
             const month = String(r._raw[periodKey] || 'Jul').split('-')[0].substring(0, 3);
@@ -1206,7 +1203,7 @@
             let mapping = coaMap[code];
 
             if (!mapping) {
-                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') || k.toLowerCase().includes('name') || k.toLowerCase().includes('particular'));
+                const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') && k.toLowerCase().includes('natural'));
                 const desc = String(r._raw[descKey] || code).trim();
                 
                 if (code.startsWith('D')) {
@@ -1311,7 +1308,7 @@
                 fiscalMonths.forEach(m => {
                     let mKey = Object.keys(r._raw).find(k => {
                         let lowerK = k.toLowerCase();
-                        return lowerK.startsWith(m.toLowerCase());
+                        return lowerK.includes(m.toLowerCase());
                     });
                     
                     if (mKey) {
