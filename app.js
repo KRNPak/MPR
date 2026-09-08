@@ -1,14 +1,19 @@
 // ========================================================================
 // 1. CONFIGURATION & STATE
 // ========================================================================
-const config = {
-    budgetMasterCSV: 'Data/BvA-202627 - Budget (1).csv', 
-    tbDonorCSV: 'Data/BvA-202627 - ActualDonor.csv',      
-    iiCSV: 'Data/Innovation.csv',
-    cicCSV: 'Data/CIC.csv',
-    eodCSV: 'Data/EOD.csv',
-    capexCSV: 'Data/BvA-202627 - CAPEX.csv'
-};
+const availableYears = ['FY2025', 'FY2026', 'FY2027']; // Add future years here
+let selectedYear = availableYears[availableYears.length - 1]; // Defaults to highest year
+
+function getFilePaths(year) {
+    return {
+        budgetMasterCSV: `Data/${year}/Budget.csv`, 
+        tbDonorCSV: `Data/${year}/ActualDonor.csv`,      
+        iiCSV: `Data/${year}/Innovation.csv`,
+        cicCSV: `Data/${year}/CIC.csv`,
+        eodCSV: `Data/${year}/EOD.csv`,
+        capexCSV: `Data/${year}/CAPEX.csv`
+    };
+}
 
 const fiscalMonths = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 const quarterMap = {
@@ -303,7 +308,6 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
     const coaMap = {}; 
     let pseudoCounter = 1;
 
-    // 1. Process Budget Master (No Deduplication, Stack Everything)
     budgetRows.forEach(r => {
         const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase() === 'acct');
         const rawCode = codeKey ? r._raw[codeKey] : '';
@@ -326,7 +330,6 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
         let donor = donorKey ? String(r._raw[donorKey] || '').trim() : 'OSR';
         if (!donor || donor === '') donor = 'OSR';
 
-        // Save the map reference for Actuals to look up later
         coaMap[code] = { Dept: dept, Stream: stream, Name: accName, Program: program, Donor: donor, Code: code };
 
         let q1 = getSafeNum(r['q1budget']) || getSafeNum(r['q1']);
@@ -379,7 +382,6 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
         });
     });
 
-    // 2. Parse Universal Actuals via Donor TB
     donorTBRows.forEach(r => {
         const codeKey = Object.keys(r._raw).find(k => (k.toLowerCase().includes('natural') && k.toLowerCase().includes('value')) || k.toLowerCase() === 'naturalaccount' || k.toLowerCase() === 'accountcode');
         const code = String(r._raw[codeKey] || r['acct'] || r['code'] || '').trim().toUpperCase();
@@ -396,7 +398,6 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
         let mapping = coaMap[code];
 
         if (!mapping) {
-            // If it is NOT mapped in the budget, apply strict accounting filters to prevent blowing up the BvA with assets/liabilities.
             const typeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'acct_type' || k.toLowerCase() === 'accttype');
             if (typeKey) {
                 let val = String(r._raw[typeKey]).trim().toUpperCase();
@@ -434,7 +435,6 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
         let finalDonor = rawDonor;
         let dLower = String(rawDonor).toLowerCase();
         
-        // --- COMBINED DONOR RULE ---
         if (dLower.includes(' and ') || dLower.includes(' & ') || dLower.includes('+')) {
             finalDonor = 'OSR';
         } else if (mapping.Dept !== 'Digital Financial Services' && mapping.Dept !== 'DFS') {
@@ -455,7 +455,6 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
         masterRecords[key].ActualDonors[finalDonor] = (masterRecords[key].ActualDonors[finalDonor] || 0) + actual;
     });
 
-    // 3 & 4. Innovation and CIC Investment Integrator
     function processInvestmentRows(invRows, deptName) {
         invRows.forEach(r => {
             let party = String(r['party'] || r._raw['Party'] || '').trim();
@@ -489,7 +488,6 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
     processInvestmentRows(iiRows, 'Innovation Investment');
     processInvestmentRows(cicRows, 'Corporate Investment and Credit');
 
-    // 5. CAPEX Actuals Integrator
     const processedCapexCodes = new Set();
     if (capexRows) {
         capexRows.forEach(r => {
@@ -546,11 +544,9 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
                              masterRecords[key] = { Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program, Code: mapping.Code || code, NaturalAccount: mapping.Name, Month: m, Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {} };
                          }
                          
-                         // Adding to Actuals
                          masterRecords[key].Actual += actual;
                          masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
                          
-                         // CAPEX is Actual=Budget: Mirroring the Actual into Budget to zero-out variance automatically
                          masterRecords[key].Budget += actual;
                          masterRecords[key].BudgetDonors['OSR'] = (masterRecords[key].BudgetDonors['OSR'] || 0) + actual;
                     }
@@ -605,6 +601,23 @@ function setViewMode(mode, btn) {
     updateDashboard();
 }
 
+function populateYearDropdown() {
+    const yearSelect = document.getElementById('yearDropdown');
+    if (!yearSelect) return;
+    yearSelect.innerHTML = '';
+    // Reverse array to put highest year at the top
+    const sortedYears = [...availableYears].sort().reverse();
+    sortedYears.forEach(y => {
+        yearSelect.add(new Option(y, y, false, y === selectedYear));
+    });
+}
+
+function onYearChange() {
+    selectedYear = document.getElementById('yearDropdown').value;
+    isInitialized = false; // Force re-initialization
+    init(); // Re-fetch the new year's data
+}
+
 function populatePeriodDropdown() {
     const dropdown = document.getElementById('periodDropdown');
     dropdown.innerHTML = '';
@@ -631,9 +644,7 @@ function onPeriodChange() {
 }
 
 function openDepartmentDetails(deptName) {
-    if (isSummaryView) {
-        toggleViewMode();
-    }
+    if (isSummaryView) toggleViewMode();
     selectDepartment(deptName);
 }
 
@@ -641,18 +652,14 @@ function selectDepartment(deptName) {
     selectedDepartment = deptName;
     const cards = document.getElementById('deptListContainer').getElementsByClassName('dept-grid-card');
     for (let i = 0; i < cards.length; i++) {
-        if (cards[i].getAttribute('data-dept') === deptName) {
-            cards[i].classList.add('active');
-        } else {
-            cards[i].classList.remove('active');
-        }
+        if (cards[i].getAttribute('data-dept') === deptName) cards[i].classList.add('active');
+        else cards[i].classList.remove('active');
     }
     renderCard3Details();
 }
 
 function isRowInViewScope(r) {
     const monthStr = r.Month || r.Month;
-    
     if (currentGranularity === 'Yearly' || selectedPeriod === 'FY Total') return true;
     const rMonthIdx = fiscalMonths.indexOf(monthStr);
     if (rMonthIdx === -1) return false;
@@ -668,12 +675,8 @@ function isRowInViewScope(r) {
             return quarters.indexOf(rQtr) <= quarters.indexOf(selectedPeriod);
         }
     } else if (viewMode === 'QTD') {
-        if (currentGranularity === 'Monthly') {
-            return rQtr === selQtr && rMonthIdx <= selMonthIdx;
-        }
-        if (currentGranularity === 'Quarterly') {
-            return rQtr === selectedPeriod; 
-        }
+        if (currentGranularity === 'Monthly') return rQtr === selQtr && rMonthIdx <= selMonthIdx;
+        if (currentGranularity === 'Quarterly') return rQtr === selectedPeriod; 
     } else { 
         if (currentGranularity === 'Monthly') return monthStr === selectedPeriod;
         if (currentGranularity === 'Quarterly') return rQtr === selectedPeriod;
@@ -750,8 +753,11 @@ function updateDashboard() {
             targetMonthStr = 'Jun';
         }
         
-        let targetYearStr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].includes(targetMonthStr) ? '27' : '26';
-        let targetDate = new Date(targetMonthStr + ' 1, 20' + targetYearStr);
+        // Year logic for EOD placeholder (assumes FY ending year logic)
+        let endYearMatch = selectedYear.match(/\d+$/);
+        let endYear = endYearMatch ? parseInt(endYearMatch[0]) : 27;
+        let targetYearStr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].includes(targetMonthStr) ? String(endYear) : String(endYear - 1);
+        let targetDate = new Date(targetMonthStr + ' 1, 20' + targetYearStr.slice(-2));
         
         let targetIdx = -1;
         for(let i=0; i<globalEODData.length; i++) {
@@ -1191,7 +1197,6 @@ function renderModalTable(searchTerm = '') {
     
     let activeMonths = window.activeModalMonths || [];
     
-    // Updated headers to clearly indicate (M PKR)
     let thHtml = `<tr><th>Account Name</th>`;
     activeMonths.forEach(m => thHtml += `<th>${m} (M PKR)</th>`);
     thHtml += `<th>Period Budget (M PKR)</th></tr>`;
@@ -1209,14 +1214,12 @@ function renderModalTable(searchTerm = '') {
             let tr = `<tr>`;
             tr += `<td><strong style="color: var(--krn-blue); font-weight: 400;">${item.na}</strong><br><span style="font-size: 0.62rem; color: var(--text-secondary);">Code: ${item.code}</span></td>`;
             
-            // Convert actuals to millions and format to 1 decimal place
             activeMonths.forEach(m => {
                 let val = item.actuals[m] || 0;
                 let valInMillions = val / 1000000;
                 tr += `<td style="font-variant-numeric: tabular-nums;">${val === 0 ? '-' : valInMillions.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>`;
             });
             
-            // Convert budget to millions and format to 1 decimal place
             let budgetInMillions = item.budget / 1000000;
             tr += `<td style="font-variant-numeric: tabular-nums; font-weight: 500;">${budgetInMillions.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>`;
             tr += `</tr>`;
@@ -1267,38 +1270,50 @@ async function init() {
     if (isInitialized) return;
     isInitialized = true;
 
+    // Show loading screen if re-initializing from year switch
+    const loader = document.getElementById('loadingOverlay');
+    if (loader) {
+        loader.classList.remove('hidden');
+        loader.style.opacity = '1';
+        loader.style.visibility = 'visible';
+    }
+
     try {
         const errElem = document.getElementById('loaderStatusText');
+        const paths = getFilePaths(selectedYear); // Get dynamic paths based on dropdown
         
-        if (errElem) errElem.innerText = "FETCHING BUDGET (1/6)...";
-        const bRes = await fetch(config.budgetMasterCSV);
+        rawData = []; // Clear existing data for re-initialization
+        globalEODData = [];
+        
+        if (errElem) errElem.innerText = `FETCHING BUDGET (${selectedYear}) 1/6...`;
+        const bRes = await fetch(paths.budgetMasterCSV);
         if (!bRes.ok) throw new Error("Budget Master fetch failed");
         
-        if (errElem) errElem.innerText = "FETCHING DONOR TB (2/6)...";
-        const tdRes = await fetch(config.tbDonorCSV);
+        if (errElem) errElem.innerText = `FETCHING DONOR TB (${selectedYear}) 2/6...`;
+        const tdRes = await fetch(paths.tbDonorCSV);
         if (!tdRes.ok) throw new Error("Donor TB fetch failed");
         
-        if (errElem) errElem.innerText = "FETCHING INNOVATION (3/6)...";
-        const iiRes = await fetch(config.iiCSV);
+        if (errElem) errElem.innerText = `FETCHING INNOVATION (${selectedYear}) 3/6...`;
+        const iiRes = await fetch(paths.iiCSV);
         if (!iiRes.ok) throw new Error("Innovation Investment fetch failed");
         
-        if (errElem) errElem.innerText = "FETCHING CIC (4/6)...";
-        const cicRes = await fetch(config.cicCSV);
+        if (errElem) errElem.innerText = `FETCHING CIC (${selectedYear}) 4/6...`;
+        const cicRes = await fetch(paths.cicCSV);
         if (!cicRes.ok) throw new Error("CIC Investment fetch failed");
 
-        if (errElem) errElem.innerText = "FETCHING CAPEX (5/6)...";
+        if (errElem) errElem.innerText = `FETCHING CAPEX (${selectedYear}) 5/6...`;
         let capexRows = [];
         try {
-            const capexRes = await fetch(config.capexCSV);
+            const capexRes = await fetch(paths.capexCSV);
             if (capexRes.ok) capexRows = parseCSV(await capexRes.text());
         } catch (e) {
             console.warn("CAPEX.csv not found or failed to load. Ensure it exists in the Data folder.");
         }
 
-        if (errElem) errElem.innerText = "FETCHING EOD (6/6)...";
+        if (errElem) errElem.innerText = `FETCHING EOD (${selectedYear}) 6/6...`;
         let eodRows = [];
         try {
-            const eodRes = await fetch(config.eodCSV);
+            const eodRes = await fetch(paths.eodCSV);
             if (eodRes.ok) eodRows = parseCSV(await eodRes.text());
         } catch (e) {
             console.warn("EOD.csv not found or failed to load. Ensure it exists in the Data folder.");
@@ -1359,6 +1374,7 @@ async function init() {
             errElem.innerHTML = `<span style="color:var(--krn-green); font-weight:bold;">Success!</span> Ready.`;
         }
 
+        populateYearDropdown();
         populatePeriodDropdown();
         updateDashboard();
     } catch (err) {
@@ -1368,9 +1384,16 @@ async function init() {
     } finally {
         if (!document.getElementById('loaderStatusText').innerHTML.includes("ERROR")) {
             setTimeout(() => {
-                const loader = document.getElementById('loadingOverlay');
-                if (loader) loader.classList.add('hidden');
-            }, 2200); 
+                const l = document.getElementById('loadingOverlay');
+                if (l) {
+                    l.classList.add('hidden');
+                    // Reset text for next fetch
+                    setTimeout(() => {
+                        const txt = document.getElementById('loaderStatusText');
+                        if (txt) txt.innerText = "INITIALIZING SYSTEM...";
+                    }, 800);
+                }
+            }, 1000); 
         }
     }
 }
