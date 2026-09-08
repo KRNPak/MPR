@@ -356,7 +356,7 @@
 
         .dept-card-metric-val {
             font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
-            font-size: 1rem;
+            font-size: 1.25rem;
             font-weight: bold;
             color: var(--text-primary);
             line-height: 1;
@@ -364,20 +364,20 @@
 
         .dept-card-metric-pct {
             font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
-            font-size: 1.25rem;
+            font-size: 1.6rem;
             font-weight: bold;
             color: var(--krn-blue);
             line-height: 1;
         }
 
         .dept-card-metric-lbl {
-            font-size: 0.55rem;
+            font-size: 0.6rem;
             color: var(--text-primary);
             margin-top: 4px;
         }
 
         .dept-card-metric-unit {
-            font-size: 0.5rem;
+            font-size: 0.55rem;
             color: var(--text-secondary);
             margin-top: 2px;
         }
@@ -1117,7 +1117,8 @@
             const accName = String(r['accountname'] || r['name'] || r['description'] || r['accountdescription'] || code || 'Unnamed');
             const dept = String(r['department'] || r['dept'] || 'Uncategorized');
             
-            if (accName.toUpperCase().includes('TOTAL') || dept.toUpperCase().includes('TOTAL')) return; 
+            let isTotalRow = accName.toUpperCase() === 'TOTAL' || dept.toUpperCase() === 'TOTAL' || code.includes('SUBTOTAL') || accName.toUpperCase().includes('TOTAL EXPENSES');
+            if (isTotalRow) return;
 
             if (!code || code === 'NAN' || code === '') {
                 code = 'UNMAPPED_BUDGET_' + pseudoCounter++;
@@ -1183,16 +1184,12 @@
             });
         });
 
-        // 2. Parse Universal Actuals via Donor TB (Includes Admin & Transaction Costs natively)
+        // 2. Parse Universal Actuals via Donor TB
         donorTBRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => (k.toLowerCase().includes('natural') && k.toLowerCase().includes('value')) || k.toLowerCase() === 'naturalaccount' || k.toLowerCase() === 'accountcode');
             const code = String(r._raw[codeKey] || r['acct'] || r['code'] || '').trim().toUpperCase();
             if (!code) return;
 
-            if (code.startsWith('C') || code.startsWith('I')) return; 
-
-            // Removing Acct_Type filter to ensure Bank/Transaction costs are never dropped.
-            
             const periodKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('period') || k.toLowerCase().includes('month'));
             const month = String(r._raw[periodKey] || 'Jul').split('-')[0].substring(0, 3);
             
@@ -1203,8 +1200,18 @@
 
             let mapping = coaMap[code];
 
-            // Fuzzy Fallback Matcher: If the code from TB isn't a direct match to the Budget Master, try finding it by description
+            // If the code is perfectly mapped in the Budget Master, bypass ALL system filters.
+            // If it is NOT mapped, apply strict accounting filters to prevent blowing up the BvA with assets/liabilities.
             if (!mapping) {
+                // If it starts with C, I, L, A, or Q it is almost certainly a balance sheet item. Drop it if it isn't in the budget.
+                if (code.startsWith('C') || code.startsWith('I') || code.startsWith('L') || code.startsWith('A') || code.startsWith('Q')) return; 
+                
+                const typeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'acct_type' || k.toLowerCase() === 'accttype');
+                if (typeKey) {
+                    let val = String(r._raw[typeKey]).trim().toUpperCase();
+                    if (val === 'R' || val === 'A' || val === 'L' || val === 'Q') return; 
+                }
+                
                 const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') && k.toLowerCase().includes('natural'));
                 const desc = String(r._raw[descKey] || code).trim();
                 
@@ -1352,7 +1359,7 @@
                              masterRecords[key].Actual += actual;
                              masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
                              
-                             // CAPEX is Actual=Budget: Mirroring the Actual into Budget
+                             // CAPEX is Actual=Budget: Mirroring the Actual into Budget to zero-out variance automatically
                              masterRecords[key].Budget += actual;
                              masterRecords[key].BudgetDonors['OSR'] = (masterRecords[key].BudgetDonors['OSR'] || 0) + actual;
                         }
@@ -1679,7 +1686,7 @@
         });
 
         rawData.forEach(r => {
-            if (!deptAgg[r.Department]) return; 
+            if (!deptAgg[r.Department] || r.Month === 'ALL_MONTHS') return; 
             if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
             deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
         });
@@ -1722,7 +1729,7 @@
         });
 
         rawData.forEach(r => {
-            if (!deptAgg[r.Department]) return; 
+            if (!deptAgg[r.Department] || r.Month === 'ALL_MONTHS') return; 
             if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
             deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
         });
