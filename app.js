@@ -1191,9 +1191,10 @@ function renderModalTable(searchTerm = '') {
     
     let activeMonths = window.activeModalMonths || [];
     
+    // Updated headers to clearly indicate (M PKR)
     let thHtml = `<tr><th>Account Name</th>`;
-    activeMonths.forEach(m => thHtml += `<th>${m}</th>`);
-    thHtml += `<th>Period Budget</th></tr>`;
+    activeMonths.forEach(m => thHtml += `<th>${m} (M PKR)</th>`);
+    thHtml += `<th>Period Budget (M PKR)</th></tr>`;
     if (thead) thead.innerHTML = thHtml;
 
     tbody.innerHTML = '';
@@ -1208,12 +1209,16 @@ function renderModalTable(searchTerm = '') {
             let tr = `<tr>`;
             tr += `<td><strong style="color: var(--krn-blue); font-weight: 400;">${item.na}</strong><br><span style="font-size: 0.62rem; color: var(--text-secondary);">Code: ${item.code}</span></td>`;
             
+            // Convert actuals to millions and format to 1 decimal place
             activeMonths.forEach(m => {
                 let val = item.actuals[m] || 0;
-                tr += `<td style="font-variant-numeric: tabular-nums;">${val === 0 ? '-' : val.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>`;
+                let valInMillions = val / 1000000;
+                tr += `<td style="font-variant-numeric: tabular-nums;">${val === 0 ? '-' : valInMillions.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>`;
             });
             
-            tr += `<td style="font-variant-numeric: tabular-nums; font-weight: 500;">${item.budget.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>`;
+            // Convert budget to millions and format to 1 decimal place
+            let budgetInMillions = item.budget / 1000000;
+            tr += `<td style="font-variant-numeric: tabular-nums; font-weight: 500;">${budgetInMillions.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>`;
             tr += `</tr>`;
             tbody.innerHTML += tr;
         });
