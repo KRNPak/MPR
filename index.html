@@ -10,7 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chivo:ital,wght@0,100..900;1,100..900&family=Oswald:wght@200..700&display=swap" rel="stylesheet">
     
     <!-- Link to the separated CSS file -->
-    <link rel="stylesheet" href="styles.css">
+    <script>
+        document.write('<link rel="stylesheet" href="styles.css?t=' + Date.now() + '">');
+    </script>
 </head>
 <body class="view-summary light-mode"> 
 
@@ -227,7 +229,9 @@
 </div>
 
 <!-- Link to the separated JavaScript file -->
-<script src="app.js"></script>
+<script>
+    document.write('<script src="app.js?t=' + Date.now() + '"><\/script>');
+</script>
 
 </body>
 </html>
