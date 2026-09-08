@@ -5,11 +5,11 @@ Corporate Investment and Credit,,Green,,,OSR,0,0,"350,000,000","375,000,000"
 Transaction cost,,Innovation Investment,I107004,WV/GFI: Technical Assistance through PFSL,OSR,"300,000","400,000","500,000","300,000"
 Transaction cost,,Innovation Investment,,Litigation Fee for WV,OSR,"1,500,000","1,000,000",0,0
 Transaction cost,,Innovation Investment,,PROPARCO Guarantee Fee,OSR,"9,800,000",0,0,0
-Transaction cost,,Corporate Investment and Credit,C107002,"Strategic Investment - Pre & post investment cost",OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
-Transaction cost,,Corporate Investment and Credit,C108002,"Credit - Pre & post investment cost",OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
-Transaction cost,,Corporate Investment and Credit,C109002,"Equity - Pre & post investment cost",OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
-Transaction cost,,Corporate Investment and Credit,C107003,"Due diligence cost - Pre & post investment cost",OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
-Transaction cost,,Corporate Investment and Credit,C110002,"GREEN - Pre & post investment cost",OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
+Transaction cost,,Corporate Investment and Credit,C107002,Pre & post investment cost,OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
+Transaction cost,,Corporate Investment and Credit,C108002,Pre & post investment cost,OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
+Transaction cost,,Corporate Investment and Credit,C109002,Pre & post investment cost,OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
+Transaction cost,,Corporate Investment and Credit,C107003,Pre & post investment cost,OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
+Transaction cost,,Corporate Investment and Credit,C110002,Pre & post investment cost,OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
 Innovation Investment,,WV: Concessional Debt,,,OSR,"20,000,000","40,000,000","60,000,000","40,000,000"
 Innovation Investment,,GFI: Concessional Debt,,,OSR,"25,000,000","15,000,000","20,000,000","15,000,000"
 Innovation Investment,,WV: Agency Services - AP,,,OSR,"30,000,000","30,000,000","40,000,000","40,000,000"
@@ -147,8 +147,8 @@ Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCD
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,SECP LEAP Program,D107051,"W2: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events",FCDO,"300,000","300,000","300,000","300,000"
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D107037,FBR - Digitization for Tax System (Stage 1: Digital Strategy & Implementation Plan),GF,0,0,0,0
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D107052,FBR - Digitization for Tax System (Stage 2: Project & Change Management ),GF,0,0,0,0
-Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,,FBR - Digitization for Tax System (Stage 3: McKinsey PMO),GF,"169,260,000","169,260,000","169,260,000","169,260,000"
-Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,,FBR - Digitalization for Tax System(Stage 3): Research Firm,GF,"6,975,000",0,"11,625,000","4,650,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D107059,FBR - Digitization for Tax System (Stage 3: McKinsey PMO),GF,"169,260,000","169,260,000","169,260,000","169,260,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D107060,FBR - Digitalization for Tax System(Stage 3): Research Firm,GF,"6,975,000",0,"11,625,000","4,650,000"
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D107053,FBR - Digitalization for Tax System: Individual Consultant,GF,"5,197,500","15,592,500","5,197,500",0
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D107054,BISP - BISP and RAAST integration,GF,"16,000,000",0,0,0
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,--,Project 1: CDNS,GF,0,0,0,0
