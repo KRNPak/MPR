@@ -722,7 +722,7 @@
                                     <th>Department</th>
                                     <th>Trend</th>
                                     <th>Budget</th>
-                                    <th>Actual</th>
+                                    <th id="thActualCol">Actual</th>
                                     <th>%</th>
                                 </tr>
                             </thead>
@@ -1201,14 +1201,6 @@
             let mapping = coaMap[code];
 
             if (!mapping) {
-                // If it is NOT mapped in the budget, apply strict accounting filters to prevent blowing up the BvA with assets/liabilities.
-                // Note: We DO NOT filter by 'C' or 'I' anymore, because Transaction Costs use these codes.
-                const typeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'acct_type' || k.toLowerCase() === 'accttype');
-                if (typeKey) {
-                    let val = String(r._raw[typeKey]).trim().toUpperCase();
-                    if (val === 'R' || val === 'A' || val === 'L' || val === 'Q') return; 
-                }
-                
                 const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') || k.toLowerCase().includes('natural'));
                 const desc = String(r._raw[descKey] || code).trim();
                 
@@ -1576,7 +1568,7 @@
                 for(let i = targetIdx; i >= 0 && count12 < 12; i--) { sumDep12 += globalEODData[i].dep; sumAvail12 += globalEODData[i].avail; count12++; }
                 let avg12 = sumAvail12 !== 0 ? (sumDep12/sumAvail12)*100 : 0;
                 
-if (isSummaryView) {
+                if (isSummaryView) {
                     eodHtml = `
                     <div style="margin-top: 20px; width: 100%;">
                         <div style="font-size: 0.8rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">EOD Tracking</div>
@@ -1613,8 +1605,6 @@ if (isSummaryView) {
                             </table>
                         </div>
                     </div>`;
-                    
-                } else {
                     
                 } else {
                     eodHtml = `
