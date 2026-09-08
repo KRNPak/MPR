@@ -854,9 +854,9 @@
     function getFormattedParts(num) {
         const val = parseFloat(num) || 0;
         const absVal = Math.abs(val);
-        if (absVal >= 1000000) return { v: (val / 1000000).toFixed(2), u: 'M PKR' };
+        if (absVal >= 1000000) return { v: (val / 1000000).toFixed(1), u: 'M PKR' };
         if (absVal >= 1000) return { v: (val / 1000).toFixed(1), u: 'K PKR' };
-        return { v: val.toLocaleString('en-PK', { maximumFractionDigits: 0 }), u: 'PKR' };
+        return { v: val.toLocaleString('en-PK', { minimumFractionDigits: 1, maximumFractionDigits: 1 }), u: 'PKR' };
     }
 
     function formatPKRInline(num) {
@@ -2004,7 +2004,10 @@
                 
                 activeMonths.forEach(m => {
                     let val = item.actuals[m] || 0;
-                    tr += `<td style="font-variant-numeric: tabular-nums;">${val === 0 ? '-' : val.toLocaleString('en-PK', {maximumFractionDigits:0})}</td>`;
+                    tr += `<td style="font-variant-numeric: tabular-nums;">${val === 0 ? '-' : val.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>`;
+                });
+                
+                tr += `<td style="font-variant-numeric: tabular-nums; font-weight: 500;">${item.budget.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>`;
                 });
                 
                 tr += `<td style="font-variant-numeric: tabular-nums; font-weight: 500;">${item.budget.toLocaleString('en-PK', {maximumFractionDigits:0})}</td>`;
