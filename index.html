@@ -1084,7 +1084,7 @@
         const coaMap = {}; 
         let pseudoCounter = 1;
 
-        // 1. Process Budget Master
+        // 1. Process Budget Master (No Deduplication, Stack Everything)
         budgetRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase() === 'acct');
             const rawCode = codeKey ? r._raw[codeKey] : '';
@@ -1106,6 +1106,7 @@
             let donor = donorKey ? String(r._raw[donorKey] || '').trim() : 'OSR';
             if (!donor || donor === '') donor = 'OSR';
 
+            // Save the map reference for Actuals to look up later
             coaMap[code] = { Dept: dept, Stream: stream, Name: accName, Program: program, Donor: donor, Code: code };
 
             let q1 = getSafeNum(r['q1budget']) || getSafeNum(r['q1']);
@@ -2106,7 +2107,7 @@
             parsedEOD.sort((a,b) => a.date - b.date);
             globalEODData = parsedEOD;
 
-            rawData = parseMultiLinkData(bData, tdData, [], iiData, cicData, capexRows);
+            rawData = parseMultiLinkData(bData, tdData, iiData, cicData, capexRows);
             
             if (rawData.length === 0) throw new Error("No data parsed. Check CSV structures.");
             
