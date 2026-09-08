@@ -312,7 +312,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            aspect-ratio: 1 / 1; 
+            min-height: 150px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             position: relative;
         }
@@ -351,11 +351,12 @@
             align-items: center;
             flex: 1;
             white-space: nowrap;
+            padding: 0 2px;
         }
 
         .dept-card-metric-val {
             font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
-            font-size: 1.25rem;
+            font-size: 1rem;
             font-weight: bold;
             color: var(--text-primary);
             line-height: 1;
@@ -363,27 +364,27 @@
 
         .dept-card-metric-pct {
             font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
-            font-size: 1.6rem;
+            font-size: 1.25rem;
             font-weight: bold;
             color: var(--krn-blue);
             line-height: 1;
         }
 
         .dept-card-metric-lbl {
-            font-size: 0.6rem;
+            font-size: 0.55rem;
             color: var(--text-primary);
             margin-top: 4px;
         }
 
         .dept-card-metric-unit {
-            font-size: 0.55rem;
+            font-size: 0.5rem;
             color: var(--text-secondary);
             margin-top: 2px;
         }
 
         .stream-grid-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
             gap: 12px;
             overflow-y: auto;
             overflow-x: hidden;
@@ -403,7 +404,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            aspect-ratio: 1 / 1; 
+            min-height: 130px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             position: relative;
         }
@@ -449,11 +450,12 @@
             flex: 1;
             white-space: nowrap;
             min-width: 0;
+            padding: 0 2px;
         }
 
         .stream-card-metric-val {
             font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
-            font-size: 1rem;
+            font-size: 0.85rem;
             font-weight: bold;
             color: var(--text-primary);
             line-height: 1;
@@ -461,21 +463,21 @@
 
         .stream-card-metric-pct {
             font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
-            font-size: 1.35rem;
+            font-size: 1.1rem;
             font-weight: bold;
             color: var(--krn-blue);
             line-height: 1;
         }
 
         .stream-card-metric-lbl {
-            font-size: 0.55rem;
+            font-size: 0.5rem;
             color: var(--text-primary);
             margin-top: 3px;
             text-transform: uppercase;
         }
 
         .stream-card-metric-unit {
-            font-size: 0.5rem;
+            font-size: 0.45rem;
             color: var(--text-secondary);
             margin-top: 1px;
             text-transform: uppercase;
@@ -615,7 +617,7 @@
                 <img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz Pakistan Logo">
             </div>
             <div class="header-title-group">
-                <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;}">Budget vs Actual</h1>
+                <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;">Budget vs Actual</h1>
                 <div class="sub-title" style="font-size: 0.95rem; color: var(--text-secondary); font-weight: 300; margin-top: 2px; letter-spacing: 1px;">FY 2026-27</div>
             </div>
         </div>
@@ -720,7 +722,7 @@
                                     <th>Department</th>
                                     <th>Trend</th>
                                     <th>Budget</th>
-                                    <th id="thActualCol">Actual</th>
+                                    <th>Actual</th>
                                     <th>%</th>
                                 </tr>
                             </thead>
@@ -1181,7 +1183,7 @@
             });
         });
 
-        // 2. Parse Universal Actuals via Donor TB
+        // 2. Parse Universal Actuals via Donor TB (Includes Admin & Transaction Costs natively)
         donorTBRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => (k.toLowerCase().includes('natural') && k.toLowerCase().includes('value')) || k.toLowerCase() === 'naturalaccount' || k.toLowerCase() === 'accountcode');
             const code = String(r._raw[codeKey] || r['acct'] || r['code'] || '').trim().toUpperCase();
@@ -1189,9 +1191,8 @@
 
             if (code.startsWith('C') || code.startsWith('I')) return; 
 
-            const typeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'acct_type' || k.toLowerCase() === 'accttype');
-            if (typeKey && String(r._raw[typeKey]).trim().toUpperCase() !== 'E') return;
-
+            // Removing Acct_Type filter to ensure Bank/Transaction costs are never dropped.
+            
             const periodKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('period') || k.toLowerCase().includes('month'));
             const month = String(r._raw[periodKey] || 'Jul').split('-')[0].substring(0, 3);
             
@@ -1202,11 +1203,19 @@
 
             let mapping = coaMap[code];
 
+            // Fuzzy Fallback Matcher: If the code from TB isn't a direct match to the Budget Master, try finding it by description
             if (!mapping) {
                 const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') && k.toLowerCase().includes('natural'));
                 const desc = String(r._raw[descKey] || code).trim();
                 
-                if (code.startsWith('D')) {
+                let fuzzyKey = Object.keys(coaMap).find(k => {
+                    let bName = coaMap[k].Name.toUpperCase();
+                    return bName !== 'UNNAMED' && (bName === desc.toUpperCase() || bName.includes(desc.toUpperCase()) || desc.toUpperCase().includes(bName));
+                });
+                
+                if (fuzzyKey) {
+                    mapping = coaMap[fuzzyKey];
+                } else if (code.startsWith('D')) {
                     mapping = { Dept: 'Digital Financial Services', Stream: desc, Name: desc, Program: 'Unallocated', Donor: 'OSR' };
                 } else if (code.startsWith('K')) {
                     mapping = { Dept: 'Research, Marketing & Communications', Stream: desc, Name: desc, Program: 'Unallocated', Donor: 'OSR' };
