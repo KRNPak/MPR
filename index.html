@@ -1576,31 +1576,45 @@
                 for(let i = targetIdx; i >= 0 && count12 < 12; i--) { sumDep12 += globalEODData[i].dep; sumAvail12 += globalEODData[i].avail; count12++; }
                 let avg12 = sumAvail12 !== 0 ? (sumDep12/sumAvail12)*100 : 0;
                 
-                if (isSummaryView) {
+if (isSummaryView) {
                     eodHtml = `
                     <div style="margin-top: 20px; width: 100%;">
                         <div style="font-size: 0.8rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">EOD Tracking</div>
-                        <div class="table-wrapper" style="max-height: 250px;">
-                        <table class="detail-table" style="font-size:0.75rem;">
-                            <thead><tr><th>Month</th><th>EOD %</th><th>Capital Available</th><th>Capital Deployed</th></tr></thead>
-                            <tbody>
-                    `;
-                    globalEODData.forEach(r => {
-                        eodHtml += `<tr><td>${r.rawMonth}</td><td><b>${r.pct.toFixed(2)}%</b></td><td style="font-variant-numeric:tabular-nums">${r.avail.toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${r.dep.toLocaleString()}</td></tr>`;
-                    });
-                    
-                    eodHtml += `
-                            </tbody>
-                        </table>
+                        <div class="table-wrapper">
+                            <table class="detail-table" style="font-size:0.75rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Period</th>
+                                        <th>EOD %</th>
+                                        <th>Capital Available</th>
+                                        <th>Capital Deployed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="color: var(--text-primary);">This month</td>
+                                        <td style="color: var(--krn-blue);"><b>${lastMonthObj.pct.toFixed(2)}%</b></td>
+                                        <td style="font-variant-numeric:tabular-nums">${lastMonthObj.avail.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
+                                        <td style="font-variant-numeric:tabular-nums">${lastMonthObj.dep.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="color: var(--text-primary);">3 month avg</td>
+                                        <td style="color: var(--krn-blue);"><b>${avg3.toFixed(2)}%</b></td>
+                                        <td style="font-variant-numeric:tabular-nums">${(sumAvail3/count3).toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
+                                        <td style="font-variant-numeric:tabular-nums">${(sumDep3/count3).toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="color: var(--text-primary);">12 month avg</td>
+                                        <td style="color: var(--krn-blue);"><b>${avg12.toFixed(2)}%</b></td>
+                                        <td style="font-variant-numeric:tabular-nums">${(sumAvail12/count12).toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
+                                        <td style="font-variant-numeric:tabular-nums">${(sumDep12/count12).toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <table class="detail-table" style="font-size:0.75rem; margin-top: 10px; background-color: rgba(0,0,0,0.02);">
-                            <tbody>
-                                <tr><td><b>Last month</b></td><td><b>${lastMonthObj.pct.toFixed(2)}%</b></td><td style="font-variant-numeric:tabular-nums">${lastMonthObj.avail.toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${lastMonthObj.dep.toLocaleString()}</td></tr>
-                                <tr><td><b>Last 3 months avg</b></td><td><b>${avg3.toFixed(2)}%</b></td><td style="font-variant-numeric:tabular-nums">${Math.round(sumAvail3/count3).toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${Math.round(sumDep3/count3).toLocaleString()}</td></tr>
-                                <tr><td><b>Last 12 months avg</b></td><td><b>${avg12.toFixed(2)}%</b></td><td style="font-variant-numeric:tabular-nums">${Math.round(sumAvail12/count12).toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${Math.round(sumDep12/count12).toLocaleString()}</td></tr>
-                            </tbody>
-                        </table>
                     </div>`;
+                    
+                } else {
                     
                 } else {
                     eodHtml = `
