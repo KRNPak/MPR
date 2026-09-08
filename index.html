@@ -785,8 +785,6 @@
     const config = {
         budgetMasterCSV: 'Data/BvA-202627 - Budget (1).csv', 
         tbDonorCSV: 'Data/BvA-202627 - ActualDonor.csv',      
-        tbProgramCSV: 'Data/BvA-202627 - ActualProgram.csv',
-        adminCSV: 'Data/BvA-202627 - AdminActual.csv',
         iiCSV: 'Data/Innovation.csv',
         cicCSV: 'Data/CIC.csv',
         eodCSV: 'Data/EOD.csv',
@@ -1040,7 +1038,7 @@
     }
 
     // ========================================================================
-    // 4. MULTI-LINK DATA PARSING ENGINE (With Fuzzy Fallbacks & Splitting)
+    // 4. MULTI-LINK DATA PARSING ENGINE 
     // ========================================================================
     function parseCSV(text) {
         let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1079,13 +1077,12 @@
         return objects;
     }
 
-    function parseMultiLinkData(budgetRows, donorTBRows, programTBRows, adminRows, iiRows, cicRows, capexRows) {
+    function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows) {
         const masterRecords = {};
         function getKey(m, c, p, d) { return `${m}|${c}|${p}|${d}`; }
 
         const coaMap = {}; 
         let pseudoCounter = 1;
-        const adminDonorRatios = {}; 
 
         // 1. Process Budget Master
         budgetRows.forEach(r => {
@@ -1181,7 +1178,7 @@
             }
         });
 
-        // 2. Parse Donor TB
+        // 2. Parse Universal Actuals via Donor TB
         donorTBRows.forEach(r => {
             const codeKey = Object.keys(r._raw).find(k => (k.toLowerCase().includes('natural') && k.toLowerCase().includes('value')) || k.toLowerCase() === 'naturalaccount' || k.toLowerCase() === 'accountcode');
             const code = String(r._raw[codeKey] || r['acct'] || r['code'] || '').trim().toUpperCase();
@@ -1225,23 +1222,16 @@
             if (rawDonor === '' || rawDonor.toLowerCase() === 'nan' || rawDonor === '0' || rawDonor === 'undefined') rawDonor = 'OSR';
             
             let finalDonor = rawDonor;
-            if (mapping.Dept !== 'Digital Financial Services' && mapping.Dept !== 'DFS') {
-                const dLower = String(rawDonor).toLowerCase();
+            let dLower = String(rawDonor).toLowerCase();
+            
+            // --- COMBINED DONOR RULE ---
+            if (dLower.includes(' and ') || dLower.includes(' & ') || dLower.includes('+')) {
+                finalDonor = 'OSR';
+            } else if (mapping.Dept !== 'Digital Financial Services' && mapping.Dept !== 'DFS') {
                 if (dLower.includes('fcdo') || dLower.includes('n/a') || dLower.includes('nan') || dLower === '0') {
                     finalDonor = 'OSR';
                 }
             }
-
-            let isTransaction = mapping.Name.toUpperCase().includes('TRANSACTION') || mapping.Stream.toUpperCase().includes('TRANSACTION') || code.includes('BANK') || mapping.Name.toUpperCase().includes('BANK');
-            let isAdmin = mapping.Dept.includes('Admin') || code.startsWith('H') || code.startsWith('S') || code.startsWith('SS');
-            
-            // Send to Admin Ratios UNLESS it is a Transaction Cost, then process it instantly
-            if (isAdmin && !isTransaction) { 
-                let k = `${month}|${code}`;
-                if (!adminDonorRatios[k]) adminDonorRatios[k] = {};
-                adminDonorRatios[k][finalDonor] = (adminDonorRatios[k][finalDonor] || 0) + actual;
-                return; 
-            } 
 
             const key = getKey(month, code, mapping.Program, finalDonor);
             if (!masterRecords[key]) {
@@ -1255,87 +1245,7 @@
             masterRecords[key].ActualDonors[finalDonor] = (masterRecords[key].ActualDonors[finalDonor] || 0) + actual;
         });
 
-        // 3. Admin TB Integrator
-        const processedAdminCodes = new Set();
-        adminRows.forEach(r => {
-            const codeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'natural account' || k.toLowerCase() === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code') || Object.keys(r._raw)[0];
-            const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('items') || k.toLowerCase().includes('heads') || k.toLowerCase().includes('expense') || k.toLowerCase().includes('desc') || k.toLowerCase().includes('particular')) || Object.keys(r._raw)[1];
-            
-            let code = r._raw[codeKey];
-            const desc = String(r._raw[descKey] || '').trim();
-
-            if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') {
-                code = desc.toUpperCase(); 
-            } else {
-                code = code.trim().toUpperCase();
-            }
-            
-            let isTransaction = code.includes('TRANSACTION') || desc.toUpperCase().includes('TRANSACTION') || code.includes('BANK') || desc.toUpperCase().includes('BANK');
-            
-            // Skip Admin Transaction processing entirely because TB Donor handles it now
-            if (isTransaction) return; 
-
-            // STRICT BLOCKLIST: Ignore specific subtotal rows that double-count data.
-            const blockList = ['NON PROGRAMME', 'OPEX', 'STAFF COST - TOTAL', 'ADMIN COST', 'TOTAL', 'SUBTOTAL'];
-            let shouldBlock = blockList.some(b => code.includes(b) || desc.toUpperCase().includes(b));
-            
-            if (shouldBlock) return;
-            
-            if (processedAdminCodes.has(code)) return;
-            processedAdminCodes.add(code);
-
-            fiscalMonths.forEach(m => {
-                let mKey = Object.keys(r._raw).find(k => {
-                    let lowerK = k.toLowerCase();
-                    return lowerK.startsWith(m.toLowerCase() + '-') || lowerK === m.toLowerCase();
-                });
-                
-                if (mKey) {
-                    let actual = getSafeNum(r._raw[mKey]);
-                    if (actual !== 0) {
-                         let mapping = coaMap[code];
-                         
-                         if (!mapping) {
-                             let foundKey = Object.keys(coaMap).find(k => {
-                                 let cleanName = coaMap[k].Name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                 let cleanDesc = desc.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                 return cleanName && cleanDesc && (cleanName.includes(cleanDesc) || cleanDesc.includes(cleanName));
-                             });
-                             
-                             if (foundKey) {
-                                 mapping = coaMap[foundKey];
-                             } else {
-                                 mapping = { Dept: 'Administrative Expenses', Stream: desc || 'Unmapped Admin', Name: desc || code, Program: 'Unallocated', Donor: 'OSR', Code: code };
-                             }
-                         }
-
-                         const key = getKey(m, mapping.Code || code, mapping.Program, 'OSR');
-                         if (!masterRecords[key]) {
-                             masterRecords[key] = { Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program, Code: mapping.Code || code, NaturalAccount: mapping.Name, Month: m, Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {} };
-                         }
-                         masterRecords[key].Actual += actual;
-                         
-                         let tbSplit = adminDonorRatios[`${m}|${code}`];
-                         if (tbSplit && Object.keys(tbSplit).length > 0) {
-                             let totalTb = Object.values(tbSplit).reduce((a,b) => a+b, 0);
-                             if (totalTb !== 0) {
-                                 Object.keys(tbSplit).forEach(d => {
-                                     let ratio = tbSplit[d] / totalTb;
-                                     let distActual = actual * ratio;
-                                     masterRecords[key].ActualDonors[d] = (masterRecords[key].ActualDonors[d] || 0) + distActual;
-                                 });
-                             } else {
-                                 masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
-                             }
-                         } else {
-                             masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
-                         }
-                    }
-                }
-            });
-        });
-
-        // 4 & 5. Innovation and CIC Investment Integrator
+        // 3 & 4. Innovation and CIC Investment Integrator
         function processInvestmentRows(invRows, deptName) {
             invRows.forEach(r => {
                 let party = String(r['party'] || r._raw['Party'] || '').trim();
@@ -1369,7 +1279,7 @@
         processInvestmentRows(iiRows, 'Innovation Investment');
         processInvestmentRows(cicRows, 'Corporate Investment and Credit');
 
-        // 6. CAPEX Actuals Integrator
+        // 5. CAPEX Actuals Integrator
         const processedCapexCodes = new Set();
         if (capexRows) {
             capexRows.forEach(r => {
@@ -1920,17 +1830,12 @@
             { label: 'Remaining', value: Math.max(0, dB - dA), color: 'var(--border-color)' }
         ], { pct: bvaPct, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPct)}%</strong>`, false);
 
-        if (selectedDepartment.includes('Admin')) {
-            document.getElementById('deptActualDonorDonut').innerHTML = `<div style="color:var(--text-secondary); font-size:0.6rem; text-align:center; padding: 20px;">N/A for Admins</div>`;
-            document.getElementById('deptBudgetDonorDonut').innerHTML = `<div style="color:var(--text-secondary); font-size:0.6rem; text-align:center; padding: 20px;">N/A for Admins</div>`;
-        } else {
-            const currentBrandColors = getBrandColors();
-            const aDonItems = Object.keys(dActDon).filter(d => dActDon[d] > 0).map((d, i) => ({ label: d, value: dActDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
-            renderSvgDonut('deptActualDonorDonut', aDonItems, null, null, true);
+        const currentBrandColors = getBrandColors();
+        const aDonItems = Object.keys(dActDon).filter(d => dActDon[d] > 0).map((d, i) => ({ label: d, value: dActDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
+        renderSvgDonut('deptActualDonorDonut', aDonItems, null, null, true);
 
-            const bDonItems = Object.keys(dBudDon).filter(d => dBudDon[d] > 0).map((d, i) => ({ label: d, value: dBudDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
-            renderSvgDonut('deptBudgetDonorDonut', bDonItems, null, null, true);
-        }
+        const bDonItems = Object.keys(dBudDon).filter(d => dBudDon[d] > 0).map((d, i) => ({ label: d, value: dBudDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
+        renderSvgDonut('deptBudgetDonorDonut', bDonItems, null, null, true);
 
         const streamContainer = document.getElementById('streamListContainer');
         streamContainer.innerHTML = '';
@@ -2134,27 +2039,23 @@
         try {
             const errElem = document.getElementById('loaderStatusText');
             
-            if (errElem) errElem.innerText = "FETCHING BUDGET (1/7)...";
+            if (errElem) errElem.innerText = "FETCHING BUDGET (1/6)...";
             const bRes = await fetch(config.budgetMasterCSV);
             if (!bRes.ok) throw new Error("Budget Master fetch failed");
             
-            if (errElem) errElem.innerText = "FETCHING DONOR TB (2/7)...";
+            if (errElem) errElem.innerText = "FETCHING DONOR TB (2/6)...";
             const tdRes = await fetch(config.tbDonorCSV);
             if (!tdRes.ok) throw new Error("Donor TB fetch failed");
             
-            if (errElem) errElem.innerText = "FETCHING ADMIN ACTUALS (3/7)...";
-            const adminRes = await fetch(config.adminCSV);
-            if (!adminRes.ok) throw new Error("Admin TB fetch failed");
-            
-            if (errElem) errElem.innerText = "FETCHING INNOVATION (4/7)...";
+            if (errElem) errElem.innerText = "FETCHING INNOVATION (3/6)...";
             const iiRes = await fetch(config.iiCSV);
             if (!iiRes.ok) throw new Error("Innovation Investment fetch failed");
             
-            if (errElem) errElem.innerText = "FETCHING CIC (5/7)...";
+            if (errElem) errElem.innerText = "FETCHING CIC (4/6)...";
             const cicRes = await fetch(config.cicCSV);
             if (!cicRes.ok) throw new Error("CIC Investment fetch failed");
 
-            if (errElem) errElem.innerText = "FETCHING CAPEX (6/7)...";
+            if (errElem) errElem.innerText = "FETCHING CAPEX (5/6)...";
             let capexRows = [];
             try {
                 const capexRes = await fetch(config.capexCSV);
@@ -2163,7 +2064,7 @@
                 console.warn("CAPEX.csv not found or failed to load. Ensure it exists in the Data folder.");
             }
 
-            if (errElem) errElem.innerText = "FETCHING EOD (7/7)...";
+            if (errElem) errElem.innerText = "FETCHING EOD (6/6)...";
             let eodRows = [];
             try {
                 const eodRes = await fetch(config.eodCSV);
@@ -2176,7 +2077,6 @@
             
             const bData = parseCSV(await bRes.text());
             const tdData = parseCSV(await tdRes.text());
-            const adminData = parseCSV(await adminRes.text());
             const iiData = parseCSV(await iiRes.text());
             const cicData = parseCSV(await cicRes.text());
             
@@ -2206,7 +2106,7 @@
             parsedEOD.sort((a,b) => a.date - b.date);
             globalEODData = parsedEOD;
 
-            rawData = parseMultiLinkData(bData, tdData, [], adminData, iiData, cicData, capexRows);
+            rawData = parseMultiLinkData(bData, tdData, [], iiData, cicData, capexRows);
             
             if (rawData.length === 0) throw new Error("No data parsed. Check CSV structures.");
             
