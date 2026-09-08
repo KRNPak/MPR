@@ -50,18 +50,6 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease; 
 }
 
-body.light-mode {
-    --bg-page: var(--bg-page-light);
-    --bg-card: var(--bg-card-light);
-    --bg-header: var(--bg-header-light);
-    --text-primary: var(--text-primary-light);
-    --text-secondary: var(--text-secondary-light);
-    --border-color: var(--border-color-light);
-    --krn-blue: var(--krn-blue-light);
-    --krn-light-blue: var(--krn-light-blue-light);
-    --card-shadow: var(--card-shadow-light);
-}
-
 * { box-sizing: border-box; }
 
 .val-num, .val-num-inline, .donut-center-pct, .donut-legend-item strong, .donut-bottom-badge strong, .badge-pill, .val-unit { font-family: 'Oswald', 'Chivo', Calibri, sans-serif !important; }
@@ -133,7 +121,6 @@ body.light-mode .header-logo img { filter: none; }
 
 .header-title-group { display: flex; flex-direction: column; justify-content: center; }
 .header-title-group h1 { font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;}
-.header-title-group .sub-title { font-size: 0.95rem; color: var(--text-secondary); font-weight: 300; margin-top: 2px; letter-spacing: 1px;}
 
 .header-kpi-summary { display: flex; align-items: center; gap: 25px; border-left: 1px solid var(--border-color); padding-left: 20px; }
 
@@ -352,7 +339,7 @@ body.light-mode .dept-grid-card.active { background-color: rgba(0, 104, 144, 0.0
 
 .dept-card-metric-pct {
     font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
-    font-size: 1.15rem; /* Reduced from 1.6rem */
+    font-size: 1.15rem; /* Downsized */
     font-weight: bold;
     color: var(--krn-blue);
     line-height: 1;
@@ -451,7 +438,7 @@ body.light-mode .stream-grid-card.active { background-color: rgba(0, 104, 144, 0
 
 .stream-card-metric-pct {
     font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
-    font-size: 0.95rem; /* Reduced from 1.1rem */
+    font-size: 0.95rem; /* Downsized */
     font-weight: bold;
     color: var(--krn-blue);
     line-height: 1;
