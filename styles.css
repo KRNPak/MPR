@@ -352,7 +352,7 @@ body.light-mode .dept-grid-card.active { background-color: rgba(0, 104, 144, 0.0
 
 .dept-card-metric-pct {
     font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
-    font-size: 1.6rem;
+    font-size: 1.15rem; /* Reduced from 1.6rem */
     font-weight: bold;
     color: var(--krn-blue);
     line-height: 1;
@@ -451,7 +451,7 @@ body.light-mode .stream-grid-card.active { background-color: rgba(0, 104, 144, 0
 
 .stream-card-metric-pct {
     font-family: 'Oswald', 'Chivo', Calibri, sans-serif;
-    font-size: 1.1rem;
+    font-size: 0.95rem; /* Reduced from 1.1rem */
     font-weight: bold;
     color: var(--krn-blue);
     line-height: 1;
