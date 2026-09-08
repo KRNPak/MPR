@@ -2,10 +2,14 @@ Department,Program,Stream,Account code,Account Name,Donor,Q1 Budget,Q2 Budget,Q3
 Corporate Investment and Credit,,Credit,,,OSR,"350,000,000","375,000,000","375,000,000","375,000,000"
 Corporate Investment and Credit,,Equity,,,OSR,0,0,0,"1,000,000,000"
 Corporate Investment and Credit,,Green,,,OSR,0,0,"350,000,000","375,000,000"
-Transaction cost,,Innovation Investment,,WV/GFI: Technical Assistance through PFSL,OSR,"300,000","400,000","500,000","300,000"
+Transaction cost,,Innovation Investment,I107004,WV/GFI: Technical Assistance through PFSL,OSR,"300,000","400,000","500,000","300,000"
 Transaction cost,,Innovation Investment,,Litigation Fee for WV,OSR,"1,500,000","1,000,000",0,0
 Transaction cost,,Innovation Investment,,PROPARCO Guarantee Fee,OSR,"9,800,000",0,0,0
-Transaction cost,,Corporate Investment and Credit,,Pre & post investment cost,OSR,"8,000,000","8,000,000","8,000,000","8,000,000"
+Transaction cost,,Corporate Investment and Credit,C107002,Pre & post investment cost,OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
+Transaction cost,,Corporate Investment and Credit,C108002,Pre & post investment cost,OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
+Transaction cost,,Corporate Investment and Credit,C109002,Pre & post investment cost,OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
+Transaction cost,,Corporate Investment and Credit,C107003,Pre & post investment cost,OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
+Transaction cost,,Corporate Investment and Credit,C110002,Pre & post investment cost,OSR,"1,600,000","1,600,000","1,600,000","1,600,000"
 Innovation Investment,,WV: Concessional Debt,,,OSR,"20,000,000","40,000,000","60,000,000","40,000,000"
 Innovation Investment,,GFI: Concessional Debt,,,OSR,"25,000,000","15,000,000","20,000,000","15,000,000"
 Innovation Investment,,WV: Agency Services - AP,,,OSR,"30,000,000","30,000,000","40,000,000","40,000,000"
@@ -15,26 +19,26 @@ Development Impact,,Assessment CIC Portfolio,,,OSR,"1,000,000",0,0,0
 Development Impact,,Economic Impact of Digital Payments: Insights from Karandaaz Experiments,,,GF,0,"5,000,000","5,000,000","5,000,000"
 Development Impact,,Third Party Monitoring of Karandaaz Projects,,,OSR,"1,454,248","4,362,745","4,362,745","7,620,261"
 Development Impact,,Third Party Monitoring of Karandaaz Projects,,,GF,"1,045,752","3,137,255","3,137,255","5,479,739"
-"Research, Marketing & Communications",,Communication and Marketing,K102014,"Web, Digital & Social Media",OSR,"548,750",548750.0,548750.0,"600,000"
-"Research, Marketing & Communications",,Communication and Marketing,K102016,KRN Marketing Collateral,OSR,"375,000",375000.0,375000.0,"375,000"
+"Research, Marketing & Communications",,Communication and Marketing,K102014,"Web, Digital & Social Media",OSR,"548,750",548750,548750,"600,000"
+"Research, Marketing & Communications",,Communication and Marketing,K102016,KRN Marketing Collateral,OSR,"375,000",375000,375000,"375,000"
 "Research, Marketing & Communications",,Communication and Marketing,K102006,PR Services and Engagement Activities,OSR,"960,000","960,000","960,000","960,000"
-"Research, Marketing & Communications",,Communication and Marketing,K102013,KRN Conference,OSR,"1,000,000",21500000.0,0.0,0
-"Research, Marketing & Communications",,Communication and Marketing,K102013,KRN Conference,GF,"12,500,000",0.0,0.0,0
-"Research, Marketing & Communications",,Communication and Marketing,K102017,Impact Investing Visibility and Outreach,OSR,0,3250000.0,1625000.0,"1,625,000"
-"Research, Marketing & Communications",,Communication and Marketing,K103044,DFS Visibility & Outreach,GF,"5,000,000",5000000.0,5000000.0,"5,000,000"
-"Research, Marketing & Communications",,Communication and Marketing,K102014,"Web, Digital & Social Media",GF,"548,750",548750.0,548750.0,"600,000"
-"Research, Marketing & Communications",,Communication and Marketing,K102016,KRN Marketing Collateral,GF,"375,000",375000.0,375000.0,"375,000"
+"Research, Marketing & Communications",,Communication and Marketing,K102013,KRN Conference,OSR,"1,000,000",21500000,0,0
+"Research, Marketing & Communications",,Communication and Marketing,K102013,KRN Conference,GF,"12,500,000",0,0,0
+"Research, Marketing & Communications",,Communication and Marketing,K102017,Impact Investing Visibility and Outreach,OSR,0,3250000,1625000,"1,625,000"
+"Research, Marketing & Communications",,Communication and Marketing,K103044,DFS Visibility & Outreach,GF,"5,000,000",5000000,5000000,"5,000,000"
+"Research, Marketing & Communications",,Communication and Marketing,K102014,"Web, Digital & Social Media",GF,"548,750",548750,548750,"600,000"
+"Research, Marketing & Communications",,Communication and Marketing,K102016,KRN Marketing Collateral,GF,"375,000",375000,375000,"375,000"
 "Research, Marketing & Communications",,Communication and Marketing,K102006,PR Services and Engagement Activities,GF,"960,000","960,000","960,000","960,000"
-"Research, Marketing & Communications",,Research and Insight,K102005,Green Economy- Developing Case Studies,OSR,"580,000",0.0,0.0,0
-"Research, Marketing & Communications",,Research and Insight,,"Mapping Battery Demand in Pakistan: Solar, Mobility, Residential, and Industrial Applications",OSR,0,4500000.0,4500000.0,"6,000,000"
-"Research, Marketing & Communications",,Research and Insight,K103021,Data Portal 2.0,GF,"1,250,000",1250000.0,1250000.0,"1,250,000"
-"Research, Marketing & Communications",,Research and Insight,K103065,Knowledge Partnerships (FAW and SME Finance Forum Subscription),GF,"1,075,000",1525000.0,725000.0,"675,000"
-"Research, Marketing & Communications",,Research and Insight,K102001,KFIS 2026 (on-going),GF,"5,525,000",2490000.0,0.0,0
-"Research, Marketing & Communications",,Research and Insight,K102003,Alternate Revenue Models for National Payment System (on-going),GF,"2,300,000",0.0,0.0,0
-"Research, Marketing & Communications",,Research and Insight,,The Impact of Digital Financial Inclusion on the Economy: Cross-Country Time Series Analysis,GF,0,1500000.0,1500000.0,"2,000,000"
-Capacity Building of KRN,,Capacity Building,H103002,Capacity Building,OSR,0,0.0,0.0,10000000.0
+"Research, Marketing & Communications",,Research and Insight,K102005,Green Economy- Developing Case Studies,OSR,"580,000",0,0,0
+"Research, Marketing & Communications",,Research and Insight,,"Mapping Battery Demand in Pakistan: Solar, Mobility, Residential, and Industrial Applications",OSR,0,4500000,4500000,"6,000,000"
+"Research, Marketing & Communications",,Research and Insight,K103021,Data Portal 2.0,GF,"1,250,000",1250000,1250000,"1,250,000"
+"Research, Marketing & Communications",,Research and Insight,K103065,Knowledge Partnerships (FAW and SME Finance Forum Subscription),GF,"1,075,000",1525000,725000,"675,000"
+"Research, Marketing & Communications",,Research and Insight,K102001,KFIS 2026 (on-going),GF,"5,525,000",2490000,0,0
+"Research, Marketing & Communications",,Research and Insight,K102003,Alternate Revenue Models for National Payment System (on-going),GF,"2,300,000",0,0,0
+"Research, Marketing & Communications",,Research and Insight,,The Impact of Digital Financial Inclusion on the Economy: Cross-Country Time Series Analysis,GF,0,1500000,1500000,"2,000,000"
+Capacity Building of KRN,,Capacity Building,H103002,Capacity Building,OSR,0,0,0,10000000
 Capacity Building of KRN,,Employee Engagement,H126002,Employee Engagement,OSR,"450,000","450,000","450,000","450,000"
-Capacity Building of KRN,,Capacity Building,H103002,Capacity Building,GF,0,0.0,0.0,10000000.0
+Capacity Building of KRN,,Capacity Building,H103002,Capacity Building,GF,0,0,0,10000000
 Capacity Building of KRN,,Employee Engagement,H126002,Employee Engagement,GF,"450,000","450,000","450,000","450,000"
 Corporate Social Responsibility,,Corporate Social Responsibility,H128002,Corporate Social Responsibility,OSR,"625,000","625,000","625,000","625,000"
 Corporate Social Responsibility,,Corporate Social Responsibility,H128002,Corporate Social Responsibility,GF,"625,000","625,000","625,000","625,000"
@@ -153,28 +157,28 @@ Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCD
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107038,DFA - C,GF,0,0,0,0
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D105015,Pilot to Scale - Digital Payments and Access to Finance,GF,"17,289,683.00","32,707,501","17,011,668","11,434,418"
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107029,Sector Transformation - Agri Value Chain Transformation,GF,"21,627,032.00","22,154,257","14,401,015","10,950,314"
-Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107058,Agent Network Visibility Dashboard,GF,0.00,"7,750,000","7,750,000",0
-Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107015,New Accounts Acquisition and Digitalization of Payments,GF,0.00,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107058,Agent Network Visibility Dashboard,GF,0,"7,750,000","7,750,000",0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107015,New Accounts Acquisition and Digitalization of Payments,GF,0,0,0,0
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D103021,Digital Payments,GF,0,0,0,0
-Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107049,Cashless Ecosystem,GF,0.00,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107049,Cashless Ecosystem,GF,0,0,0,0
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107025,"W4: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events (such as Agri Tech engagement on sustainable business models and agriculture sector progress, merchant onboarding redesign, PISP workshop)",GF,"1,250,000.00","1,250,000","1,250,000","1,250,000"
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Adoption,D107030,Adoption Projects,GF,"82,117,268.00","5,922,017","17,062,346","32,263,775"
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Adoption,D107028,E-Commerce Value chain Interventions,GF,"12,550,201.00",0,0,"9,551,300"
-Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,D108005,Mainstreaming: Gender as a Core Element in All Interventions,GF,0.00,"250,000","250,000",0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,D108005,Mainstreaming: Gender as a Core Element in All Interventions,GF,0,"250,000","250,000",0
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,"D108006, D103004",Disruption and Experimentation: Innovative Solutions for Women's Inclusion,GF,"15,170,823.00","18,993,719","12,455,943","18,993,989"
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,D108007,Scale and Usage: Expanding Successful Models for Women's Empowerment,GF,"4,000,000","5,000,000","5,000,000","10,000,000"
-Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,,Raast Adoption,GF,0.00,"5,000,000","5,000,000","5,000,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,,Raast Adoption,GF,0,"5,000,000","5,000,000","5,000,000"
 Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,D108008,"W5: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events (such as collaborative study on challenges faced by women in Pakistan with FAW, women centric UI/UX workshops, women preferred alias research for access to DFS)",GF,"500,000.00","500,000","500,000","500,000"
 Staff cost,,Staff cost,SS5H100,Staff Salaries,OSR,"83,145,555.51",83145555.51,83145556,83145555.51
 Staff cost,,Staff cost,SS5H200,Staff Provident Fund,OSR,"7,871,638.15",7871638.151,7871638,7871638.151
-Staff cost,,Staff cost,SS5H300,Staff Over time,OSR,0.00,0,0,0
+Staff cost,,Staff cost,SS5H300,Staff Over time,OSR,0,0,0,0
 Staff cost,,Staff cost,SS5H400,Staff Car Monetization,OSR,"10,222,050.00",10222050,10222050,10222050
 Staff cost,,Staff cost,SS5H500,Staff Child care assistance,OSR,412500,412500,412500,412500
-Staff cost,,Staff cost,SS5H700,Staff Arrears,OSR,0.00,0,0,0
+Staff cost,,Staff cost,SS5H700,Staff Arrears,OSR,0,0,0,0
 Staff cost,,Staff cost,SS5H800,Wellness allowance,OSR,"1,198,950.00",1198950,1198950,1198950
 Staff cost,,Staff cost,SS5H900,Leave fare assistance,OSR,"5,530,049.95",5530049.951,5530050,5530049.951
 Staff cost,,Staff cost,H123006,EOBI Expense,OSR,"270,701.25",270701.25,270701.3,270701.25
-Staff cost,,Staff cost,H123003,Daily Wages,OSR,0.00,0,0,0
+Staff cost,,Staff cost,H123003,Daily Wages,OSR,0,0,0,0
 Staff cost,,Internships and STTAs,H105001,HR Consultancies & Internships,OSR,"1,312,500.00",1312500,1312500,1312500
 Staff cost,,Insurance,H110002,Health Insurance,OSR,4941349.036,4941349.036,4941349,4941349.036
 Staff cost,,Insurance,H129021,Life Insurance,OSR,"300,442.41",300442.4051,300442.4,300442.4051
