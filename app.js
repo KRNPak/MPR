@@ -1398,11 +1398,12 @@ async function init() {
     }
 }
 
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    setTimeout(init, 1);
-} else {
-    window.addEventListener('DOMContentLoaded', init);
-    window.addEventListener('load', init);
-}
-
-window.onresize = updateDashboard;
+// Replace the previous event listeners at the absolute bottom of app.js with this:
+setTimeout(() => {
+    console.log("Forcing initialization...");
+    if (typeof init === "function") {
+        init();
+    } else {
+        console.error("CRITICAL: init() function is missing. The app.js file did not load correctly.");
+    }
+}, 500);
