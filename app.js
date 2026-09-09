@@ -1382,7 +1382,21 @@ async function init() {
     } finally {
         setTimeout(() => {
             const l = document.getElementById('loadingOverlay');
-            if (l) l.classList.add('hidden');
+            if (l) {
+                // Remove the inline styles that were keeping it stuck
+                l.style.opacity = '0';
+                l.style.visibility = 'hidden';
+                l.style.pointerEvents = 'none';
+                
+                // Backup hide class
+                l.classList.add('hidden');
+                
+                // Reset text for the next time we switch years
+                setTimeout(() => {
+                    const txt = document.getElementById('loaderStatusText');
+                    if (txt) txt.innerText = "INITIALIZING SYSTEM...";
+                }, 800);
+            }
         }, 1200); 
     }
 }
