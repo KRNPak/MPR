@@ -1261,16 +1261,12 @@ function exportModalCSV() {
 function closeModal() { document.getElementById('streamModal').style.display = 'none'; hideTooltip(); }
 window.onclick = function(e) { if (e.target == document.getElementById('streamModal')) closeModal(); }
 
-// ========================================================================
+/// ========================================================================
 // 8. DASHBOARD INITIALIZATION 
 // ========================================================================
-let isInitialized = false;
 
 async function init() {
-    if (isInitialized) return;
-    isInitialized = true;
-
-    // Show loading screen if re-initializing from year switch
+    console.log("1. Init function triggered. Setting up loading screen...");
     const loader = document.getElementById('loadingOverlay');
     if (loader) {
         loader.classList.remove('hidden');
@@ -1280,45 +1276,53 @@ async function init() {
 
     try {
         const errElem = document.getElementById('loaderStatusText');
-        const paths = getFilePaths(selectedYear); // Get dynamic paths based on dropdown
+        const paths = getFilePaths(selectedYear); 
+        console.log(`2. File paths generated for ${selectedYear}:`, paths);
         
-        rawData = []; // Clear existing data for re-initialization
+        rawData = []; 
         globalEODData = [];
         
+        console.log("3. Fetching Budget Master...");
         if (errElem) errElem.innerText = `FETCHING BUDGET (${selectedYear}) 1/6...`;
         const bRes = await fetch(paths.budgetMasterCSV);
-        if (!bRes.ok) throw new Error("Budget Master fetch failed");
+        if (!bRes.ok) throw new Error(`Budget Master fetch failed (HTTP ${bRes.status})`);
         
+        console.log("4. Fetching Trial Balance...");
         if (errElem) errElem.innerText = `FETCHING DONOR TB (${selectedYear}) 2/6...`;
         const tdRes = await fetch(paths.tbDonorCSV);
-        if (!tdRes.ok) throw new Error("Donor TB fetch failed");
+        if (!tdRes.ok) throw new Error(`Donor TB fetch failed (HTTP ${tdRes.status})`);
         
+        console.log("5. Fetching Innovation...");
         if (errElem) errElem.innerText = `FETCHING INNOVATION (${selectedYear}) 3/6...`;
         const iiRes = await fetch(paths.iiCSV);
-        if (!iiRes.ok) throw new Error("Innovation Investment fetch failed");
+        if (!iiRes.ok) throw new Error(`Innovation fetch failed (HTTP ${iiRes.status})`);
         
+        console.log("6. Fetching CIC...");
         if (errElem) errElem.innerText = `FETCHING CIC (${selectedYear}) 4/6...`;
         const cicRes = await fetch(paths.cicCSV);
-        if (!cicRes.ok) throw new Error("CIC Investment fetch failed");
+        if (!cicRes.ok) throw new Error(`CIC fetch failed (HTTP ${cicRes.status})`);
 
+        console.log("7. Fetching CAPEX...");
         if (errElem) errElem.innerText = `FETCHING CAPEX (${selectedYear}) 5/6...`;
         let capexRows = [];
         try {
             const capexRes = await fetch(paths.capexCSV);
             if (capexRes.ok) capexRows = parseCSV(await capexRes.text());
         } catch (e) {
-            console.warn("CAPEX.csv not found or failed to load. Ensure it exists in the Data folder.");
+            console.warn("CAPEX file skipped or missing.");
         }
 
+        console.log("8. Fetching EOD...");
         if (errElem) errElem.innerText = `FETCHING EOD (${selectedYear}) 6/6...`;
         let eodRows = [];
         try {
             const eodRes = await fetch(paths.eodCSV);
             if (eodRes.ok) eodRows = parseCSV(await eodRes.text());
         } catch (e) {
-            console.warn("EOD.csv not found or failed to load. Ensure it exists in the Data folder.");
+            console.warn("EOD file skipped or missing.");
         }
         
+        console.log("9. Parsing Data...");
         if (errElem) errElem.innerText = "PROCESSING DATA...";
         
         const bData = parseCSV(await bRes.text());
@@ -1326,13 +1330,11 @@ async function init() {
         const iiData = parseCSV(await iiRes.text());
         const cicData = parseCSV(await cicRes.text());
         
-        // EOD Parsing Logic
         let parsedEOD = [];
         eodRows.forEach(r => {
             const mKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'month');
             const availKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('available'));
             const depKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('deployed'));
-            
             if (mKey && r._raw[mKey]) {
                 let monthStr = String(r._raw[mKey]).trim();
                 let parts = monthStr.split('-');
@@ -1340,11 +1342,9 @@ async function init() {
                     let m = parts[0].substring(0,3);
                     let y = parts[1];
                     let d = new Date(m + ' 1, 20' + y);
-                    
                     let avail = getSafeNum(r._raw[availKey]);
                     let dep = getSafeNum(r._raw[depKey]);
                     let pct = avail !== 0 ? (dep/avail)*100 : 0;
-                    
                     parsedEOD.push({ rawMonth: monthStr, date: d, avail: avail, dep: dep, pct: pct });
                 }
             }
@@ -1352,9 +1352,10 @@ async function init() {
         parsedEOD.sort((a,b) => a.date - b.date);
         globalEODData = parsedEOD;
 
+        console.log("10. Assembling Master Ledger...");
         rawData = parseMultiLinkData(bData, tdData, iiData, cicData, capexRows);
         
-        if (rawData.length === 0) throw new Error("No data parsed. Check CSV structures.");
+        if (rawData.length === 0) throw new Error("No data parsed. Are the CSVs empty?");
         
         let maxMonthIdx = -1;
         rawData.forEach(r => {
@@ -1363,47 +1364,30 @@ async function init() {
                 if (idx > maxMonthIdx) maxMonthIdx = idx;
             }
         });
+        selectedPeriod = maxMonthIdx >= 0 ? fiscalMonths[maxMonthIdx] : 'Jul';
+
+        if (errElem) errElem.innerHTML = `<span style="color:var(--krn-green); font-weight:bold;">Success!</span> Ready.`;
         
-        if (maxMonthIdx >= 0) {
-            selectedPeriod = fiscalMonths[maxMonthIdx];
-        } else {
-            selectedPeriod = 'Jul';
-        }
-
-        if (errElem) {
-            errElem.innerHTML = `<span style="color:var(--krn-green); font-weight:bold;">Success!</span> Ready.`;
-        }
-
+        console.log("11. Updating Dashboard UI...");
         populateYearDropdown();
         populatePeriodDropdown();
         updateDashboard();
+
+        console.log("12. Initialization Complete!");
+
     } catch (err) {
-        console.error("Initialization error:", err);
+        console.error("CRITICAL Initialization Error:", err);
         const errElem = document.getElementById('loaderStatusText');
         if (errElem) errElem.innerHTML = `<span style="color:var(--krn-orange); font-weight:bold;">ERROR:</span> ${err.message}`;
     } finally {
-        if (!document.getElementById('loaderStatusText').innerHTML.includes("ERROR")) {
-            setTimeout(() => {
-                const l = document.getElementById('loadingOverlay');
-                if (l) {
-                    l.classList.add('hidden');
-                    // Reset text for next fetch
-                    setTimeout(() => {
-                        const txt = document.getElementById('loaderStatusText');
-                        if (txt) txt.innerText = "INITIALIZING SYSTEM...";
-                    }, 800);
-                }
-            }, 1000); 
-        }
+        setTimeout(() => {
+            const l = document.getElementById('loadingOverlay');
+            if (l) l.classList.add('hidden');
+        }, 1200); 
     }
 }
 
-// Replace the previous event listeners at the absolute bottom of app.js with this:
-setTimeout(() => {
-    console.log("Forcing initialization...");
-    if (typeof init === "function") {
-        init();
-    } else {
-        console.error("CRITICAL: init() function is missing. The app.js file did not load correctly.");
-    }
-}, 500);
+// FORCE EXECUTION ON LOAD
+console.log("Script loaded. Booting up dashboard...");
+setTimeout(init, 500);
+window.onresize = updateDashboard;
