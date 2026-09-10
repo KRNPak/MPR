@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chivo:ital,wght@0,100..900;1,100..900&family=Oswald:wght@200..700&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?=v2">
 </head>
 <body class="view-summary light-mode"> 
 
@@ -51,9 +51,10 @@
             <div class="toggles-container">
                 <div class="theme-toggle" onclick="toggleDarkMode()">
                     <span id="themeLabel">Light</span>
-                    <div class="switch-track active-toggle" id="themeTrack">
-                    <!-- Removed the hardcoded inline styles here so it can move freely -->
-                    <div class="switch-thumb"></div>
+                    <!-- Removed "active-toggle" so the switch defaults to the 'off' position for Light Mode -->
+                    <div class="switch-track" id="themeTrack">
+                        <div class="switch-thumb"></div>
+                    </div>
                 </div>
             </div>
         </div>
