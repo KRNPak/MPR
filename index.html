@@ -50,12 +50,13 @@
         <div class="header-kpi-summary">
             <div class="toggles-container">
                 <div class="theme-toggle" onclick="toggleDarkMode()">
-                    <span id="themeLabel">Dark</span>
+                    <span id="themeLabel">Light</span>
                     <div class="switch-track active-toggle" id="themeTrack">
-                        <div class="switch-thumb" style="transform: translateX(16px); background-color: #ffffff;"></div>
-                    </div>
+                    <!-- Removed the hardcoded inline styles here so it can move freely -->
+                    <div class="switch-thumb"></div>
                 </div>
             </div>
+        </div>
         
             <div class="kpi-item">
                 <div class="val" id="topKpiBudget" data-val="0">
