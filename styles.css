@@ -50,6 +50,18 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease; 
 }
 
+body.light-mode {
+    --bg-page: var(--bg-page-light);
+    --bg-card: var(--bg-card-light);
+    --bg-header: var(--bg-header-light);
+    --text-primary: var(--text-primary-light);
+    --text-secondary: var(--text-secondary-light);
+    --border-color: var(--border-color-light);
+    --krn-blue: var(--krn-blue-light);
+    --krn-light-blue: var(--krn-light-blue-light);
+    --card-shadow: var(--card-shadow-light);
+}
+
 * { box-sizing: border-box; }
 
 .val-num, .val-num-inline, .donut-center-pct, .donut-legend-item strong, .donut-bottom-badge strong, .badge-pill, .val-unit { font-family: 'Oswald', 'Chivo', Calibri, sans-serif !important; }
