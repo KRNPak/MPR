@@ -9,7 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chivo:ital,wght@0,100..900;1,100..900&family=Oswald:wght@200..700&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="styles.css?=v2">
+    <!-- Aggressive cache buster forces GitHub to load new colors -->
+    <link rel="stylesheet" href="styles.css?v=FINAL">
 </head>
 <body class="view-summary light-mode"> 
 
@@ -48,16 +49,15 @@
         </div>
 
         <div class="header-kpi-summary">
+            <!-- Completely un-jammed toggle switch -->
             <div class="toggles-container">
                 <div class="theme-toggle" onclick="toggleDarkMode()">
                     <span id="themeLabel">Light</span>
-                    <!-- Removed "active-toggle" so the switch defaults to the 'off' position for Light Mode -->
                     <div class="switch-track" id="themeTrack">
                         <div class="switch-thumb"></div>
                     </div>
                 </div>
             </div>
-        </div>
         
             <div class="kpi-item">
                 <div class="val" id="topKpiBudget" data-val="0">
@@ -229,8 +229,8 @@
     </div>
 </div>
 
-<!-- Dynamic Cache-Busting JS Link -->
-<script src="app.js"></script>
-    
+<!-- Standard Script Tag -->
+<script src="app.js?v=FINAL"></script>
+
 </body>
 </html>
