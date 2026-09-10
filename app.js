@@ -962,7 +962,7 @@ function renderCard2Departments(displayRows) {
 
     sortedDepts.forEach((deptName, idx) => {
         const item = deptAgg[deptName];
-        const pct = item.b > 0 ? Math.min(100, Math.round((item.a / item.b) * 100)) : 0;
+        const pct = item.b > 0 ? Math.round((item.a / item.b) * 100) : 0;
         const badgeColor = item.a > item.b ? 'var(--krn-orange)' : 'var(--krn-blue)';
         const isActive = deptName === selectedDepartment ? 'active' : '';
 
@@ -1012,7 +1012,7 @@ function renderCard2Departments(displayRows) {
             <div class="progress-bg"><div class="progress-fill" id="deptProg-${idx}" style="background-color: ${badgeColor};"></div></div>
         `;
         container.appendChild(card);
-        progressElements.push({ id: `deptProg-${idx}`, width: pct });
+        progressElements.push({ id: `deptProg-${idx}`, width: Math.min(100, pct) });
     });
 
     requestAnimationFrame(() => setTimeout(() => progressElements.forEach(p => { const el = document.getElementById(p.id); if(el) el.style.width = p.width+'%'; }), 50));
@@ -1089,7 +1089,7 @@ function renderCard3Details(displayRows = null) {
     const progs = [];
     sortedGroups.forEach((gName, idx) => {
         const st = groupAgg[gName];
-        const pct = st.b > 0 ? Math.min(100, Math.round((st.a / st.b) * 100)) : 0;
+        const pct = st.b > 0 ? Math.round((st.a / st.b) * 100) : 0;
         const badgeColor = st.a > st.b ? 'var(--krn-orange)' : 'var(--krn-blue)';
         const clickAttr = st.a > 0 ? `onclick="openGroupModal('${gName.replace(/'/g, "\\'")}', '${viewGroup}')"` : '';
 
@@ -1137,7 +1137,7 @@ function renderCard3Details(displayRows = null) {
             <div class="progress-bg"><div class="progress-fill" id="groupProg-${idx}" style="background-color: ${badgeColor};"></div></div>
         `;
         streamContainer.appendChild(card);
-        progs.push({ id: `groupProg-${idx}`, width: pct });
+        progs.push({ id: `groupProg-${idx}`, width: Math.min(100, pct) });
     });
 
     requestAnimationFrame(() => setTimeout(() => progs.forEach(p => { const el = document.getElementById(p.id); if(el) el.style.width = p.width+'%'; }), 50));
