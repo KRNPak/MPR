@@ -564,9 +564,18 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
 function toggleDarkMode() {
     isDarkMode = !isDarkMode;
     document.body.classList.toggle('light-mode', !isDarkMode);
+    
     const track = document.getElementById('themeTrack');
-    if (!isDarkMode) track.classList.add('active-toggle');
-    else track.classList.remove('active-toggle');
+    const label = document.getElementById('themeLabel');
+    
+    if (!isDarkMode) {
+        track.classList.add('active-toggle');
+        if (label) label.innerText = 'Light';
+    } else {
+        track.classList.remove('active-toggle');
+        if (label) label.innerText = 'Dark';
+    }
+    
     updateDashboard();
 }
 
