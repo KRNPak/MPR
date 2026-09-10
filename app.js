@@ -916,7 +916,8 @@ function renderSummaryTable(displayRows) {
         const item = deptAgg[d];
         if (item.b === 0 && item.a === 0) return; 
 
-        const pct = item.b > 0 ? Math.round((item.a / item.b) * 100) : 0;
+        // Safely handles division by zero if budget is 0 but actuals exist
+        const pctDisplay = item.b > 0 ? `${Math.round((item.a / item.b) * 100)}%` : (item.a > 0 ? 'N/A' : '0%');
         const badgeClass = item.a > item.b ? 'badge-orange' : 'badge-primary';
         
         const trendData = fiscalMonths.map(m => item.monthlyTrend[m] || 0);
@@ -929,7 +930,7 @@ function renderSummaryTable(displayRows) {
                 <td style="vertical-align: middle;">${generateSparkline(relevantTrendData)}</td>
                 <td style="font-variant-numeric: tabular-nums; vertical-align: middle;">${formatPKRInline(item.b)}</td>
                 <td style="font-variant-numeric: tabular-nums; color: var(--krn-blue); font-weight: 500; vertical-align: middle;">${formatPKRInline(item.a)}</td>
-                <td style="vertical-align: middle;"><span class="badge-pill ${badgeClass}">${pct}%</span></td>
+                <td style="vertical-align: middle;"><span class="badge-pill ${badgeClass}">${pctDisplay}</span></td>
             </tr>
         `;
     });
@@ -962,7 +963,11 @@ function renderCard2Departments(displayRows) {
 
     sortedDepts.forEach((deptName, idx) => {
         const item = deptAgg[deptName];
-        const pct = item.b > 0 ? Math.round((item.a / item.b) * 100) : 0;
+        
+        // Split visual text vs physical bar width for Zero-Budget rendering
+        const pctNum = item.b > 0 ? Math.round((item.a / item.b) * 100) : (item.a > 0 ? 100 : 0);
+        const pctDisplay = item.b > 0 ? `${pctNum}%` : (item.a > 0 ? 'N/A' : '0%');
+        
         const badgeColor = item.a > item.b ? 'var(--krn-orange)' : 'var(--krn-blue)';
         const isActive = deptName === selectedDepartment ? 'active' : '';
 
@@ -1000,7 +1005,7 @@ function renderCard2Departments(displayRows) {
                     <span class="dept-card-metric-lbl">Actual</span>
                 </div>
                 <div class="dept-card-metric-col">
-                    <span class="dept-card-metric-pct" style="color: ${badgeColor};">${pct}%</span>
+                    <span class="dept-card-metric-pct" style="color: ${badgeColor};">${pctDisplay}</span>
                     <span class="dept-card-metric-lbl">Spent</span>
                 </div>
                 <div class="dept-card-metric-col">
@@ -1012,7 +1017,7 @@ function renderCard2Departments(displayRows) {
             <div class="progress-bg"><div class="progress-fill" id="deptProg-${idx}" style="background-color: ${badgeColor};"></div></div>
         `;
         container.appendChild(card);
-        progressElements.push({ id: `deptProg-${idx}`, width: Math.min(100, pct) });
+        progressElements.push({ id: `deptProg-${idx}`, width: Math.min(100, pctNum) });
     });
 
     requestAnimationFrame(() => setTimeout(() => progressElements.forEach(p => { const el = document.getElementById(p.id); if(el) el.style.width = p.width+'%'; }), 50));
@@ -1048,7 +1053,9 @@ function renderCard3Details(displayRows = null) {
         Object.keys(r.BudgetDonors).forEach(k => dBudDon[k] = (dBudDon[k] || 0) + r.BudgetDonors[k]);
     });
 
-    const bvaPct = dB > 0 ? Math.round((dA / dB) * 100) : 0;
+    // Zero-Budget protection for the Donut Chart
+    const bvaPctNum = dB > 0 ? Math.round((dA / dB) * 100) : (dA > 0 ? 100 : 0);
+    const bvaPctDisplay = dB > 0 ? `${bvaPctNum}` : (dA > 0 ? 'N/A' : '0'); 
     
     const card3DonutContainer = document.getElementById('card3DonutContainer');
 
@@ -1070,7 +1077,7 @@ function renderCard3Details(displayRows = null) {
     renderSvgDonut('deptBvaDonut', [
         { label: 'Spent', value: dA, color: 'var(--krn-blue)' },
         { label: 'Remaining', value: Math.max(0, dB - dA), color: 'var(--border-color)' }
-    ], { pct: bvaPct, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPct)}%</strong>`, false);
+    ], { pct: bvaPctDisplay, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPctNum)}%</strong>`, false);
 
     const currentBrandColors = getBrandColors();
     const aDonItems = Object.keys(dActDon).filter(d => dActDon[d] > 0).map((d, i) => ({ label: d, value: dActDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
@@ -1089,7 +1096,11 @@ function renderCard3Details(displayRows = null) {
     const progs = [];
     sortedGroups.forEach((gName, idx) => {
         const st = groupAgg[gName];
-        const pct = st.b > 0 ? Math.round((st.a / st.b) * 100) : 0;
+        
+        // Zero-Budget protection for the Stream Cards
+        const pctNum = st.b > 0 ? Math.round((st.a / st.b) * 100) : (st.a > 0 ? 100 : 0);
+        const pctDisplay = st.b > 0 ? `${pctNum}%` : (st.a > 0 ? 'N/A' : '0%');
+        
         const badgeColor = st.a > st.b ? 'var(--krn-orange)' : 'var(--krn-blue)';
         const clickAttr = st.a > 0 ? `onclick="openGroupModal('${gName.replace(/'/g, "\\'")}', '${viewGroup}')"` : '';
 
@@ -1125,7 +1136,7 @@ function renderCard3Details(displayRows = null) {
                     <span class="stream-card-metric-lbl">Actual</span>
                 </div>
                 <div class="stream-card-metric-col">
-                    <span class="stream-card-metric-pct" style="color: ${badgeColor};">${pct}%</span>
+                    <span class="stream-card-metric-pct" style="color: ${badgeColor};">${pctDisplay}</span>
                     <span class="stream-card-metric-lbl">Spent</span>
                 </div>
                 <div class="stream-card-metric-col">
@@ -1137,12 +1148,11 @@ function renderCard3Details(displayRows = null) {
             <div class="progress-bg"><div class="progress-fill" id="groupProg-${idx}" style="background-color: ${badgeColor};"></div></div>
         `;
         streamContainer.appendChild(card);
-        progs.push({ id: `groupProg-${idx}`, width: Math.min(100, pct) });
+        progs.push({ id: `groupProg-${idx}`, width: Math.min(100, pctNum) });
     });
 
     requestAnimationFrame(() => setTimeout(() => progs.forEach(p => { const el = document.getElementById(p.id); if(el) el.style.width = p.width+'%'; }), 50));
 }
-
 // ========================================================================
 // 7. POPUP MODAL DRILL-DOWN & EXPORT
 // ========================================================================
