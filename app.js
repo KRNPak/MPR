@@ -561,21 +561,24 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
 // ========================================================================
 // 5. CONTROL HANDLERS (Period, QTD, YTD)
 // ========================================================================
-function toggleDarkMode() {
-    isDarkMode = !isDarkMode;
-    document.body.classList.toggle('light-mode', !isDarkMode);
-    
+function applyTheme() {
     const track = document.getElementById('themeTrack');
     const label = document.getElementById('themeLabel');
     
-    if (!isDarkMode) {
-        track.classList.add('active-toggle');
-        if (label) label.innerText = 'Light';
-    } else {
-        track.classList.remove('active-toggle');
+    if (isDarkMode) {
+        document.body.classList.remove('light-mode');
+        if (track) track.classList.add('active-toggle');
         if (label) label.innerText = 'Dark';
+    } else {
+        document.body.classList.add('light-mode');
+        if (track) track.classList.remove('active-toggle');
+        if (label) label.innerText = 'Light';
     }
-    
+}
+
+function toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    applyTheme();
     updateDashboard();
 }
 
@@ -614,7 +617,6 @@ function populateYearDropdown() {
     const yearSelect = document.getElementById('yearDropdown');
     if (!yearSelect) return;
     yearSelect.innerHTML = '';
-    // Reverse array to put highest year at the top
     const sortedYears = [...availableYears].sort().reverse();
     sortedYears.forEach(y => {
         yearSelect.add(new Option(y, y, false, y === selectedYear));
@@ -623,7 +625,6 @@ function populateYearDropdown() {
 
 function onYearChange() {
     selectedYear = document.getElementById('yearDropdown').value;
-    isInitialized = false; // Force re-initialization
     init(); // Re-fetch the new year's data
 }
 
@@ -762,7 +763,7 @@ function updateDashboard() {
             targetMonthStr = 'Jun';
         }
         
-        // Year logic for EOD placeholder (assumes FY ending year logic)
+        // Year logic for EOD placeholder
         let endYearMatch = selectedYear.match(/\d+$/);
         let endYear = endYearMatch ? parseInt(endYearMatch[0]) : 27;
         let targetYearStr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].includes(targetMonthStr) ? String(endYear) : String(endYear - 1);
@@ -1270,17 +1271,16 @@ function exportModalCSV() {
 function closeModal() { document.getElementById('streamModal').style.display = 'none'; hideTooltip(); }
 window.onclick = function(e) { if (e.target == document.getElementById('streamModal')) closeModal(); }
 
-/// ========================================================================
+// ========================================================================
 // 8. DASHBOARD INITIALIZATION 
 // ========================================================================
-
 async function init() {
     console.log("1. Init function triggered. Setting up loading screen...");
     const loader = document.getElementById('loadingOverlay');
     if (loader) {
-        loader.classList.remove('hidden');
         loader.style.opacity = '1';
         loader.style.visibility = 'visible';
+        loader.classList.remove('hidden');
     }
 
     try {
@@ -1380,6 +1380,7 @@ async function init() {
         console.log("11. Updating Dashboard UI...");
         populateYearDropdown();
         populatePeriodDropdown();
+        applyTheme(); // Force correct visual sync on load
         updateDashboard();
 
         console.log("12. Initialization Complete!");
@@ -1392,15 +1393,10 @@ async function init() {
         setTimeout(() => {
             const l = document.getElementById('loadingOverlay');
             if (l) {
-                // Remove the inline styles that were keeping it stuck
                 l.style.opacity = '0';
                 l.style.visibility = 'hidden';
                 l.style.pointerEvents = 'none';
-                
-                // Backup hide class
                 l.classList.add('hidden');
-                
-                // Reset text for the next time we switch years
                 setTimeout(() => {
                     const txt = document.getElementById('loaderStatusText');
                     if (txt) txt.innerText = "INITIALIZING SYSTEM...";
