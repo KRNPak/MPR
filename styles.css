@@ -176,8 +176,8 @@ body.view-summary #summaryPanel .val-num { font-size: 2.8rem; margin-bottom: 4px
 body.view-summary #summaryPanel .val-unit { font-size: 0.95rem; }
 body.view-summary #summaryPanel .lbl { font-size: 0.8rem; }
 
-body.view-details #summaryPanel .val-num { font-size: 2.2rem; margin-bottom: 2px; font-weight: bold;}
-body.view-details #summaryPanel .val-unit { font-size: 0.85rem; }
+body.view-details #summaryPanel .val-num { font-size: 2.5rem; margin-bottom: 2px; font-weight: bold;}
+body.view-details #summaryPanel .val-unit { font-size: 0.8rem; }
 body.view-details #summaryPanel .lbl { font-size: 0.8rem; }
 
 .controls-block {
