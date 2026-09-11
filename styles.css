@@ -18,15 +18,15 @@
     --badge-orange: rgba(249, 115, 22, 0.15);
 
     /* LIGHT THEME */
-    --bg-page-light: #f4f6f8;
-    --bg-card-light: #ffffff;
-    --bg-header-light: #ffffff;
-    --text-primary-light: #0f172a; 
-    --text-secondary-light: #334155; 
+    --bg-page-light: #e2e8f0;    /* Deeper, soft-gray page background */
+    --bg-card-light: #f8fafc;    /* Muted off-white for cards instead of pure white */
+    --bg-header-light: #f8fafc;  /* Matches the soft cards */
+    --text-primary-light: #1e293b; /* Slightly softer dark text to reduce contrast glare */
+    --text-secondary-light: #475569; 
     --border-color-light: #cbd5e1; 
     --krn-blue-light: #006890; 
     --krn-light-blue-light: #4a96d2;
-    --card-shadow-light: 0 4px 15px rgba(0,0,0,0.06);
+    --card-shadow-light: 0 4px 12px rgba(0,0,0,0.05);
 }
 
 body {
