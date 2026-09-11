@@ -24,11 +24,13 @@ const quarterMap = {
 };
 
 let rawData = [];
+let currentActiveData = []; // The filtered copy of data
 let globalEODData = [];
 let currentGranularity = 'Monthly';
 let viewMode = 'QTD'; 
 let selectedPeriod = 'Jul';
 let selectedDepartment = '';
+let selectedDonor = 'All Donors';
 let isDarkMode = false; 
 let isSummaryView = true;
 let currentModalData = {}; 
@@ -625,8 +627,57 @@ function populateYearDropdown() {
 
 function onYearChange() {
     selectedYear = document.getElementById('yearDropdown').value;
-    init(); // Re-fetch the new year's data
+    init(); 
 }
+
+// --- NEW GLOBAL DONOR DATA INTERCEPT LOGIC ---
+function populateDonorDropdown() {
+    const dropdown = document.getElementById('donorDropdown');
+    if (!dropdown) return;
+    
+    const donors = new Set();
+    rawData.forEach(r => {
+        Object.keys(r.BudgetDonors).forEach(d => donors.add(d));
+        Object.keys(r.ActualDonors).forEach(d => donors.add(d));
+    });
+    
+    const sortedDonors = Array.from(donors).sort();
+    
+    // Safety check: if the selected donor doesn't exist in the newly loaded year, reset to "All Donors"
+    if (selectedDonor !== 'All Donors' && !sortedDonors.includes(selectedDonor)) {
+        selectedDonor = 'All Donors';
+    }
+    
+    dropdown.innerHTML = '';
+    dropdown.add(new Option('All Donors', 'All Donors', false, selectedDonor === 'All Donors'));
+    sortedDonors.forEach(d => {
+        dropdown.add(new Option(d, d, false, d === selectedDonor));
+    });
+}
+
+function onDonorChange() {
+    selectedDonor = document.getElementById('donorDropdown').value;
+    updateDashboard(); // Instantly apply intercept without needing to reload files
+}
+
+function getFilteredData() {
+    // If 'All Donors', pass through standard data
+    if (selectedDonor === 'All Donors') return rawData;
+    
+    // If a specific donor is selected, instantly zero out all other money across the entire ledger
+    return rawData.map(r => {
+        const b = r.BudgetDonors[selectedDonor] || 0;
+        const a = r.ActualDonors[selectedDonor] || 0;
+        return {
+            ...r,
+            Budget: b,
+            Actual: a,
+            BudgetDonors: b > 0 ? { [selectedDonor]: b } : {},
+            ActualDonors: a > 0 ? { [selectedDonor]: a } : {}
+        };
+    });
+}
+// ---------------------------------------------
 
 function populatePeriodDropdown() {
     const dropdown = document.getElementById('periodDropdown');
@@ -700,11 +751,16 @@ function isRowInViewScope(r) {
 function updateDashboard() {
     if (!rawData || rawData.length === 0) return;
 
-    const depts = [...new Set(rawData.map(r => r.Department))];
-    if (!selectedDepartment && depts.length > 0) selectedDepartment = depts[0];
+    // INTERCEPT: Overwrite standard data array with Donor-filtered virtual copy
+    currentActiveData = getFilteredData();
+
+    const depts = [...new Set(currentActiveData.map(r => r.Department))];
+    if (!selectedDepartment || !depts.includes(selectedDepartment)) {
+        if (depts.length > 0) selectedDepartment = depts[0];
+    }
 
     let topBudget = 0, topActual = 0;
-    rawData.forEach(r => { 
+    currentActiveData.forEach(r => { 
         topBudget += r.Budget; 
         topActual += r.Actual; 
     });
@@ -722,7 +778,7 @@ function updateDashboard() {
     document.getElementById('lblPeriodBudget').innerText = `${viewMode} Budget`;
     document.getElementById('lblPeriodActual').innerText = `${viewMode} Actual`;
 
-    const filteredRows = rawData.filter(r => isRowInViewScope(r));
+    const filteredRows = currentActiveData.filter(r => isRowInViewScope(r));
 
     let card1Budget = 0, card1Actual = 0;
     const periodActualDonors = {};
@@ -904,7 +960,7 @@ function renderSummaryTable(displayRows) {
         deptAgg[r.Department].a += r.Actual;
     });
 
-    rawData.forEach(r => {
+    currentActiveData.forEach(r => {
         if (!deptAgg[r.Department]) return; 
         if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
         deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
@@ -916,7 +972,6 @@ function renderSummaryTable(displayRows) {
         const item = deptAgg[d];
         if (item.b === 0 && item.a === 0) return; 
 
-        // Safely handles division by zero if budget is 0 but actuals exist
         const pctDisplay = item.b > 0 ? `${Math.round((item.a / item.b) * 100)}%` : (item.a > 0 ? 'N/A' : '0%');
         const badgeClass = item.a > item.b ? 'badge-orange' : 'badge-primary';
         
@@ -948,7 +1003,7 @@ function renderCard2Departments(displayRows) {
         deptAgg[r.Department].a += r.Actual;
     });
 
-    rawData.forEach(r => {
+    currentActiveData.forEach(r => {
         if (!deptAgg[r.Department]) return; 
         if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
         deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
@@ -964,7 +1019,6 @@ function renderCard2Departments(displayRows) {
     sortedDepts.forEach((deptName, idx) => {
         const item = deptAgg[deptName];
         
-        // Split visual text vs physical bar width for Zero-Budget rendering
         const pctNum = item.b > 0 ? Math.round((item.a / item.b) * 100) : (item.a > 0 ? 100 : 0);
         const pctDisplay = item.b > 0 ? `${pctNum}%` : (item.a > 0 ? 'N/A' : '0%');
         
@@ -1024,7 +1078,7 @@ function renderCard2Departments(displayRows) {
 }
 
 function renderCard3Details(displayRows = null) {
-    if (!displayRows) displayRows = rawData.filter(r => isRowInViewScope(r));
+    if (!displayRows) displayRows = currentActiveData.filter(r => isRowInViewScope(r));
 
     document.getElementById('card3Title').innerText = `Overview`;
     const sortMode = document.getElementById('sortStream').value;
@@ -1053,7 +1107,6 @@ function renderCard3Details(displayRows = null) {
         Object.keys(r.BudgetDonors).forEach(k => dBudDon[k] = (dBudDon[k] || 0) + r.BudgetDonors[k]);
     });
 
-    // Zero-Budget protection for the Donut Chart
     const bvaPctNum = dB > 0 ? Math.round((dA / dB) * 100) : (dA > 0 ? 100 : 0);
     const bvaPctDisplay = dB > 0 ? `${bvaPctNum}` : (dA > 0 ? 'N/A' : '0'); 
     
@@ -1097,7 +1150,6 @@ function renderCard3Details(displayRows = null) {
     sortedGroups.forEach((gName, idx) => {
         const st = groupAgg[gName];
         
-        // Zero-Budget protection for the Stream Cards
         const pctNum = st.b > 0 ? Math.round((st.a / st.b) * 100) : (st.a > 0 ? 100 : 0);
         const pctDisplay = st.b > 0 ? `${pctNum}%` : (st.a > 0 ? 'N/A' : '0%');
         
@@ -1153,6 +1205,7 @@ function renderCard3Details(displayRows = null) {
 
     requestAnimationFrame(() => setTimeout(() => progs.forEach(p => { const el = document.getElementById(p.id); if(el) el.style.width = p.width+'%'; }), 50));
 }
+
 // ========================================================================
 // 7. POPUP MODAL DRILL-DOWN & EXPORT
 // ========================================================================
@@ -1162,7 +1215,7 @@ function openGroupModal(groupName, groupType) {
     document.getElementById('modalStreamTitle').innerText = `Account Details: ${groupName}`;
     document.getElementById('modalStreamSubtitle').innerText = `${viewMode}: ${selectedPeriod}`;
 
-    const rows = rawData.filter(r => r.Department === selectedDepartment && r[groupType] === groupName && isRowInViewScope(r));
+    const rows = currentActiveData.filter(r => r.Department === selectedDepartment && r[groupType] === groupName && isRowInViewScope(r));
 
     currentModalData = {};
     let tB = 0, tA = 0;
@@ -1390,7 +1443,8 @@ async function init() {
         console.log("11. Updating Dashboard UI...");
         populateYearDropdown();
         populatePeriodDropdown();
-        applyTheme(); // Force correct visual sync on load
+        populateDonorDropdown(); // Build the master dropdown
+        applyTheme(); 
         updateDashboard();
 
         console.log("12. Initialization Complete!");
