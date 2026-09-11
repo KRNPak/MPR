@@ -42,8 +42,12 @@
             </div>
             <div class="header-title-group">
                 <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;">Budget vs Actual</h1>
-                <div class="sub-title" style="margin-top: 2px;">
+                <div class="sub-title" style="margin-top: 2px; display: flex; gap: 8px; align-items: center;">
                     <select id="yearDropdown" class="select-mini" style="font-size: 0.95rem; padding: 2px 6px; border-color: transparent; color: var(--text-secondary); background: transparent; font-weight: bold; cursor: pointer; outline: none;" onchange="onYearChange()"></select>
+                    <span style="color: var(--border-color); font-size: 0.9rem;">|</span>
+                    <select id="donorDropdown" class="select-mini" style="font-size: 0.95rem; padding: 2px 6px; border-color: transparent; color: var(--text-secondary); background: transparent; font-weight: bold; cursor: pointer; outline: none;" onchange="onDonorChange()">
+                        <option value="All Donors">All Donors</option>
+                    </select>
                 </div>
             </div>
         </div>
