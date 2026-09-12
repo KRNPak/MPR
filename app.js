@@ -1214,7 +1214,18 @@ function openGroupModal(groupName, groupType) {
     document.getElementById('streamModal').style.display = 'block';
     document.getElementById('modalStreamTitle').innerText = `Account Details: ${groupName}`;
     document.getElementById('modalStreamSubtitle').innerText = `${viewMode}: ${selectedPeriod}`;
+    document.getElementById('modalStreamTitle').innerText = `Account Details: ${groupName}`;
+    document.getElementById('modalStreamSubtitle').innerText = `${viewMode}: ${selectedPeriod}`;
 
+    // NEW: Only show the HR Portal button if we are in the Staff department
+    const btnStaff = document.getElementById('btnStaffLink');
+    if (btnStaff) {
+        if (selectedDepartment.toUpperCase().includes('STAFF') || selectedDepartment.toUpperCase().includes('ADMIN')) {
+            btnStaff.style.display = 'inline-block';
+        } else {
+            btnStaff.style.display = 'none';
+        }
+    }
     const rows = currentActiveData.filter(r => r.Department === selectedDepartment && r[groupType] === groupName && isRowInViewScope(r));
 
     currentModalData = {};
