@@ -211,9 +211,13 @@
                 <h2 id="modalStreamTitle" style="margin: 0; color: var(--text-primary); font-size: 0.95rem; font-weight: 400;">Account Details</h2>
                 <span id="modalStreamSubtitle" style="font-size: 0.62rem; color: var(--text-secondary);"></span>
             </div>
-            <div class="modal-controls">
-                <input type="text" id="modalSearch" class="search-box" placeholder="Search accounts..." onkeyup="filterModalTable()">
-                <button class="export-btn" onclick="exportModalCSV()">Export</button>
+            <div class="modal-controls" style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="modalSearch" class="search-box" placeholder="Search..." onkeyup="filterModalTable()">
+    
+                <!-- New dynamic link to Staff Dashboard -->
+                <a href="staff.html" id="btnStaffLink" style="display: none; background-color: var(--krn-light-blue); color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-decoration: none; text-transform: uppercase; transition: 0.2s;">Secure HR Portal &rarr;</a>
+    
+                <button onclick="exportModalCSV()" style="background-color: transparent; color: var(--krn-blue); border: 1px solid var(--krn-blue); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">Export CSV</button>
                 <span class="close-btn" onclick="closeModal()">&times;</span>
             </div>
         </div>
