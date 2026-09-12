@@ -360,3 +360,98 @@ function toggleDarkMode() { isDarkMode = !isDarkMode; applyTheme(); }
 
 // Init lock state
 applyTheme();
+// ========================================================================
+// 5. SVG DONUT & TOOLTIP ENGINE
+// ========================================================================
+const tooltip = document.getElementById('hoverTooltip');
+
+function showTooltip(e, label, value, pct) {
+    const parts = getFormattedParts(value);
+    if(tooltip) {
+        tooltip.innerHTML = `<strong>${label}</strong><span class="val-num-inline" style="color:inherit">${parts.v}</span> ${parts.u} (<span class="val-num-inline" style="color:inherit">${pct}</span>%)`;
+        tooltip.classList.add('visible');
+        moveTooltip(e);
+    }
+}
+
+function moveTooltip(e) {
+    if(tooltip) {
+        tooltip.style.left = (e.clientX + 15) + 'px';
+        tooltip.style.top = (e.clientY + 15) + 'px';
+    }
+}
+
+function hideTooltip() { 
+    if(tooltip) tooltip.classList.remove('visible'); 
+}
+
+function renderSvgDonut(containerId, items, centerBadge = null, bottomLabel = null, showLegend = true) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const total = items.reduce((acc, it) => acc + (parseFloat(it.value) || 0), 0);
+    const radius = 42; 
+    const C = 2 * Math.PI * radius;
+
+    let cumulativePercent = 0;
+    let circlesHtml = `<circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--border-color)" />`;
+    let legendHtml = '';
+
+    if (total === 0) {
+        if (showLegend) legendHtml = `<div style="color: var(--text-secondary); text-align: center; width: 100%; margin-top:0px; font-size: 0.6rem;">No data</div>`;
+    } else {
+        items.forEach((it) => {
+            const fraction = it.value / total;
+            const sliceLen = fraction * C;
+            const offset = cumulativePercent * C;
+            cumulativePercent += fraction;
+
+            circlesHtml += `
+                <circle class="donut-slice-${containerId}" 
+                    cx="50" cy="50" r="${radius}" fill="none" stroke="${it.color}" 
+                    stroke-dasharray="0 ${C}" stroke-dashoffset="-${offset}" data-target-len="${sliceLen}"
+                    onmouseenter="showTooltip(event, '${it.label.replace(/'/g, "\\'")}', ${it.value}, '${Math.round(fraction*100)}')"
+                    onmousemove="moveTooltip(event)" onmouseleave="hideTooltip()"
+                    style="transform: rotate(-90deg); transform-origin: 50% 50%; pointer-events: stroke; transition: stroke-dasharray 1.4s cubic-bezier(0.16, 1, 0.3, 1), stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);"
+                />
+            `;
+
+            if (showLegend) {
+                legendHtml += `
+                    <div class="donut-legend-item">
+                        <div class="donut-legend-item-left">
+                            <div class="donut-legend-dot" style="background-color: ${it.color};"></div>
+                            <span style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden; font-family: Calibri, sans-serif !important;">${it.label}</span>
+                        </div>
+                        <strong style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight:400;">${Math.round(fraction * 100)}%</strong>
+                    </div>
+                `;
+            }
+        });
+    }
+
+    let centerBadgeHtml = centerBadge ? `<div class="donut-center-badge"><div class="donut-center-pct">${centerBadge.pct}%</div><div class="donut-center-sub">${centerBadge.label}</div></div>` : '';
+    let bottomBadgeHtml = bottomLabel ? `<div class="donut-bottom-badge">${bottomLabel}</div>` : '';
+
+    container.innerHTML = `
+        <div class="svg-donut-wrapper">
+            <div class="donut-chart-box">
+                <svg viewBox="0 0 100 100" class="donut-svg">
+                    ${circlesHtml}
+                </svg>
+                ${centerBadgeHtml}
+            </div>
+            ${bottomBadgeHtml}
+            ${showLegend && legendHtml ? `<div class="donut-legend-list">${legendHtml}</div>` : ''}
+        </div>
+    `;
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            container.querySelectorAll(`.donut-slice-${containerId}`).forEach(slice => {
+                const targetLen = parseFloat(slice.getAttribute('data-target-len')) || 0;
+                slice.style.strokeDasharray = `${targetLen} ${C - targetLen}`;
+            });
+        });
+    });
+}
