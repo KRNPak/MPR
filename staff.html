@@ -3,60 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karandaaz Pakistan - Staff Costs</title>
+    <title>Karandaaz Pakistan - Secure HR Portal</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chivo:ital,wght@0,100..900;1,100..900&family=Oswald:wght@200..700&display=swap" rel="stylesheet">
     
-    <!-- Uses the exact same CSS file for perfect theme syncing -->
     <link rel="stylesheet" href="styles.css?v=FINAL">
     
     <style>
-        /* Custom styles for the Password Overlay */
-        .auth-container {
-            background-color: var(--bg-card); padding: 30px 40px; border-radius: 8px;
-            border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            text-align: center; max-width: 400px; width: 90%;
-        }
-        .auth-input {
-            width: 100%; padding: 12px; margin: 20px 0; border-radius: 6px;
-            border: 1px solid var(--border-color); background: var(--bg-page); color: var(--text-primary);
-            font-family: inherit; outline: none; text-align: center; letter-spacing: 2px;
-        }
-        .auth-btn {
-            background-color: var(--krn-blue); color: #fff; border: none; padding: 10px 20px;
-            border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: background 0.2s;
-        }
+        .auth-container { background-color: var(--bg-card); padding: 30px 40px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; max-width: 400px; width: 90%; }
+        .auth-input { width: 100%; padding: 12px; margin: 20px 0; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-page); color: var(--text-primary); font-family: inherit; outline: none; text-align: center; letter-spacing: 2px; }
+        .auth-btn { background-color: var(--krn-blue); color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: background 0.2s; }
         .auth-btn:hover { background-color: var(--krn-light-blue); }
         #authError { color: var(--krn-orange); font-size: 0.75rem; margin-top: 10px; display: none; }
+        
+        /* New Toggle Styles for the Left Pane Widget */
+        .widget-toggle-group { display: flex; border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color); margin-bottom: 15px; }
+        .widget-toggle-btn { flex: 1; padding: 6px; font-size: 0.7rem; background: transparent; color: var(--text-secondary); border: none; cursor: pointer; font-weight: 500; text-transform: uppercase; }
+        .widget-toggle-btn.active { background: var(--krn-blue); color: #fff; }
+        .mini-list-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; }
+        .mini-list-item:last-child { border-bottom: none; }
     </style>
 </head>
 <body class="view-summary light-mode"> 
 
 <div id="hoverTooltip" class="hover-tooltip"></div>
 
-<!-- SECURITY AUTHENTICATION OVERLAY -->
+<!-- SECURITY OVERLAY -->
 <div id="authOverlay" class="loading-overlay" style="z-index: 10000; opacity: 1; visibility: visible;">
     <div class="auth-container">
-        <img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz" style="height: 40px; margin-bottom: 10px; filter: drop-shadow(0 0 5px rgba(0, 104, 144, 0.1));">
+        <img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz" style="height: 40px; margin-bottom: 10px;">
         <h2 style="margin: 0; color: var(--krn-blue); font-family: 'Oswald', sans-serif; font-size: 1.5rem;">Secure HR Portal</h2>
         <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 5px;">Enter decryption key to access staff records</div>
-        
         <input type="password" id="authPassword" class="auth-input" placeholder="••••••••" onkeypress="if(event.key === 'Enter') unlockDashboard()">
         <button class="auth-btn" onclick="unlockDashboard()">DECRYPT & LOAD</button>
         <div id="authError">Incorrect decryption key.</div>
     </div>
 </div>
 
-<!-- STANDARD LOADING SCREEN (Hidden behind Auth) -->
 <div id="loadingOverlay" class="loading-overlay hidden">
     <div class="loader-content">
-        <div class="logo-container">
-            <div class="app-spinner"></div>
-            <div class="app-spinner-inner"></div>
-            <img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz" class="loader-logo">
-        </div>
+        <div class="logo-container"><div class="app-spinner"></div><div class="app-spinner-inner"></div><img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz" class="loader-logo"></div>
         <h2 class="loader-title">Decrypting...</h2>
         <div class="loader-progress-container"><div class="loader-progress-bar"></div></div>
         <div id="loaderStatusText" class="loader-status-text">PROCESSING SECURE DATA...</div>
@@ -64,28 +52,20 @@
 </div>
 
 <div class="dashboard-container">
-    <!-- HEADER WITH GLOBAL FILTERS -->
     <div class="header-banner">
         <div class="header-left">
-            <div class="header-logo">
-                <a href="index.html" title="Back to Main Dashboard"><img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz Pakistan Logo"></a>
-            </div>
+            <div class="header-logo"><a href="index.html" title="Back to Main Dashboard"><img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz Pakistan"></a></div>
             <div class="header-title-group">
-                <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;">Staff Costs & HR</h1>
+                <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; margin: 0; color: var(--krn-blue); line-height: 1.1;">Payroll & HR Diagnostics</h1>
                 <div class="sub-title" style="margin-top: 2px; display: flex; gap: 8px; align-items: center;">
-                    <select id="yearDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onFilterChange()"></select>
+                    <select id="yearDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onGlobalFilterChange()"></select>
                     <span style="color: var(--border-color); font-size: 0.9rem;">|</span>
-                    <select id="deptDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onFilterChange()">
-                        <option value="All Departments">All Departments</option>
-                    </select>
+                    <select id="deptDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onGlobalFilterChange()"><option value="All Departments">All Departments</option></select>
                     <span style="color: var(--border-color); font-size: 0.9rem;">|</span>
-                    <select id="donorDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onFilterChange()">
-                        <option value="All Donors">All Donors</option>
-                    </select>
+                    <select id="donorDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onGlobalFilterChange()"><option value="All Donors">All Donors</option></select>
                 </div>
             </div>
         </div>
-
         <div class="header-kpi-summary">
             <div class="toggles-container">
                 <div class="theme-toggle" onclick="toggleDarkMode()">
@@ -93,53 +73,73 @@
                     <div class="switch-track" id="themeTrack"><div class="switch-thumb"></div></div>
                 </div>
             </div>
-        
-            <div class="kpi-item">
-                <div class="val" id="topKpiHeadcount" data-val="0"><span class="val-num">0</span><span class="val-unit-inline" style="font-size:1rem;">/ 0</span></div>
-                <span class="lbl">Active Headcount (vs Budget)</span>
-            </div>
-            <div class="kpi-item">
-                <div class="val" id="topKpiBudget" data-val="0"><span class="val-unit">M PKR</span><span class="val-num">0</span></div>
-                <span class="lbl">Total FY Payroll Budget</span>
-            </div>
-            <div class="kpi-item">
-                <div class="val" id="topKpiActual" data-val="0"><span class="val-unit">M PKR</span><span class="val-num">0</span></div>
-                <span class="lbl">Total FY Payroll Actual</span>
-            </div>
-            <div class="kpi-item">
-                <div class="val" id="topKpiVariance" data-val="0"><span class="val-unit">M PKR</span><span class="val-num">0</span></div>
-                <span class="lbl">FY Variance</span>
+            <div class="kpi-item"><div class="val" id="topKpiBudget"><span class="val-num">0</span></div><span class="lbl">Filtered Budget</span></div>
+            <div class="kpi-item"><div class="val" id="topKpiActual"><span class="val-num">0</span></div><span class="lbl">Filtered Actual</span></div>
+            <div class="kpi-item"><div class="val" id="topKpiVariance"><span class="val-num">0</span></div><span class="lbl">Variance</span></div>
+        </div>
+    </div>
+
+    <!-- TIME RIBBON -->
+    <div class="controls-ribbon">
+        <div class="control-group">
+            <label class="control-label">Period End</label>
+            <select id="monthDropdown" class="custom-select" onchange="onTimeFilterChange()"></select>
+        </div>
+        <div class="control-group">
+            <label class="control-label">Time Frame</label>
+            <div class="time-toggles" id="timeToggleContainer">
+                <button class="time-toggle-btn active" data-view="YTD" onclick="setTimeView('YTD')">YTD</button>
+                <button class="time-toggle-btn" data-view="QTD" onclick="setTimeView('QTD')">QTD</button>
+                <button class="time-toggle-btn" data-view="PTD" onclick="setTimeView('PTD')">Monthly</button>
             </div>
         </div>
     </div>
 
-    <!-- MAIN DYNAMIC LAYOUT -->
     <div class="main-layout-wrapper">
         <div id="summaryPanel">
             <div class="summary-split-layout">
-                <!-- MACRO DONUTS -->
-                <div class="summary-left-card" style="flex: 0.8;">
-                    <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-primary); margin-bottom: 15px; text-transform: uppercase;">Payroll Composition</div>
-                    <div class="donuts-triplet-container" id="staffDonutContainer" style="display: flex; flex-direction: column; gap: 30px;">
-                        <!-- Generated by JS -->
+                <!-- LEFT PANE: Headcount, Donor Split, & Top 5 Widget -->
+                <div class="summary-left-card" style="flex: 0.6; display: flex; flex-direction: column; gap: 20px;">
+                    
+                    <!-- Headcount Tracker -->
+                    <div style="background: var(--bg-page); padding: 15px; border-radius: 6px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 5px;">Active Headcount vs Budget</div>
+                        <div id="headcountKpi" style="font-size: 1.8rem; font-weight: bold; color: var(--krn-blue); font-family: 'Oswald', sans-serif;">0 / 0</div>
+                    </div>
+
+                    <!-- Donor Split Donut -->
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px;">Funding Split</div>
+                        <div id="donorDonutContainer" style="width: 140px; height: 140px; margin: 0 auto;"></div>
+                    </div>
+
+                    <!-- Dynamic Toggle Widget -->
+                    <div style="background: var(--bg-page); padding: 15px; border-radius: 6px; border: 1px solid var(--border-color); flex-grow: 1;">
+                        <div class="widget-toggle-group">
+                            <button id="btnToggleVacant" class="widget-toggle-btn active" onclick="setWidgetView('vacant')">Vacant Seats</button>
+                            <button id="btnToggleOverspend" class="widget-toggle-btn" onclick="setWidgetView('overspend')">Over-Spends</button>
+                        </div>
+                        <div id="widgetListContainer">
+                            <!-- Populated by JS -->
+                        </div>
                     </div>
                 </div>
 
-                <!-- DEPARTMENT SUMMARY TABLE -->
+                <!-- RIGHT PANE: Component Table -->
                 <div class="summary-right-card summary-table-container">
-                    <div style="font-size: 0.6rem; font-weight: 400; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase;">Department Roll-Up (Click to view Employee Roster)</div>
+                    <div style="font-size: 0.6rem; font-weight: 400; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase;">Payroll Components (Click row for Employee Drill-Down)</div>
                     <div class="table-wrapper">
                         <table class="detail-table" style="margin-top: 0;">
                             <thead>
                                 <tr>
-                                    <th>Department</th>
-                                    <th>Trend</th>
+                                    <th>Component</th>
                                     <th>Budget</th>
                                     <th>Actual</th>
+                                    <th>Variance</th>
                                     <th>% Spent</th>
                                 </tr>
                             </thead>
-                            <tbody id="staffSummaryTableBody"></tbody>
+                            <tbody id="componentTableBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -148,32 +148,24 @@
     </div>
 </div>
 
-<!-- EMPLOYEE ROSTER MODAL -->
+<!-- COMPONENT DRILL-DOWN MODAL -->
 <div id="staffModal" class="modal">
-    <div class="modal-content" style="max-width: 1000px;">
+    <div class="modal-content" style="max-width: 1100px;">
         <div class="modal-header">
             <div>
-                <h2 id="modalStaffTitle" style="margin: 0; color: var(--text-primary); font-size: 0.95rem; font-weight: 400;">Employee Roster</h2>
+                <h2 id="modalStaffTitle" style="margin: 0; color: var(--text-primary); font-size: 0.95rem; font-weight: 400;">Component Breakdown</h2>
                 <span id="modalStaffSubtitle" style="font-size: 0.62rem; color: var(--text-secondary);"></span>
             </div>
-            <div class="modal-controls">
+            <div class="modal-controls" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="modalSearch" class="search-box" placeholder="Search Position or Name..." onkeyup="filterStaffModal()">
+                <button onclick="exportModalCSV()" style="background-color: transparent; color: var(--krn-blue); border: 1px solid var(--krn-blue); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">Export CSV</button>
                 <span class="close-btn" onclick="closeModal()">&times;</span>
             </div>
         </div>
         <div class="table-wrapper">
             <table class="detail-table">
-                <thead>
-                    <tr>
-                        <th>Position Code</th>
-                        <th>Employee Name</th>
-                        <th>Base Salary (M PKR)</th>
-                        <th>Allowances (M PKR)</th>
-                        <th>Benefits (M PKR)</th>
-                        <th>Gross Cost (M PKR)</th>
-                        <th>Budget (M PKR)</th>
-                        <th>Variance</th>
-                    </tr>
+                <thead id="modalTableHeader">
+                    <!-- Dynamic Month Columns Generated by JS -->
                 </thead>
                 <tbody id="staffModalTableBody"></tbody>
             </table>
@@ -181,8 +173,7 @@
     </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <script src="staff_app.js?v=FINAL"></script>
-
 </body>
 </html>
