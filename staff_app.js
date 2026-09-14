@@ -3,17 +3,16 @@
 // ========================================================================
 let isDarkMode = false;
 let availableYears = ['FY2025', 'FY2026', 'FY2027'];
-let selectedYear = availableYears[availableYears.length - 1];
+let selectedYear = availableYears[availableYears.length - 1]; // e.g. FY2026
 let selectedDepartment = 'All Departments';
 let selectedDonor = 'All Donors';
 
 const fiscalMonths = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 let selectedMonth = 'Jul'; 
 
-// Time Controls to match image
-let granularity = 'Monthly'; // Monthly, Quarterly, Yearly
-let periodView = 'QTD'; // PTD, QTD, YTD
-let timeLabel = 'QTD'; // Dynamic string for UI
+let granularity = 'Monthly'; 
+let periodView = 'QTD'; 
+let timeLabel = 'QTD'; 
 
 let positionMaster = {}; 
 let unifiedLedger = []; 
@@ -61,7 +60,7 @@ async function unlockDashboard() {
 }
 
 // ========================================================================
-// 2. DATA ENGINE
+// 2. BULLETPROOF DATA ENGINE
 // ========================================================================
 function parseCSV(text) {
     let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -71,33 +70,51 @@ function parseCSV(text) {
     for(let i = 1; i < lines.length; i++) {
         let vals = lines[i].split(',').map(v => v.replace(/"/g, '').trim());
         let obj = { _raw: {} };
-        headers.forEach((h, idx) => { obj[h] = vals[idx] || ''; obj._raw[lines[0].split(',')[idx]] = vals[idx] || ''; });
+        headers.forEach((h, idx) => { obj[h] = vals[idx] || ''; obj._raw[lines[0].split(',')[idx].trim()] = vals[idx] || ''; });
         objects.push(obj);
     }
     return objects;
 }
 
-function getSafeNum(val) { let str = String(val || '').replace(/[^0-9.-]/g, ''); let num = parseFloat(str); return isNaN(num) ? 0 : num; }
+function getSafeNum(val) { 
+    let str = String(val || '').replace(/[^0-9.-]/g, ''); 
+    let num = parseFloat(str); 
+    return isNaN(num) ? 0 : num; 
+}
 
-function standardizeComponent(rawHeader) {
-    let k = rawHeader.toLowerCase().trim();
-    if (k.includes('gross') || k.includes('net') || k.includes('payable') || k.includes('annually') || k.includes('updated') || k.includes('after') || k.includes('+') || k.includes('total') || k.includes('opening') || k.includes('closing') || k.includes('months') || k.includes('date') || k.includes('name') || k.includes('department') || k.includes('designation') || k.includes('code') || k.includes('grade') || k.includes('stream') || k.includes('tax') || k.includes('advance') || k.includes('extra') || k.includes('other') || k.includes('budget fy') || k.includes('salary ad')) return 'SKIP';
-    if (k.includes('base salary')) return 'Base Salary';
-    if (k.includes('car monetization') || k.includes('cma')) return 'Car Monetization';
-    if (k.includes('cola')) return 'COLA';
-    if (k.includes('child care')) return 'Child Care';
-    if (k.includes('provident') || (k === 'pf')) return 'Provident Fund';
-    if (k.includes('eobi')) return 'EOBI';
-    if (k.includes('gratuity')) return 'Gratuity';
-    if (k.includes('lfa') || k.includes('leave fare')) return 'LFA';
-    if (k.includes('wellness')) return 'Wellness Allowance';
-    if (k.includes('health ins')) return 'Health Insurance';
-    if (k.includes('life insura')) return 'Life Insurance';
-    if (k.includes('learning')) return 'Learning & Development';
-    if (k.includes('performance') || k.includes('one-off')) return 'Performance / Bonus';
-    if (k.includes('arrears') || k.includes('overtime')) return 'Overtime & Arrears';
-    if (k.includes('leave encashment')) return 'Leave Encashment';
-    return 'SKIP';
+// Map columns strictly ONCE to prevent double-counting Base Salaries
+function createHeaderMap(rawKeys) {
+    let map = {};
+    let lowerKeys = rawKeys.map(k => ({ orig: k, low: k.toLowerCase().trim() }));
+    
+    // Find the ultimate final base salary column to avoid duplicates
+    let baseMatch = lowerKeys.find(k => k.low.includes('base salary after inflation')) || 
+                    lowerKeys.find(k => k.low.includes('updated base')) || 
+                    lowerKeys.find(k => k.low === 'base salary') ||
+                    lowerKeys.find(k => k.low.includes('base'));
+                    
+    if (baseMatch) map[baseMatch.orig] = 'Base Salary';
+
+    lowerKeys.forEach(k => {
+        if (baseMatch && k.orig === baseMatch.orig) return; // Already mapped securely
+        
+        let lower = k.low;
+        if (lower.includes('car') || lower.includes('cma') || lower.includes('monetarization')) map[k.orig] = 'Car Monetization';
+        else if (lower.includes('cola')) map[k.orig] = 'COLA';
+        else if (lower.includes('child care')) map[k.orig] = 'Child Care';
+        else if (lower.includes('provident') || lower === 'pf') map[k.orig] = 'Provident Fund';
+        else if (lower.includes('eobi')) map[k.orig] = 'EOBI';
+        else if (lower.includes('gratuity')) map[k.orig] = 'Gratuity';
+        else if (lower.includes('lfa') || lower.includes('leave fare')) map[k.orig] = 'LFA';
+        else if (lower.includes('wellness')) map[k.orig] = 'Wellness Allowance';
+        else if (lower.includes('health ins')) map[k.orig] = 'Health Insurance';
+        else if (lower.includes('life insura')) map[k.orig] = 'Life Insurance';
+        else if (lower.includes('learning')) map[k.orig] = 'Learning & Development';
+        else if (lower.includes('performance') || lower.includes('one-off')) map[k.orig] = 'Performance / Bonus';
+        else if (lower.includes('arrears') || lower.includes('overtime')) map[k.orig] = 'Overtime & Arrears';
+        else if (lower.includes('leave encashment')) map[k.orig] = 'Leave Encashment';
+    });
+    return map;
 }
 
 function buildDataEngine(masterRows, budgetRows, actualRows) {
@@ -132,41 +149,68 @@ function buildDataEngine(masterRows, budgetRows, actualRows) {
         if (isActual) entry.components[compName].a += val; else entry.components[compName].b += val;
     };
 
-    actualRows.forEach(r => {
-        let code = String(r['positioncode'] || '').trim().toUpperCase();
-        let mth = String(r['month'] || '').substring(0,3);
-        if (!mth || !positionMaster[code]) return;
-        mth = mth.charAt(0).toUpperCase() + mth.slice(1).toLowerCase(); 
-        availableMonthsSet.add(mth);
-        let entry = ensureLedgerEntry(code, mth);
-        Object.keys(r._raw).forEach(rawK => {
-            let compName = standardizeComponent(rawK);
-            if (compName !== 'SKIP') { addComponentVal(entry, compName, true, getSafeNum(r._raw[rawK])); }
+    // Actuals Mapping
+    if (actualRows.length > 0) {
+        let actualMap = createHeaderMap(Object.keys(actualRows[0]._raw));
+        actualRows.forEach(r => {
+            let code = String(r['positioncode'] || '').trim().toUpperCase();
+            let mth = String(r['month'] || '').substring(0,3);
+            if (!mth || !positionMaster[code]) return;
+            mth = mth.charAt(0).toUpperCase() + mth.slice(1).toLowerCase(); 
+            availableMonthsSet.add(mth);
+            let entry = ensureLedgerEntry(code, mth);
+            
+            Object.keys(r._raw).forEach(rawK => {
+                let compName = actualMap[rawK];
+                if (compName) addComponentVal(entry, compName, true, getSafeNum(r._raw[rawK]));
+            });
         });
-    });
+    }
 
-    budgetRows.forEach(r => {
-        let code = String(r['positioncode'] || '').trim().toUpperCase();
-        if (!positionMaster[code]) return;
-        let joiningStr = r['joiningdate'] || r['joiningdatenewagreementstartdate'] || '';
-        let bMonths = parseInt(r['budgetedmonths']) || 12; if (bMonths <= 0) bMonths = 12;
-        let startIdx = 0; fiscalMonths.forEach((fm, idx) => { if (joiningStr.toLowerCase().includes(fm.toLowerCase())) startIdx = idx; });
-        let monthlyComps = {};
-        Object.keys(r._raw).forEach(rawK => {
-            let compName = standardizeComponent(rawK);
-            if (compName !== 'SKIP') {
-                let val = getSafeNum(r._raw[rawK]);
-                if (['LFA', 'Gratuity', 'Health Insurance', 'Life Insurance', 'Learning & Development'].includes(compName)) val = val / bMonths;
-                monthlyComps[compName] = (monthlyComps[compName] || 0) + val;
+    // Budget Mapping (Strictly handling Date constraints & Annualized values)
+    if (budgetRows.length > 0) {
+        let budgetMap = createHeaderMap(Object.keys(budgetRows[0]._raw));
+        let fyStartYear = parseInt(selectedYear.replace('FY', '')) - 1; // FY2026 -> 2025
+        let fyStartDate = new Date(fyStartYear, 6, 1); // July 1st of the starting year
+        
+        budgetRows.forEach(r => {
+            let code = String(r['positioncode'] || '').trim().toUpperCase();
+            if (!positionMaster[code]) return;
+            
+            // Real Date parsing for mid-year vs historical hires
+            let joinStr = r['joiningdate'] || r['joiningdatenewagreementstartdate'] || '';
+            let joinDate = new Date(joinStr);
+            let startIdx = 0;
+            
+            if (!isNaN(joinDate.getTime()) && joinDate > fyStartDate) {
+                let m = joinDate.getMonth(); // 0-11
+                startIdx = m >= 6 ? m - 6 : m + 6; // Convert to fiscal index where July=0
+            }
+            
+            let bMonths = parseInt(r['budgetedmonths']) || 12; if (bMonths <= 0) bMonths = 12;
+            let monthlyComps = {};
+            
+            Object.keys(r._raw).forEach(rawK => {
+                let compName = budgetMap[rawK];
+                if (compName) {
+                    let val = getSafeNum(r._raw[rawK]);
+                    // Convert annualized columns to monthly run-rate explicitly
+                    if (['LFA', 'Gratuity', 'Health Insurance', 'Life Insurance', 'Learning & Development'].includes(compName)) {
+                        val = val / bMonths; 
+                    }
+                    monthlyComps[compName] = (monthlyComps[compName] || 0) + val;
+                }
+            });
+            
+            // Assign budget only to the active months for this specific FY
+            for (let i = startIdx; i < startIdx + bMonths; i++) {
+                if (i < 12) {
+                    let entry = ensureLedgerEntry(code, fiscalMonths[i]);
+                    Object.keys(monthlyComps).forEach(cName => { addComponentVal(entry, cName, false, monthlyComps[cName]); });
+                }
             }
         });
-        for (let i = startIdx; i < startIdx + bMonths; i++) {
-            if (i < 12) {
-                let entry = ensureLedgerEntry(code, fiscalMonths[i]);
-                Object.keys(monthlyComps).forEach(compName => { addComponentVal(entry, compName, false, monthlyComps[compName]); });
-            }
-        }
-    });
+    }
 
     unifiedLedger = Object.values(ledgerMap);
 
@@ -183,7 +227,7 @@ function buildDataEngine(masterRows, budgetRows, actualRows) {
 }
 
 // ========================================================================
-// 3. UI RENDERING & AGGREGATION
+// 3. UI RENDERING & TIME AGGREGATION
 // ========================================================================
 function populateFilters() {
     const ys = document.getElementById('yearDropdown'); ys.innerHTML = '';
@@ -223,17 +267,15 @@ function updateStaffDashboard() {
     const endIdx = fiscalMonths.indexOf(selectedMonth);
     activeMonths = [];
 
-    // Complex Time Logic matching main dashboard
     if (granularity === 'Yearly') {
-        activeMonths = [...fiscalMonths];
-        timeLabel = 'FY';
+        activeMonths = [...fiscalMonths]; timeLabel = 'FY';
     } else if (granularity === 'Quarterly') {
         const qtrIndex = Math.floor(endIdx / 3);
         if (periodView === 'PTD') { activeMonths = fiscalMonths.slice(qtrIndex * 3, qtrIndex * 3 + 3); timeLabel = 'Qtr'; }
         else if (periodView === 'YTD') { activeMonths = fiscalMonths.slice(0, qtrIndex * 3 + 3); timeLabel = 'YTD'; }
-        else { activeMonths = fiscalMonths.slice(qtrIndex * 3, qtrIndex * 3 + 3); timeLabel = 'QTD'; } // default QTD
-    } else { // Monthly
-        if (periodView === 'PTD') { activeMonths = [selectedMonth]; timeLabel = 'Period'; }
+        else { activeMonths = fiscalMonths.slice(qtrIndex * 3, qtrIndex * 3 + 3); timeLabel = 'QTD'; }
+    } else { 
+        if (periodView === 'PTD') { activeMonths = [selectedMonth]; timeLabel = 'Monthly'; }
         else if (periodView === 'QTD') { const qtrStart = Math.floor(endIdx / 3) * 3; activeMonths = fiscalMonths.slice(qtrStart, endIdx + 1); timeLabel = 'QTD'; }
         else if (periodView === 'YTD') { activeMonths = fiscalMonths.slice(0, endIdx + 1); timeLabel = 'YTD'; }
     }
@@ -246,10 +288,7 @@ function updateStaffDashboard() {
     let totBud = 0, totAct = 0;
     let compSummary = {};
     let activeHeads = new Set(), budHeads = new Set();
-    
-    // Separate tracking for the two Donuts
-    let donorSpent = {};
-    let donorBudget = {}; 
+    let donorSpent = {}; let donorBudget = {}; 
 
     unifiedLedger.forEach(row => {
         if (!activeMonths.includes(row.month)) return;
@@ -276,21 +315,17 @@ function updateStaffDashboard() {
         if (rowTotB > 0) budHeads.add(row.code);
         if (rowTotA > 0) activeHeads.add(row.code);
 
-        // Attribute weights to correct donuts
         if (selectedDonor === 'All Donors') {
             Object.keys(master.donorAllocations).forEach(d => {
-                if (rowTotA > 0) { donorSpent[d] = (donorSpent[d] || 0) + (rowTotA * master.donorAllocations[d]); }
-                if (rowTotB > 0) { donorBudget[d] = (donorBudget[d] || 0) + (rowTotB * master.donorAllocations[d]); }
+                if (rowTotA > 0) donorSpent[d] = (donorSpent[d] || 0) + (rowTotA * master.donorAllocations[d]);
+                if (rowTotB > 0) donorBudget[d] = (donorBudget[d] || 0) + (rowTotB * master.donorAllocations[d]);
             });
         }
     });
 
     document.getElementById('headcountKpi').innerText = `${activeHeads.size}/${budHeads.size}`;
-    
-    let budHtml = `<span class="sidebar-kpi-unit">M PKR</span>${(totBud/1000000).toFixed(1)}`;
-    let actHtml = `<span class="sidebar-kpi-unit">M PKR</span>${(totAct/1000000).toFixed(1)}`;
-    document.getElementById('leftKpiBudget').innerHTML = budHtml;
-    document.getElementById('leftKpiActual').innerHTML = actHtml;
+    document.getElementById('leftKpiBudget').innerHTML = `<span class="sidebar-kpi-unit">M PKR</span>${(totBud/1000000).toFixed(1)}`;
+    document.getElementById('leftKpiActual').innerHTML = `<span class="sidebar-kpi-unit">M PKR</span>${(totAct/1000000).toFixed(1)}`;
     document.getElementById('mainTableVariance').innerText = formatPKRShort(Math.abs(totBud - totAct));
 
     renderComponentTable(compSummary);
@@ -331,7 +366,7 @@ function renderDonorDonut(containerId, donorObj) {
 }
 
 // ========================================================================
-// 4. MODAL & DRILL DOWN
+// 4. MODAL & SVG DRILL DOWN LOGIC
 // ========================================================================
 function openComponentModal(compName) {
     activeModalComponent = compName;
@@ -378,14 +413,11 @@ function renderStaffModalTable() {
         tbody.innerHTML += rowHtml;
     });
 }
+
 function filterStaffModal() { renderStaffModalTable(); }
 function closeModal() { document.getElementById('staffModal').style.display = 'none'; }
 window.onclick = function(e) { if (e.target == document.getElementById('staffModal')) closeModal(); }
-function exportModalCSV() { /* Code from previous steps remains standard */ }
 
-// ========================================================================
-// 5. UTILS & SVG DONUT ENGINE
-// ========================================================================
 function formatPKRInline(num) { let p = getFormattedParts(num); return `<span class="val-unit-inline">${p.u}</span> <span class="val-num-inline">${p.v}</span>`; }
 function formatPKRShort(num) { let p = getFormattedParts(num); return `${p.v} ${p.u.charAt(0)}`; }
 function getFormattedParts(num) {
