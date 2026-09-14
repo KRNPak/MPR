@@ -233,13 +233,32 @@ function buildDataEngine(masterRows, budgetRows, actualRows) {
 }
 
 // ========================================================================
-// 3. UI RENDERING & FILTERING
+// 3. UI RENDERING & TIME AGGREGATION
 // ========================================================================
 function populateFilters() {
     const ys = document.getElementById('yearDropdown'); ys.innerHTML = '';
     availableYears.slice().reverse().forEach(y => ys.add(new Option(y, y, false, y === selectedYear)));
+    populateTimeDropdown();
+}
+
+function populateTimeDropdown() {
     const ms = document.getElementById('monthDropdown'); ms.innerHTML = '';
-    fiscalMonths.forEach(m => ms.add(new Option(m, m, false, m === selectedMonth)));
+    if (granularity === 'Quarterly') {
+        const quarters = [
+            { label: 'Q1 (Jul - Sep)', val: 'Sep' },
+            { label: 'Q2 (Oct - Dec)', val: 'Dec' },
+            { label: 'Q3 (Jan - Mar)', val: 'Mar' },
+            { label: 'Q4 (Apr - Jun)', val: 'Jun' }
+        ];
+        // Snap selectedMonth to the end of the current quarter so math stays accurate
+        const endIdx = fiscalMonths.indexOf(selectedMonth);
+        const qtrStart = Math.floor(endIdx / 3) * 3;
+        selectedMonth = fiscalMonths[qtrStart + 2]; 
+        
+        quarters.forEach(q => ms.add(new Option(q.label, q.val, false, q.val === selectedMonth)));
+    } else {
+        fiscalMonths.forEach(m => ms.add(new Option(m, m, false, m === selectedMonth)));
+    }
 }
 
 function onGlobalFilterChange() {
@@ -249,20 +268,25 @@ function onGlobalFilterChange() {
     updateStaffDashboard();
 }
 
-function onTimeFilterChange() { selectedMonth = document.getElementById('monthDropdown').value; updateStaffDashboard(); }
+function onTimeFilterChange() { 
+    selectedMonth = document.getElementById('monthDropdown').value; 
+    updateStaffDashboard(); 
+}
 
 function setGranularity(val) {
     granularity = val;
     document.querySelectorAll('button[data-group="granularity"]').forEach(btn => btn.classList.toggle('active', btn.dataset.val === val));
     const pRow = document.getElementById('periodToggleRow');
+    const mDrop = document.getElementById('monthDropdown');
+    
     if (val === 'Yearly') {
-        pRow.style.opacity = '0.3'; pRow.style.pointerEvents = 'none'; document.getElementById('monthDropdown').disabled = true;
+        pRow.style.opacity = '0.3'; pRow.style.pointerEvents = 'none'; mDrop.disabled = true;
     } else {
-        pRow.style.opacity = '1'; pRow.style.pointerEvents = 'auto'; document.getElementById('monthDropdown').disabled = false;
+        pRow.style.opacity = '1'; pRow.style.pointerEvents = 'auto'; mDrop.disabled = false;
+        populateTimeDropdown(); // Update the dropdown options (Months vs Quarters)
     }
     updateStaffDashboard();
 }
-
 function setPeriod(val) {
     periodView = val;
     document.querySelectorAll('button[data-group="period"]').forEach(btn => btn.classList.toggle('active', btn.dataset.val === val));
