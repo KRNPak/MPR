@@ -3,7 +3,7 @@
 // ========================================================================
 let isDarkMode = false;
 let availableYears = ['FY2025', 'FY2026', 'FY2027'];
-let selectedYear = availableYears[availableYears.length - 1]; // e.g. FY2026
+let selectedYear = availableYears[availableYears.length - 1];
 let selectedDepartment = 'All Departments';
 let selectedDonor = 'All Donors';
 
@@ -62,23 +62,21 @@ async function unlockDashboard() {
 // ========================================================================
 // 2. BULLETPROOF DATA ENGINE
 // ========================================================================
+// Quote-aware parser to prevent commas in large numbers (e.g., "290,000") from splitting columns
 function parseCSV(text) {
     let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
     if (lines.length < 2) return [];
     
-    // Updated header parsing to respect quotes
     const headers = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/"/g, '').trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
     const objects = [];
     
     for(let i = 1; i < lines.length; i++) {
-        // Updated value parsing to respect quotes
         let vals = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/"/g, '').trim());
         let obj = { _raw: {} };
+        let rawHeaders = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
         
         headers.forEach((h, idx) => { 
             obj[h] = vals[idx] || ''; 
-            // Also need to use the quote-aware split for the raw header mapping
-            let rawHeaders = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             obj._raw[rawHeaders[idx] ? rawHeaders[idx].trim() : ''] = vals[idx] || ''; 
         });
         objects.push(obj);
@@ -92,12 +90,29 @@ function getSafeNum(val) {
     return isNaN(num) ? 0 : num; 
 }
 
-// Map columns strictly ONCE to prevent double-counting Base Salaries
+// Resilient Date Parser (Handles Excel serials like 46204, or Strings like 'July-26')
+function getStandardMonth(mthRaw) {
+    let m = String(mthRaw).trim();
+    if (!m) return '';
+    
+    // Excel Serial Number detection
+    if (/^\d{4,5}$/.test(m)) {
+        let d = new Date((parseInt(m) - 25569) * 86400 * 1000);
+        return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()];
+    }
+    
+    // Text extraction
+    let months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    for (let i = 0; i < months.length; i++) {
+        if (m.toLowerCase().includes(months[i].toLowerCase())) return months[i];
+    }
+    return m.substring(0,3).charAt(0).toUpperCase() + m.substring(1,3).toLowerCase();
+}
+
 function createHeaderMap(rawKeys) {
     let map = {};
     let lowerKeys = rawKeys.map(k => ({ orig: k, low: k.toLowerCase().trim() }));
     
-    // Find the ultimate final base salary column to avoid duplicates
     let baseMatch = lowerKeys.find(k => k.low.includes('base salary after inflation')) || 
                     lowerKeys.find(k => k.low.includes('updated base')) || 
                     lowerKeys.find(k => k.low === 'base salary') ||
@@ -106,9 +121,12 @@ function createHeaderMap(rawKeys) {
     if (baseMatch) map[baseMatch.orig] = 'Base Salary';
 
     lowerKeys.forEach(k => {
-        if (baseMatch && k.orig === baseMatch.orig) return; // Already mapped securely
+        if (baseMatch && k.orig === baseMatch.orig) return; 
         
         let lower = k.low;
+        // Explicitly block calculated totals and deductions from mapping to prevent duplicates
+        if (lower.includes('gross') || lower.includes('net') || lower.includes('payable') || lower.includes('tax') || lower.includes('advance') || lower.includes('deduction') || lower.includes('other')) return;
+        
         if (lower.includes('car') || lower.includes('cma') || lower.includes('monetarization')) map[k.orig] = 'Car Monetization';
         else if (lower.includes('cola')) map[k.orig] = 'COLA';
         else if (lower.includes('child care')) map[k.orig] = 'Child Care';
@@ -159,42 +177,46 @@ function buildDataEngine(masterRows, budgetRows, actualRows) {
         if (isActual) entry.components[compName].a += val; else entry.components[compName].b += val;
     };
 
-    // Actuals Mapping
+    // Actuals Mapping (WITH Excel Date Parsing & Absolute Values)
     if (actualRows.length > 0) {
         let actualMap = createHeaderMap(Object.keys(actualRows[0]._raw));
         actualRows.forEach(r => {
             let code = String(r['positioncode'] || '').trim().toUpperCase();
-            let mth = String(r['month'] || '').substring(0,3);
-            if (!mth || !positionMaster[code]) return;
-            mth = mth.charAt(0).toUpperCase() + mth.slice(1).toLowerCase(); 
+            if (!code || !positionMaster[code]) return;
+            
+            let mth = getStandardMonth(r['month']);
+            if (!mth || !fiscalMonths.includes(mth)) return;
+            
             availableMonthsSet.add(mth);
             let entry = ensureLedgerEntry(code, mth);
             
             Object.keys(r._raw).forEach(rawK => {
                 let compName = actualMap[rawK];
-                if (compName) addComponentVal(entry, compName, true, getSafeNum(r._raw[rawK]));
+                if (compName) {
+                    // Force absolute value to prevent PF/EOBI deductions from negatively summing
+                    let val = Math.abs(getSafeNum(r._raw[rawK])); 
+                    addComponentVal(entry, compName, true, val);
+                }
             });
         });
     }
 
-    // Budget Mapping (Strictly handling Date constraints & Annualized values)
     if (budgetRows.length > 0) {
         let budgetMap = createHeaderMap(Object.keys(budgetRows[0]._raw));
-        let fyStartYear = parseInt(selectedYear.replace('FY', '')) - 1; // FY2026 -> 2025
-        let fyStartDate = new Date(fyStartYear, 6, 1); // July 1st of the starting year
+        let fyStartYear = parseInt(selectedYear.replace('FY', '')) - 1; 
+        let fyStartDate = new Date(fyStartYear, 6, 1); 
         
         budgetRows.forEach(r => {
             let code = String(r['positioncode'] || '').trim().toUpperCase();
             if (!positionMaster[code]) return;
             
-            // Real Date parsing for mid-year vs historical hires
             let joinStr = r['joiningdate'] || r['joiningdatenewagreementstartdate'] || '';
             let joinDate = new Date(joinStr);
             let startIdx = 0;
             
             if (!isNaN(joinDate.getTime()) && joinDate > fyStartDate) {
-                let m = joinDate.getMonth(); // 0-11
-                startIdx = m >= 6 ? m - 6 : m + 6; // Convert to fiscal index where July=0
+                let m = joinDate.getMonth(); 
+                startIdx = m >= 6 ? m - 6 : m + 6; 
             }
             
             let bMonths = parseInt(r['budgetedmonths']) || 12; if (bMonths <= 0) bMonths = 12;
@@ -204,7 +226,6 @@ function buildDataEngine(masterRows, budgetRows, actualRows) {
                 let compName = budgetMap[rawK];
                 if (compName) {
                     let val = getSafeNum(r._raw[rawK]);
-                    // Convert annualized columns to monthly run-rate explicitly
                     if (['LFA', 'Gratuity', 'Health Insurance', 'Life Insurance', 'Learning & Development'].includes(compName)) {
                         val = val / bMonths; 
                     }
@@ -212,7 +233,6 @@ function buildDataEngine(masterRows, budgetRows, actualRows) {
                 }
             });
             
-            // Assign budget only to the active months for this specific FY
             for (let i = startIdx; i < startIdx + bMonths; i++) {
                 if (i < 12) {
                     let entry = ensureLedgerEntry(code, fiscalMonths[i]);
