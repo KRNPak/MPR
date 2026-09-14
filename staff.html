@@ -18,33 +18,40 @@
         .auth-btn:hover { background-color: var(--krn-light-blue); }
         #authError { color: var(--krn-orange); font-size: 0.75rem; margin-top: 10px; display: none; }
         
-        /* Layout Structure */
-        .hr-dashboard-layout { display: flex; gap: 20px; padding: 20px; max-width: 1600px; margin: 0 auto; align-items: flex-start; }
+        /* Layout Structure - Perfectly Flush */
+        .hr-dashboard-wrapper { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .hr-dashboard-layout { display: flex; gap: 20px; align-items: flex-start; margin-top: 20px; }
         
-        /* Left Sidebar Styles */
-        .sidebar { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
+        /* Left Sidebar Styles - Widened */
+        .sidebar { width: 420px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
         .sidebar-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.85rem; font-weight: bold; color: var(--text-secondary); }
         .back-btn { padding: 4px 10px; border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-secondary); text-decoration: none; font-size: 0.7rem; display: flex; align-items: center; gap: 5px; }
-        .back-btn:hover { background: var(--border-color); }
         
-        /* Sidebar Toggles */
         .toggle-row { display: flex; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
-        .toggle-btn { flex: 1; background: transparent; border: none; padding: 8px 0; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; transition: 0.2s; border-right: 1px solid var(--border-color); }
+        .toggle-btn { flex: 1; background: transparent; border: none; padding: 8px 0; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; transition: 0.2s; border-right: 1px solid var(--border-color); font-weight: 500;}
         .toggle-btn:last-child { border-right: none; }
         .toggle-btn.active { background: var(--krn-blue); color: #fff; font-weight: bold; }
         .sidebar-select { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; background: transparent; color: var(--text-primary); font-size: 0.8rem; margin-bottom: 5px; }
         
-        /* Sidebar KPIs */
-        .sidebar-kpi { text-align: center; margin-bottom: 15px; }
-        .sidebar-kpi-val { font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; color: var(--krn-blue); line-height: 1; letter-spacing: 1px; }
-        .sidebar-kpi-lbl { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-top: 2px; }
-        .sidebar-kpi-unit { font-size: 0.9rem; font-weight: bold; color: var(--krn-light-blue); vertical-align: top; margin-right: 2px; }
+        /* Side-by-Side KPIs */
+        .kpi-side-by-side { display: flex; justify-content: center; align-items: center; padding: 10px 0; }
+        .kpi-block { flex: 1; text-align: center; }
+        .kpi-block.left { border-right: 1px solid var(--border-color); }
+        .kpi-val-row { display: flex; justify-content: center; align-items: baseline; gap: 5px; }
+        .sidebar-kpi-val { font-family: 'Bebas Neue', sans-serif; font-size: 3.2rem; color: var(--krn-blue); line-height: 1; letter-spacing: 1px; }
+        .sidebar-kpi-unit { font-size: 1rem; font-weight: bold; color: var(--krn-light-blue); }
+        .sidebar-kpi-lbl { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-top: 5px; font-weight: 500;}
         
         .divider { height: 1px; background: var(--border-color); margin: 20px 0; width: 100%; }
         
         /* Main Content */
         .main-content { flex-grow: 1; display: flex; flex-direction: column; gap: 15px; overflow: hidden; }
+        
+        /* View Toggle */
+        .view-toggle { display: flex; background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
+        .view-toggle-btn { padding: 6px 15px; border: none; background: transparent; color: var(--text-secondary); font-size: 0.75rem; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .view-toggle-btn.active { background: var(--krn-blue); color: #fff; }
     </style>
 </head>
 <body class="view-summary light-mode"> 
@@ -72,104 +79,116 @@
     </div>
 </div>
 
-<!-- TOP GLOBAL HEADER -->
-<div class="header-banner" style="margin: 20px 20px 0 20px; border-radius: 8px;">
-    <div class="header-left">
-        <div class="header-logo"><a href="index.html" title="Back to Main Dashboard"><img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz Pakistan"></a></div>
-        <div class="header-title-group">
-            <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; margin: 0; color: var(--krn-blue); line-height: 1.1;">Payroll & HR Diagnostics</h1>
-            <div class="sub-title" style="margin-top: 2px; display: flex; gap: 8px; align-items: center;">
-                <select id="yearDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onGlobalFilterChange()"></select>
-                <span style="color: var(--border-color); font-size: 0.9rem;">|</span>
-                <select id="deptDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onGlobalFilterChange()"><option value="All Departments">All Departments</option></select>
-                <span style="color: var(--border-color); font-size: 0.9rem;">|</span>
-                <select id="donorDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onGlobalFilterChange()"><option value="All Donors">All Donors</option></select>
+<div class="hr-dashboard-wrapper">
+    <!-- TOP GLOBAL HEADER -->
+    <div class="header-banner" style="border-radius: 8px;">
+        <div class="header-left">
+            <div class="header-logo"><a href="index.html"><img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz"></a></div>
+            <div class="header-title-group">
+                <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; margin: 0; color: var(--krn-blue); line-height: 1.1;">Payroll & HR Diagnostics</h1>
+                <div class="sub-title" style="margin-top: 2px; display: flex; gap: 8px; align-items: center;">
+                    <select id="yearDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onGlobalFilterChange()"></select>
+                    <span style="color: var(--border-color); font-size: 0.9rem;">|</span>
+                    <select id="deptDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onGlobalFilterChange()"><option value="All Departments">All Departments</option></select>
+                    <span style="color: var(--border-color); font-size: 0.9rem;">|</span>
+                    <select id="donorDropdown" class="select-mini" style="font-size: 0.95rem; border:none; background:transparent; font-weight:bold; cursor:pointer; color:var(--text-secondary);" onchange="onGlobalFilterChange()"><option value="All Donors">All Donors</option></select>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="toggles-container" style="padding-right: 20px;">
-        <div class="theme-toggle" onclick="toggleDarkMode()">
-            <span id="themeLabel">Light</span>
-            <div class="switch-track" id="themeTrack"><div class="switch-thumb"></div></div>
-        </div>
-    </div>
-</div>
-
-<div class="hr-dashboard-layout">
-    <!-- LEFT SIDEBAR -->
-    <div class="sidebar">
-        <div class="sidebar-card">
-            <div class="sidebar-header">
-                View & Granularity
-                <a href="index.html" class="back-btn">&larr; Back</a>
-            </div>
-            
-            <div class="toggle-row">
-                <button class="toggle-btn active" data-group="granularity" data-val="Monthly" onclick="setGranularity('Monthly')">Monthly</button>
-                <button class="toggle-btn" data-group="granularity" data-val="Quarterly" onclick="setGranularity('Quarterly')">Quarterly</button>
-                <button class="toggle-btn" data-group="granularity" data-val="Yearly" onclick="setGranularity('Yearly')">Yearly</button>
-            </div>
-            
-            <div class="toggle-row" id="periodToggleRow">
-                <button class="toggle-btn" data-group="period" data-val="PTD" onclick="setPeriod('PTD')">Period</button>
-                <button class="toggle-btn active" data-group="period" data-val="QTD" onclick="setPeriod('QTD')">QTD</button>
-                <button class="toggle-btn" data-group="period" data-val="YTD" onclick="setPeriod('YTD')">YTD</button>
-            </div>
-            
-            <select id="monthDropdown" class="sidebar-select" onchange="onTimeFilterChange()"></select>
-        </div>
-        
-        <div class="sidebar-card">
-            <div class="sidebar-kpi">
-                <div class="sidebar-kpi-val" id="leftKpiBudget"><span class="sidebar-kpi-unit">M PKR</span>0.0</div>
-                <div class="sidebar-kpi-lbl" id="leftLblBudget">QTD Budget</div>
-            </div>
-            <div class="sidebar-kpi">
-                <div class="sidebar-kpi-val" id="leftKpiActual"><span class="sidebar-kpi-unit">M PKR</span>0.0</div>
-                <div class="sidebar-kpi-lbl" id="leftLblActual">QTD Actual</div>
-            </div>
-            
-            <div class="divider"></div>
-            
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: bold; margin-bottom: 5px;">Spent (Donor)</div>
-                <div id="spentDonutContainer" style="width: 120px; height: 120px; margin: 0 auto;"></div>
-            </div>
-            
-            <div style="text-align: center;">
-                <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: bold; margin-bottom: 5px;">Budget (Donor)</div>
-                <div id="budgetDonutContainer" style="width: 120px; height: 120px; margin: 0 auto;"></div>
-            </div>
-            
-            <div class="divider"></div>
-            
-            <div class="sidebar-kpi" style="margin-bottom: 0;">
-                <div class="sidebar-kpi-lbl" style="margin-bottom: 5px;">Active Headcount</div>
-                <div class="sidebar-kpi-val" id="headcountKpi" style="font-size: 2rem;">0/0</div>
+        <div class="toggles-container" style="padding-right: 20px;">
+            <div class="theme-toggle" onclick="toggleDarkMode()">
+                <span id="themeLabel">Light</span>
+                <div class="switch-track" id="themeTrack"><div class="switch-thumb"></div></div>
             </div>
         </div>
     </div>
 
-    <!-- MAIN CONTENT (Component Table) -->
-    <div class="main-content">
-        <div class="summary-table-container" style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); padding: 15px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <div style="font-size: 0.7rem; font-weight: bold; color: var(--text-secondary); text-transform: uppercase;">Payroll Components (Click row for Drill-Down)</div>
-                <div style="font-size: 0.7rem; font-weight: bold; color: var(--krn-orange);">Total Variance: <span id="mainTableVariance">0.0</span></div>
+    <div class="hr-dashboard-layout">
+        <!-- LEFT SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    View & Granularity
+                    <a href="index.html" class="back-btn">&larr; Back</a>
+                </div>
+                
+                <div class="toggle-row">
+                    <button class="toggle-btn active" data-group="granularity" data-val="Monthly" onclick="setGranularity('Monthly')">Monthly</button>
+                    <button class="toggle-btn" data-group="granularity" data-val="Quarterly" onclick="setGranularity('Quarterly')">Quarterly</button>
+                    <button class="toggle-btn" data-group="granularity" data-val="Yearly" onclick="setGranularity('Yearly')">Yearly</button>
+                </div>
+                
+                <div class="toggle-row" id="periodToggleRow">
+                    <button class="toggle-btn" data-group="period" data-val="PTD" onclick="setPeriod('PTD')">Period</button>
+                    <button class="toggle-btn active" data-group="period" data-val="QTD" onclick="setPeriod('QTD')">QTD</button>
+                    <button class="toggle-btn" data-group="period" data-val="YTD" onclick="setPeriod('YTD')">YTD</button>
+                </div>
+                
+                <select id="monthDropdown" class="sidebar-select" onchange="onTimeFilterChange()"></select>
             </div>
-            <div class="table-wrapper">
-                <table class="detail-table" style="margin-top: 0;">
-                    <thead>
-                        <tr>
-                            <th>Component</th>
-                            <th id="thBudgetLbl">Budget</th>
-                            <th id="thActualLbl">Actual</th>
-                            <th>Variance</th>
-                            <th>% Spent</th>
-                        </tr>
-                    </thead>
-                    <tbody id="componentTableBody"></tbody>
-                </table>
+            
+            <div class="sidebar-card">
+                <!-- Side-by-Side KPIs -->
+                <div class="kpi-side-by-side">
+                    <div class="kpi-block left">
+                        <div class="kpi-val-row">
+                            <span class="sidebar-kpi-unit">M PKR</span>
+                            <span class="sidebar-kpi-val" id="leftKpiBudget">0.0</span>
+                        </div>
+                        <div class="sidebar-kpi-lbl" id="leftLblBudget">QTD BUDGET</div>
+                    </div>
+                    <div class="kpi-block">
+                        <div class="kpi-val-row">
+                            <span class="sidebar-kpi-unit">M PKR</span>
+                            <span class="sidebar-kpi-val" id="leftKpiActual">0.0</span>
+                        </div>
+                        <div class="sidebar-kpi-lbl" id="leftLblActual">QTD ACTUAL</div>
+                    </div>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <div style="display: flex; justify-content: space-around;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: bold; margin-bottom: 5px;">Spent (Donor)</div>
+                        <div id="spentDonutContainer" style="width: 120px; height: 120px; margin: 0 auto;"></div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: bold; margin-bottom: 5px;">Budget (Donor)</div>
+                        <div id="budgetDonutContainer" style="width: 120px; height: 120px; margin: 0 auto;"></div>
+                    </div>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <div style="text-align: center;">
+                    <div class="sidebar-kpi-lbl" style="margin-bottom: 5px;">Active Headcount</div>
+                    <div class="sidebar-kpi-val" id="headcountKpi" style="font-size: 2rem;">0/0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT (Component Table & Employee View) -->
+        <div class="main-content">
+            <div class="summary-table-container" style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); padding: 15px;">
+                
+                <!-- Table Header & View Toggle -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div class="view-toggle">
+                        <button id="btnViewComp" class="view-toggle-btn active" onclick="setTableView('Component')">Component View</button>
+                        <button id="btnViewEmp" class="view-toggle-btn" onclick="setTableView('Employee')">Employee CTC View</button>
+                    </div>
+                    <div style="font-size: 0.7rem; font-weight: bold; color: var(--krn-orange);">Total Variance: <span id="mainTableVariance">0.0</span></div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="detail-table" style="margin-top: 0;">
+                        <thead id="mainTableHeader">
+                            <!-- Injected by JS based on Toggle -->
+                        </thead>
+                        <tbody id="componentTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -184,8 +203,7 @@
                 <span id="modalStaffSubtitle" style="font-size: 0.62rem; color: var(--text-secondary);"></span>
             </div>
             <div class="modal-controls" style="display: flex; gap: 10px; align-items: center;">
-                <input type="text" id="modalSearch" class="search-box" placeholder="Search Position or Name..." onkeyup="filterStaffModal()">
-                <button onclick="exportModalCSV()" style="background-color: transparent; color: var(--krn-blue); border: 1px solid var(--krn-blue); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">Export CSV</button>
+                <input type="text" id="modalSearch" class="search-box" placeholder="Search..." onkeyup="filterStaffModal()">
                 <span class="close-btn" onclick="closeModal()">&times;</span>
             </div>
         </div>
