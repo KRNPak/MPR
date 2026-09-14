@@ -436,7 +436,17 @@ function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
         `;
     });
 }
-
+function renderDonorDonut(containerId, donorObj) {
+    if (Object.keys(donorObj).length === 0) { 
+        document.getElementById(containerId).innerHTML = '<div style="font-size:0.7rem; color:var(--text-secondary); text-align:center; margin-top:40px;">N/A</div>'; 
+        return; 
+    }
+    let colors = ['var(--krn-blue)', '#14b8a6', 'var(--krn-orange)', '#8b5cf6', 'var(--krn-light-blue)'];
+    let items = Object.keys(donorObj).sort((a,b) => donorObj[b] - donorObj[a]).map((d, i) => { 
+        return { label: d, value: donorObj[d], color: colors[i % colors.length] }; 
+    });
+    renderSvgDonut(containerId, items, null, null, true);
+}
 // ========================================================================
 // 4. MODAL & SVG DRILL DOWN LOGIC
 // ========================================================================
