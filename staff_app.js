@@ -61,7 +61,7 @@ async function unlockDashboard() {
 }
 
 // ========================================================================
-// 2. BULLETPROOF DATA ENGINE
+// 2. DATA ENGINE
 // ========================================================================
 function parseCSV(text) {
     let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -111,14 +111,11 @@ function createHeaderMap(rawKeys) {
 
     lowerKeys.forEach(k => {
         if (baseMatch && k.orig === baseMatch.orig) return; 
-        
         let lower = k.low;
         if (lower.includes('gross') || lower.includes('net') || lower.includes('payable') || lower.includes('tax') || lower.includes('advance') || lower.includes('deduction') || lower.includes('other')) return;
         
-        // BUG FIX: Strictly isolate Child Care before looking for 'car'
         if (lower.includes('child care')) map[k.orig] = 'Child Care';
         else if (lower.includes('car monet') || lower.includes('cma')) map[k.orig] = 'Car Monetization';
-        
         else if (lower.includes('cola')) map[k.orig] = 'COLA';
         else if (lower.includes('provident') || lower === 'pf') map[k.orig] = 'Provident Fund';
         else if (lower.includes('eobi')) map[k.orig] = 'EOBI';
@@ -236,7 +233,7 @@ function buildDataEngine(masterRows, budgetRows, actualRows) {
 }
 
 // ========================================================================
-// 3. UI RENDERING & TIME AGGREGATION
+// 3. UI RENDERING & FILTERING
 // ========================================================================
 function populateFilters() {
     const ys = document.getElementById('yearDropdown'); ys.innerHTML = '';
@@ -276,7 +273,12 @@ function setTableView(view) {
     tableView = view;
     document.getElementById('btnViewComp').classList.toggle('active', view === 'Component');
     document.getElementById('btnViewEmp').classList.toggle('active', view === 'Employee');
+    document.getElementById('mainTableSearch').value = ''; // Reset search on toggle
     updateStaffDashboard();
+}
+
+function onMainTableSearch() {
+    updateStaffDashboard(); // Re-render table with search term applied
 }
 
 function updateStaffDashboard() {
@@ -301,12 +303,14 @@ function updateStaffDashboard() {
 
     let totBud = 0, totAct = 0;
     let compSummary = {};
-    let empSummary = {}; // Used for CTC View
+    let empSummary = {}; 
     
     let activeHeads = new Set(), budHeads = new Set();
     let donorSpent = {}; let donorBudget = {}; 
 
-    const elapsedMonths = endIdx + 1; // Used for Option A Forecasting
+    // Forecast requires knowing how many months of actuals have elapsed
+    const elapsedMonths = endIdx + 1; 
+    const searchTerm = document.getElementById('mainTableSearch').value.toLowerCase();
 
     unifiedLedger.forEach(row => {
         let master = positionMaster[row.code];
@@ -314,8 +318,7 @@ function updateStaffDashboard() {
         let pct = selectedDonor === 'All Donors' ? 1.0 : (master.donorAllocations[selectedDonor] || 0);
         if (pct === 0) return;
 
-        // Initialize employee object if needed
-        if (!empSummary[row.code]) empSummary[row.code] = { name: master.name, periodAct: 0, ytdAct: 0, fyBud: 0 };
+        if (!empSummary[row.code]) empSummary[row.code] = { code: row.code, name: master.name, periodAct: 0, ytdAct: 0, fyBud: 0 };
 
         let rowTotB = 0, rowTotA = 0;
         let isActiveMonth = activeMonths.includes(row.month);
@@ -325,7 +328,6 @@ function updateStaffDashboard() {
             let b = row.components[cName].b * pct;
             let a = row.components[cName].a * pct;
             
-            // FY Totals for Employee
             empSummary[row.code].fyBud += b;
             if (isYtdMonth) empSummary[row.code].ytdAct += a;
             
@@ -353,27 +355,21 @@ function updateStaffDashboard() {
 
     document.getElementById('headcountKpi').innerText = `${activeHeads.size}/${budHeads.size}`;
     
-    // Formatting left KPIs to exact image spec
     document.getElementById('leftKpiBudget').innerText = (totBud >= 1000000) ? (totBud/1000000).toFixed(1) : (totBud/1000).toFixed(1);
     document.getElementById('leftKpiActual').innerText = (totAct >= 1000000) ? (totAct/1000000).toFixed(1) : (totAct/1000).toFixed(1);
-    
-    // Switch unit based on millions vs thousands
-    document.querySelectorAll('#leftKpiBudget').forEach(el => el.previousElementSibling.innerText = (totBud >= 1000000) ? 'M PKR' : 'K PKR');
-    document.querySelectorAll('#leftKpiActual').forEach(el => el.previousElementSibling.innerText = (totAct >= 1000000) ? 'M PKR' : 'K PKR');
+    document.querySelectorAll('#leftKpiBudget').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totBud >= 1000000) ? 'M PKR' : 'K PKR');
+    document.querySelectorAll('#leftKpiActual').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totAct >= 1000000) ? 'M PKR' : 'K PKR');
 
     document.getElementById('mainTableVariance').innerText = formatPKRShort(Math.abs(totBud - totAct));
 
-    if (tableView === 'Component') {
-        renderComponentTable(compSummary);
-    } else {
-        renderEmployeeTable(empSummary, elapsedMonths);
-    }
+    if (tableView === 'Component') renderComponentTable(compSummary, searchTerm);
+    else renderEmployeeTable(empSummary, elapsedMonths, searchTerm);
 
     renderDonorDonut('spentDonutContainer', donorSpent); 
     renderDonorDonut('budgetDonutContainer', donorBudget); 
 }
 
-function renderComponentTable(compSummary) {
+function renderComponentTable(compSummary, searchTerm) {
     const thead = document.getElementById('mainTableHeader');
     thead.innerHTML = `<tr><th>Component</th><th>${timeLabel} Budget</th><th>${timeLabel} Actual</th><th>Variance</th><th>% Spent</th></tr>`;
     
@@ -384,6 +380,8 @@ function renderComponentTable(compSummary) {
     });
 
     sortedComps.forEach(c => {
+        if (searchTerm && !c.toLowerCase().includes(searchTerm)) return;
+        
         let item = compSummary[c]; if (item.b === 0 && item.a === 0) return;
         let varNum = item.b - item.a;
         let pctDisplay = item.b > 0 ? `${Math.round((item.a / item.b) * 100)}%` : (item.a > 0 ? 'N/A' : '0%');
@@ -401,27 +399,34 @@ function renderComponentTable(compSummary) {
     });
 }
 
-function renderEmployeeTable(empSummary, elapsedMonths) {
+function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
     const thead = document.getElementById('mainTableHeader');
     thead.innerHTML = `<tr><th>Position & Name</th><th>${timeLabel} Actual</th><th>FY Forecast (Run-Rate)</th><th>FY Budget</th><th>FY Variance</th></tr>`;
     
     const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
     
-    let sortedEmps = Object.keys(empSummary).sort((x, y) => empSummary[y].periodAct - empSummary[x].periodAct);
+    // Sort strictly by Variance (Most negative / Highest overspend first)
+    let sortedEmps = Object.keys(empSummary).sort((x, y) => {
+        let eX = empSummary[x]; let eY = empSummary[y];
+        let vX = eX.fyBud - ((eX.ytdAct / elapsedMonths) * 12);
+        let vY = eY.fyBud - ((eY.ytdAct / elapsedMonths) * 12);
+        return vX - vY; 
+    });
 
     sortedEmps.forEach(code => {
         let e = empSummary[code]; 
         if (e.periodAct === 0 && e.fyBud === 0) return;
         
-        // Option A: Annualized Forecast
+        if (searchTerm && !code.toLowerCase().includes(searchTerm) && !e.name.toLowerCase().includes(searchTerm)) return;
+        
         let forecast = (e.ytdAct / elapsedMonths) * 12;
         let varNum = e.fyBud - forecast;
         
         tbody.innerHTML += `
             <tr class="summary-table-row">
                 <td>
-                    <div style="font-weight: bold; color: var(--krn-blue);">${code}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary);">${e.name}</div>
+                    <div style="font-weight: bold; color: var(--krn-blue); font-size: 0.8rem;">${code}</div>
+                    <div style="font-size: 0.95rem; font-weight: 500; color: var(--text-primary); margin-top: 3px;">${e.name}</div>
                 </td>
                 <td style="font-variant-numeric: tabular-nums;">${formatPKRInline(e.periodAct)}</td>
                 <td style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight: 500;">${formatPKRInline(forecast)}</td>
@@ -432,19 +437,11 @@ function renderEmployeeTable(empSummary, elapsedMonths) {
     });
 }
 
-function renderDonorDonut(containerId, donorObj) {
-    if (Object.keys(donorObj).length === 0) { document.getElementById(containerId).innerHTML = '<div style="font-size:0.7rem; color:var(--text-secondary); text-align:center; margin-top:40px;">N/A</div>'; return; }
-    let colors = ['var(--krn-blue)', '#14b8a6', 'var(--krn-orange)', '#8b5cf6', 'var(--krn-light-blue)'];
-    let items = Object.keys(donorObj).sort((a,b) => donorObj[b] - donorObj[a]).map((d, i) => { return { label: d, value: donorObj[d], color: colors[i % colors.length] }; });
-    renderSvgDonut(containerId, items, null, null, true);
-}
-
 // ========================================================================
 // 4. MODAL & SVG DRILL DOWN LOGIC
 // ========================================================================
 function openComponentModal(compName) {
-    if (tableView === 'Employee') return; // Disable click if in employee view
-    
+    if (tableView === 'Employee') return; 
     activeModalComponent = compName;
     document.getElementById('modalStaffTitle').innerText = `${compName} Breakup`;
     document.getElementById('modalStaffSubtitle').innerText = `Period: ${timeLabel} | Dept: ${selectedDepartment}`;
@@ -511,21 +508,27 @@ function showTooltip(e, label, value, pct) {
 function moveTooltip(e) { if(tooltip) { tooltip.style.left = (e.clientX + 15) + 'px'; tooltip.style.top = (e.clientY + 15) + 'px'; } }
 function hideTooltip() { if(tooltip) tooltip.classList.remove('visible'); }
 
+// THICK SVG DONUT RENDERER
 function renderSvgDonut(containerId, items, centerBadge = null, bottomLabel = null, showLegend = true) {
     const container = document.getElementById(containerId); if (!container) return;
     const total = items.reduce((acc, it) => acc + (parseFloat(it.value) || 0), 0);
-    const radius = 42; const C = 2 * Math.PI * radius; let cumulativePercent = 0;
-    let circlesHtml = `<circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--border-color)" />`; let legendHtml = '';
+    const radius = 38; // Reduced slightly to leave room for the ultra-thick stroke
+    const C = 2 * Math.PI * radius; let cumulativePercent = 0;
+    const strokeWidth = 14; // Massive thickness increase
+    
+    // Faint base circle for empty background
+    let circlesHtml = `<circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--border-color)" stroke-width="${strokeWidth}" opacity="0.3" />`; 
+    let legendHtml = '';
     
     if (total > 0) {
         items.forEach((it) => {
             const fraction = it.value / total; const sliceLen = fraction * C; const offset = cumulativePercent * C; cumulativePercent += fraction;
-            circlesHtml += `<circle class="donut-slice-${containerId}" cx="50" cy="50" r="${radius}" fill="none" stroke="${it.color}" stroke-dasharray="0 ${C}" stroke-dashoffset="-${offset}" data-target-len="${sliceLen}" onmouseenter="showTooltip(event, '${it.label.replace(/'/g, "\\'")}', ${it.value}, '${Math.round(fraction*100)}')" onmousemove="moveTooltip(event)" onmouseleave="hideTooltip()" style="transform: rotate(-90deg); transform-origin: 50% 50%; pointer-events: stroke; transition: stroke-dasharray 1.4s cubic-bezier(0.16, 1, 0.3, 1), stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);" />`;
-            if (showLegend) legendHtml += `<div class="donut-legend-item"><div class="donut-legend-item-left"><div class="donut-legend-dot" style="background-color: ${it.color};"></div><span style="white-space:nowrap; font-size:0.7rem; font-family: Calibri, sans-serif;">${it.label}</span></div><strong style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-size:0.7rem;">${Math.round(fraction * 100)}%</strong></div>`;
+            circlesHtml += `<circle class="donut-slice-${containerId}" cx="50" cy="50" r="${radius}" fill="none" stroke="${it.color}" stroke-width="${strokeWidth}" stroke-dasharray="0 ${C}" stroke-dashoffset="-${offset}" data-target-len="${sliceLen}" onmouseenter="showTooltip(event, '${it.label.replace(/'/g, "\\'")}', ${it.value}, '${Math.round(fraction*100)}')" onmousemove="moveTooltip(event)" onmouseleave="hideTooltip()" style="transform: rotate(-90deg); transform-origin: 50% 50%; pointer-events: stroke; transition: stroke-dasharray 1.4s cubic-bezier(0.16, 1, 0.3, 1), stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);" />`;
+            if (showLegend) legendHtml += `<div class="donut-legend-item"><div class="donut-legend-item-left"><div class="donut-legend-dot" style="background-color: ${it.color};"></div><span style="white-space:nowrap; font-size:0.75rem; font-family: Calibri, sans-serif;">${it.label}</span></div><strong style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-size:0.75rem;">${Math.round(fraction * 100)}%</strong></div>`;
         });
     }
     
-    container.innerHTML = `<div class="svg-donut-wrapper" style="transform: scale(0.85); margin-top:-10px;"><div class="donut-chart-box"><svg viewBox="0 0 100 100" class="donut-svg">${circlesHtml}</svg></div>${showLegend && legendHtml ? `<div class="donut-legend-list">${legendHtml}</div>` : ''}</div>`;
+    container.innerHTML = `<div class="svg-donut-wrapper" style="margin-top:-10px;"><div class="donut-chart-box"><svg viewBox="0 0 100 100" class="donut-svg">${circlesHtml}</svg></div>${showLegend && legendHtml ? `<div class="donut-legend-list">${legendHtml}</div>` : ''}</div>`;
     requestAnimationFrame(() => requestAnimationFrame(() => { container.querySelectorAll(`.donut-slice-${containerId}`).forEach(s => { const tl = parseFloat(s.getAttribute('data-target-len')) || 0; s.style.strokeDasharray = `${tl} ${C - tl}`; }); }));
 }
 applyTheme();
