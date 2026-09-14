@@ -387,7 +387,9 @@ function updateStaffDashboard() {
     document.getElementById('leftKpiActual').innerText = (totAct >= 1000000) ? (totAct/1000000).toFixed(1) : (totAct/1000).toFixed(1);
     document.querySelectorAll('#leftKpiBudget').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totBud >= 1000000) ? 'M PKR' : 'K PKR');
     document.querySelectorAll('#leftKpiActual').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totAct >= 1000000) ? 'M PKR' : 'K PKR');
-    document.getElementById('mainTableVariance').innerText = formatPKRShort(Math.abs(totBud - totAct));
+    let netVar = totBud - totAct;
+    document.getElementById('mainTableVariance').innerText = formatPKRShort(Math.abs(netVar));
+    document.getElementById('mainTableVariance').parentElement.style.color = netVar >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)';
 
     if (tableView === 'Component') renderComponentTable(compSummary, searchTerm);
     else renderEmployeeTable(empSummary, elapsedMonths, searchTerm);
@@ -563,7 +565,10 @@ function renderDonorDonut(containerId, donorObj) {
 function renderSvgDonut(containerId, items, centerBadge = null, bottomLabel = null, showLegend = true) {
     const container = document.getElementById(containerId); if (!container) return;
     const total = items.reduce((acc, it) => acc + (parseFloat(it.value) || 0), 0);
-    const radius = 38; const C = 2 * Math.PI * radius; let cumulativePercent = 0; const strokeWidth = 14; 
+    const radius = 33; // Reduced slightly to prevent the thick stroke from clipping the edges
+    const C = 2 * Math.PI * radius; 
+    let cumulativePercent = 0; 
+    const strokeWidth = 22; // Increased from 14 for a much thicker donut
     let circlesHtml = `<circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--border-color)" stroke-width="${strokeWidth}" opacity="0.3" />`; let legendHtml = '';
     
     if (total > 0) {
