@@ -18,15 +18,17 @@
         .auth-btn:hover { background-color: var(--krn-light-blue); }
         #authError { color: var(--krn-orange); font-size: 0.75rem; margin-top: 10px; display: none; }
         
-        /* Layout Structure - Perfectly Flush */
-        .hr-dashboard-wrapper { max-width: 1600px; margin: 0 auto; padding: 20px; }
-        .hr-dashboard-layout { display: flex; gap: 20px; align-items: flex-start; margin-top: 20px; }
+        /* Layout Structure - 100% Full Width */
+        .hr-dashboard-wrapper { width: 100%; max-width: 100%; padding: 15px 30px; box-sizing: border-box; }
+        .hr-dashboard-layout { display: flex; gap: 20px; align-items: flex-start; margin-top: 15px; }
         
         /* Left Sidebar Styles - Widened */
-        .sidebar { width: 420px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
+        .sidebar { width: 440px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
         .sidebar-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.85rem; font-weight: bold; color: var(--text-secondary); }
-        .back-btn { padding: 4px 10px; border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-secondary); text-decoration: none; font-size: 0.7rem; display: flex; align-items: center; gap: 5px; }
+        
+        /* Fixed Header & Small Back Button */
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.85rem; font-weight: bold; color: var(--text-secondary); white-space: nowrap; }
+        .back-btn { padding: 3px 8px; border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-secondary); text-decoration: none; font-size: 0.65rem; display: flex; align-items: center; gap: 4px; margin-left: auto; }
         
         .toggle-row { display: flex; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
         .toggle-btn { flex: 1; background: transparent; border: none; padding: 8px 0; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; transition: 0.2s; border-right: 1px solid var(--border-color); font-weight: 500;}
@@ -34,23 +36,26 @@
         .toggle-btn.active { background: var(--krn-blue); color: #fff; font-weight: bold; }
         .sidebar-select { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; background: transparent; color: var(--text-primary); font-size: 0.8rem; margin-bottom: 5px; }
         
-        /* Side-by-Side KPIs */
-        .kpi-side-by-side { display: flex; justify-content: center; align-items: center; padding: 10px 0; }
-        .kpi-block { flex: 1; text-align: center; }
-        .kpi-block.left { border-right: 1px solid var(--border-color); }
-        .kpi-val-row { display: flex; justify-content: center; align-items: baseline; gap: 5px; }
-        .sidebar-kpi-val { font-family: 'Bebas Neue', sans-serif; font-size: 3.2rem; color: var(--krn-blue); line-height: 1; letter-spacing: 1px; }
-        .sidebar-kpi-unit { font-size: 1rem; font-weight: bold; color: var(--krn-light-blue); }
-        .sidebar-kpi-lbl { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-top: 5px; font-weight: 500;}
+        /* New Side-by-Side KPI Layout matching screenshot */
+        .kpi-side-by-side { display: flex; justify-content: center; align-items: center; padding: 15px 0; }
+        .kpi-block { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .kpi-block.left { border-right: 1px solid var(--border-color); padding-right: 15px; margin-right: 15px; }
+        .kpi-text-stack { display: flex; flex-direction: column; text-align: right; }
+        .sidebar-kpi-unit { font-size: 0.95rem; font-weight: bold; color: var(--krn-light-blue); line-height: 1; margin-bottom: 2px; }
+        .sidebar-kpi-lbl { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; line-height: 1; }
+        .sidebar-kpi-val { font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; color: var(--krn-blue); line-height: 0.85; letter-spacing: 1px; }
         
         .divider { height: 1px; background: var(--border-color); margin: 20px 0; width: 100%; }
         
         /* Main Content */
-        .main-content { flex-grow: 1; display: flex; flex-direction: column; gap: 15px; overflow: hidden; }
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; gap: 15px; overflow: hidden; min-width: 0; }
         
-        /* View Toggle */
+        /* View Toggle & Search Bar */
+        .right-pane-controls { display: flex; gap: 12px; align-items: center; }
+        .pane-search-box { padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-page); color: var(--text-primary); font-size: 0.75rem; width: 220px; outline: none; }
+        .pane-search-box::placeholder { color: var(--text-secondary); }
         .view-toggle { display: flex; background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
-        .view-toggle-btn { padding: 6px 15px; border: none; background: transparent; color: var(--text-secondary); font-size: 0.75rem; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .view-toggle-btn { padding: 7px 16px; border: none; background: transparent; color: var(--text-secondary); font-size: 0.75rem; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         .view-toggle-btn.active { background: var(--krn-blue); color: #fff; }
     </style>
 </head>
@@ -81,7 +86,7 @@
 
 <div class="hr-dashboard-wrapper">
     <!-- TOP GLOBAL HEADER -->
-    <div class="header-banner" style="border-radius: 8px;">
+    <div class="header-banner" style="border-radius: 8px; margin: 0;">
         <div class="header-left">
             <div class="header-logo"><a href="index.html"><img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz"></a></div>
             <div class="header-title-group">
@@ -108,7 +113,7 @@
         <div class="sidebar">
             <div class="sidebar-card">
                 <div class="sidebar-header">
-                    View & Granularity
+                    <span>View & Granularity</span>
                     <a href="index.html" class="back-btn">&larr; Back</a>
                 </div>
                 
@@ -128,42 +133,43 @@
             </div>
             
             <div class="sidebar-card">
-                <!-- Side-by-Side KPIs -->
+                <!-- Stacked Side-by-Side KPIs -->
                 <div class="kpi-side-by-side">
                     <div class="kpi-block left">
-                        <div class="kpi-val-row">
+                        <div class="kpi-text-stack">
                             <span class="sidebar-kpi-unit">M PKR</span>
-                            <span class="sidebar-kpi-val" id="leftKpiBudget">0.0</span>
+                            <span class="sidebar-kpi-lbl" id="leftLblBudget">QTD BUDGET</span>
                         </div>
-                        <div class="sidebar-kpi-lbl" id="leftLblBudget">QTD BUDGET</div>
+                        <span class="sidebar-kpi-val" id="leftKpiBudget">0.0</span>
                     </div>
                     <div class="kpi-block">
-                        <div class="kpi-val-row">
+                        <div class="kpi-text-stack">
                             <span class="sidebar-kpi-unit">M PKR</span>
-                            <span class="sidebar-kpi-val" id="leftKpiActual">0.0</span>
+                            <span class="sidebar-kpi-lbl" id="leftLblActual">QTD ACTUAL</span>
                         </div>
-                        <div class="sidebar-kpi-lbl" id="leftLblActual">QTD ACTUAL</div>
+                        <span class="sidebar-kpi-val" id="leftKpiActual">0.0</span>
                     </div>
                 </div>
                 
                 <div class="divider"></div>
                 
                 <div style="display: flex; justify-content: space-around;">
+                    <!-- Increased Donut Container Sizes -->
                     <div style="text-align: center;">
-                        <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: bold; margin-bottom: 5px;">Spent (Donor)</div>
-                        <div id="spentDonutContainer" style="width: 120px; height: 120px; margin: 0 auto;"></div>
+                        <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: bold; margin-bottom: 8px;">Spent (Donor)</div>
+                        <div id="spentDonutContainer" style="width: 170px; height: 170px; margin: 0 auto;"></div>
                     </div>
                     <div style="text-align: center;">
-                        <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: bold; margin-bottom: 5px;">Budget (Donor)</div>
-                        <div id="budgetDonutContainer" style="width: 120px; height: 120px; margin: 0 auto;"></div>
+                        <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: bold; margin-bottom: 8px;">Budget (Donor)</div>
+                        <div id="budgetDonutContainer" style="width: 170px; height: 170px; margin: 0 auto;"></div>
                     </div>
                 </div>
                 
                 <div class="divider"></div>
                 
                 <div style="text-align: center;">
-                    <div class="sidebar-kpi-lbl" style="margin-bottom: 5px;">Active Headcount</div>
-                    <div class="sidebar-kpi-val" id="headcountKpi" style="font-size: 2rem;">0/0</div>
+                    <div class="sidebar-kpi-lbl" style="margin-bottom: 5px; font-size: 0.75rem;">Active Headcount</div>
+                    <div class="sidebar-kpi-val" id="headcountKpi" style="font-size: 2.2rem;">0/0</div>
                 </div>
             </div>
         </div>
@@ -172,13 +178,17 @@
         <div class="main-content">
             <div class="summary-table-container" style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); padding: 15px;">
                 
-                <!-- Table Header & View Toggle -->
+                <!-- Table Header, Search, & View Toggle -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <div class="view-toggle">
-                        <button id="btnViewComp" class="view-toggle-btn active" onclick="setTableView('Component')">Component View</button>
-                        <button id="btnViewEmp" class="view-toggle-btn" onclick="setTableView('Employee')">Employee CTC View</button>
+                    <div class="right-pane-controls">
+                        <div class="view-toggle">
+                            <button id="btnViewComp" class="view-toggle-btn active" onclick="setTableView('Component')">Component View</button>
+                            <button id="btnViewEmp" class="view-toggle-btn" onclick="setTableView('Employee')">Employee CTC View</button>
+                        </div>
+                        <!-- General Search Bar -->
+                        <input type="text" id="mainTableSearch" class="pane-search-box" placeholder="Search components or employees..." onkeyup="onMainTableSearch()">
                     </div>
-                    <div style="font-size: 0.7rem; font-weight: bold; color: var(--krn-orange);">Total Variance: <span id="mainTableVariance">0.0</span></div>
+                    <div style="font-size: 0.75rem; font-weight: bold; color: var(--krn-orange);">Total Variance: <span id="mainTableVariance">0.0</span></div>
                 </div>
 
                 <div class="table-wrapper">
