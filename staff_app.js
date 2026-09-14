@@ -65,12 +65,22 @@ async function unlockDashboard() {
 function parseCSV(text) {
     let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
     if (lines.length < 2) return [];
-    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
+    
+    // Updated header parsing to respect quotes
+    const headers = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/"/g, '').trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
     const objects = [];
+    
     for(let i = 1; i < lines.length; i++) {
-        let vals = lines[i].split(',').map(v => v.replace(/"/g, '').trim());
+        // Updated value parsing to respect quotes
+        let vals = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/"/g, '').trim());
         let obj = { _raw: {} };
-        headers.forEach((h, idx) => { obj[h] = vals[idx] || ''; obj._raw[lines[0].split(',')[idx].trim()] = vals[idx] || ''; });
+        
+        headers.forEach((h, idx) => { 
+            obj[h] = vals[idx] || ''; 
+            // Also need to use the quote-aware split for the raw header mapping
+            let rawHeaders = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            obj._raw[rawHeaders[idx] ? rawHeaders[idx].trim() : ''] = vals[idx] || ''; 
+        });
         objects.push(obj);
     }
     return objects;
