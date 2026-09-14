@@ -2,7 +2,7 @@
 // 1. STATE & SECURITY PROTOCOL
 // ========================================================================
 let isDarkMode = false;
-let availableYears = ['FY2025', 'FY2026', 'FY2027'];
+let availableYears = ['FY2026', 'FY2027'];
 let selectedYear = availableYears[availableYears.length - 1];
 let selectedDepartment = 'All Departments';
 let selectedDonor = 'All Donors';
@@ -129,8 +129,8 @@ function createHeaderMap(rawKeys) {
         else if (lower.includes('life insura')) map[k.orig] = 'Life Insurance';
         else if (lower.includes('learning')) map[k.orig] = 'Learning & Development';
         else if (lower.includes('performance') || lower.includes('one-off')) map[k.orig] = 'Performance / Bonus';
-        else if (lower.includes('arrears') || lower.includes('overtime')) map[k.orig] = 'Overtime & Arrears';
-        else if (lower.includes('leave encashment')) map[k.orig] = 'Leave Encashment';
+        // Merged Overtime, Arrears, and Encashment into a single component
+        else if (lower.includes('arrears') || lower.includes('overtime') || lower.includes('leave encashment')) map[k.orig] = 'Overtime, Arrears & Encashment';
     });
     return map;
 }
@@ -338,11 +338,10 @@ function updateStaffDashboard() {
         let pct = selectedDonor === 'All Donors' ? 1.0 : (master.donorAllocations[selectedDonor] || 0);
         if (pct === 0) return;
 
-        // Initialize Employee Object with component-level trackers
         if (!empSummary[row.code]) {
             empSummary[row.code] = { 
                 code: row.code, name: master.name, periodAct: 0, fyBud: 0, 
-                cAct: {}, cBud: {} // Tracks individual components for Smart Forecasting
+                cAct: {}, cBud: {} 
             };
         }
 
@@ -354,16 +353,13 @@ function updateStaffDashboard() {
             let b = row.components[cName].b * pct;
             let a = row.components[cName].a * pct;
             
-            // FY Totals
             empSummary[row.code].fyBud += b;
             
-            // Component-level tracking
             if (!empSummary[row.code].cBud[cName]) empSummary[row.code].cBud[cName] = 0;
             if (!empSummary[row.code].cAct[cName]) empSummary[row.code].cAct[cName] = 0;
             empSummary[row.code].cBud[cName] += b;
             if (isYtdMonth) empSummary[row.code].cAct[cName] += a;
             
-            // Active Period Totals
             if (isActiveMonth) {
                 if (!compSummary[cName]) compSummary[cName] = { b: 0, a: 0 };
                 compSummary[cName].b += b; compSummary[cName].a += a;
@@ -405,8 +401,15 @@ function renderComponentTable(compSummary, searchTerm) {
     thead.innerHTML = `<tr><th>Component</th><th>${timeLabel} Budget</th><th>${timeLabel} Actual</th><th>Variance</th><th>% Spent</th></tr>`;
     
     const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
+    
     let sortedComps = Object.keys(compSummary).sort((x, y) => {
-        if (x === 'Base Salary') return -1; if (y === 'Base Salary') return 1;
+        // Pin Base to top
+        if (x === 'Base Salary') return -1; 
+        if (y === 'Base Salary') return 1;
+        // Pin Overtime & Encashment to bottom
+        if (x === 'Overtime, Arrears & Encashment') return 1; 
+        if (y === 'Overtime, Arrears & Encashment') return -1;
+        
         return compSummary[y].a - compSummary[x].a;
     });
 
@@ -435,17 +438,14 @@ function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
     
     const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
     
-    // SMART FORECAST HELPER (Handles LFA and Gratuity dynamically)
     const getSmartForecast = (e) => {
         let totalF = 0;
         Object.keys(e.cBud).forEach(cName => {
             let act = e.cAct[cName] || 0;
             let bud = e.cBud[cName] || 0;
             if (annualComponents.includes(cName)) {
-                // For LFA/Health etc, expected spend is their Budget. Cap at Actual if they overspend.
                 totalF += Math.max(act, bud); 
             } else {
-                // Monthly components use standard run-rate
                 totalF += (act / elapsedMonths) * 12; 
             }
         });
@@ -483,7 +483,7 @@ function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
 }
 
 // ========================================================================
-// 4. MODAL & SVG DRILL DOWN
+// 4. MODAL & SVG DRILL DOWN LOGIC
 // ========================================================================
 function openComponentModal(compName) {
     if (tableView === 'Employee') return; 
