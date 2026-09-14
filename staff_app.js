@@ -2,7 +2,7 @@
 // 1. STATE & SECURITY PROTOCOL
 // ========================================================================
 let isDarkMode = false;
-let availableYears = ['FY2026', 'FY2027'];
+let availableYears = ['FY2025', 'FY2026', 'FY2027'];
 let selectedYear = availableYears[availableYears.length - 1];
 let selectedDepartment = 'All Departments';
 let selectedDonor = 'All Donors';
@@ -19,7 +19,11 @@ let tableView = 'Component';
 let positionMaster = {}; 
 let unifiedLedger = []; 
 let activeMonths = [];
-let activeModalComponent = '';
+
+// Dynamic Modal State Tracking
+let activeModalType = 'Component'; 
+let activeModalTarget = ''; 
+let activeModalTargetName = '';
 
 // The components that should NOT be multiplied by 12 (Entitlement based)
 const annualComponents = ['LFA', 'Gratuity', 'Health Insurance', 'Life Insurance', 'Learning & Development', 'Performance / Bonus'];
@@ -129,7 +133,6 @@ function createHeaderMap(rawKeys) {
         else if (lower.includes('life insura')) map[k.orig] = 'Life Insurance';
         else if (lower.includes('learning')) map[k.orig] = 'Learning & Development';
         else if (lower.includes('performance') || lower.includes('one-off')) map[k.orig] = 'Performance / Bonus';
-        // Merged Overtime, Arrears, and Encashment into a single component
         else if (lower.includes('arrears') || lower.includes('overtime') || lower.includes('leave encashment')) map[k.orig] = 'Overtime, Arrears & Encashment';
     });
     return map;
@@ -367,10 +370,14 @@ function updateStaffDashboard() {
                 empSummary[row.code].periodAct += a;
             }
         });
+        
+        // Count FY budgeted seats globally regardless of time filter
+        if (empSummary[row.code].fyBud > 0) {
+            budHeads.add(row.code);
+        }
 
         if (isActiveMonth) {
             totBud += rowTotB; totAct += rowTotA;
-            if (rowTotB > 0) budHeads.add(row.code);
             if (rowTotA > 0) activeHeads.add(row.code);
 
             if (selectedDonor === 'All Donors') {
@@ -387,6 +394,7 @@ function updateStaffDashboard() {
     document.getElementById('leftKpiActual').innerText = (totAct >= 1000000) ? (totAct/1000000).toFixed(1) : (totAct/1000).toFixed(1);
     document.querySelectorAll('#leftKpiBudget').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totBud >= 1000000) ? 'M PKR' : 'K PKR');
     document.querySelectorAll('#leftKpiActual').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totAct >= 1000000) ? 'M PKR' : 'K PKR');
+    
     let netVar = totBud - totAct;
     document.getElementById('mainTableVariance').innerText = formatPKRShort(Math.abs(netVar));
     document.getElementById('mainTableVariance').parentElement.style.color = netVar >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)';
@@ -405,13 +413,8 @@ function renderComponentTable(compSummary, searchTerm) {
     const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
     
     let sortedComps = Object.keys(compSummary).sort((x, y) => {
-        // Pin Base to top
-        if (x === 'Base Salary') return -1; 
-        if (y === 'Base Salary') return 1;
-        // Pin Overtime & Encashment to bottom
-        if (x === 'Overtime, Arrears & Encashment') return 1; 
-        if (y === 'Overtime, Arrears & Encashment') return -1;
-        
+        if (x === 'Base Salary') return -1; if (y === 'Base Salary') return 1;
+        if (x === 'Overtime, Arrears & Encashment') return 1; if (y === 'Overtime, Arrears & Encashment') return -1;
         return compSummary[y].a - compSummary[x].a;
     });
 
@@ -470,7 +473,7 @@ function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
         let varNum = e.fyBud - forecast;
         
         tbody.innerHTML += `
-            <tr class="summary-table-row">
+            <tr class="clickable-tr summary-table-row" onclick="openEmployeeModal('${code.replace(/'/g, "\\'")}', '${e.name.replace(/'/g, "\\'")}')">
                 <td>
                     <div style="font-weight: bold; color: var(--krn-blue); font-size: 0.8rem;">${code}</div>
                     <div style="font-size: 0.95rem; font-weight: 500; color: var(--text-primary); margin-top: 3px;">${e.name}</div>
@@ -488,12 +491,31 @@ function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
 // 4. MODAL & SVG DRILL DOWN LOGIC
 // ========================================================================
 function openComponentModal(compName) {
-    if (tableView === 'Employee') return; 
-    activeModalComponent = compName;
+    activeModalType = 'Component';
+    activeModalTarget = compName;
     document.getElementById('modalStaffTitle').innerText = `${compName} Breakup`;
     document.getElementById('modalStaffSubtitle').innerText = `Period: ${timeLabel} | Dept: ${selectedDepartment}`;
     document.getElementById('modalSearch').value = '';
-    renderStaffModalTable(); document.getElementById('staffModal').style.display = 'block';
+    document.getElementById('modalSearch').placeholder = 'Search Employee...';
+    renderModalTable(); 
+    document.getElementById('staffModal').style.display = 'block';
+}
+
+function openEmployeeModal(empCode, empName) {
+    activeModalType = 'Employee';
+    activeModalTarget = empCode;
+    activeModalTargetName = empName;
+    document.getElementById('modalStaffTitle').innerText = `${empCode} - ${empName}`;
+    document.getElementById('modalStaffSubtitle').innerText = `Period: ${timeLabel} Component Breakup`;
+    document.getElementById('modalSearch').value = '';
+    document.getElementById('modalSearch').placeholder = 'Search Component...';
+    renderModalTable(); 
+    document.getElementById('staffModal').style.display = 'block';
+}
+
+function renderModalTable() {
+    if (activeModalType === 'Component') renderStaffModalTable();
+    else renderEmployeeModalTable();
 }
 
 function renderStaffModalTable() {
@@ -513,7 +535,7 @@ function renderStaffModalTable() {
         let master = positionMaster[row.code];
         if (selectedDepartment !== 'All Departments' && master.dept !== selectedDepartment) return;
         let pct = selectedDonor === 'All Donors' ? 1.0 : (master.donorAllocations[selectedDonor] || 0); if (pct === 0) return;
-        let comp = row.components[activeModalComponent]; if (!comp || (comp.b === 0 && comp.a === 0)) return;
+        let comp = row.components[activeModalTarget]; if (!comp || (comp.b === 0 && comp.a === 0)) return;
 
         if (!empData[row.code]) {
             empData[row.code] = { code: row.code, name: master.name, months: {}, tB: 0, tA: 0 };
@@ -534,9 +556,85 @@ function renderStaffModalTable() {
     });
 }
 
-function filterStaffModal() { renderStaffModalTable(); }
+function renderEmployeeModalTable() {
+    const thead = document.getElementById('modalTableHeader');
+    const tbody = document.getElementById('staffModalTableBody'); tbody.innerHTML = '';
+    
+    let headerHtml = `<tr><th>Component</th>`;
+    activeMonths.forEach(m => headerHtml += `<th>${m} Actual (M PKR)</th>`);
+    headerHtml += `<th>Tot Actual</th><th>Tot Budget</th><th>Var</th></tr>`;
+    thead.innerHTML = headerHtml;
+
+    const term = document.getElementById('modalSearch').value.toLowerCase();
+    let compData = {};
+
+    unifiedLedger.forEach(row => {
+        if (row.code !== activeModalTarget) return; 
+        if (!activeMonths.includes(row.month)) return;
+        
+        let master = positionMaster[row.code];
+        let pct = selectedDonor === 'All Donors' ? 1.0 : (master.donorAllocations[selectedDonor] || 0); 
+        if (pct === 0) return;
+
+        Object.keys(row.components).forEach(cName => {
+            let b = row.components[cName].b * pct;
+            let a = row.components[cName].a * pct;
+            if (b === 0 && a === 0) return;
+
+            if (!compData[cName]) {
+                compData[cName] = { name: cName, months: {}, tB: 0, tA: 0 };
+                activeMonths.forEach(m => compData[cName].months[m] = 0);
+            }
+            
+            compData[cName].months[row.month] += a;
+            compData[cName].tA += a;
+            compData[cName].tB += b;
+        });
+    });
+
+    let sortedComps = Object.values(compData).sort((x, y) => {
+        if (x.name === 'Base Salary') return -1;
+        if (y.name === 'Base Salary') return 1;
+        if (x.name === 'Overtime, Arrears & Encashment') return 1;
+        if (y.name === 'Overtime, Arrears & Encashment') return -1;
+        return y.tA - x.tA;
+    });
+
+    sortedComps.forEach(c => {
+        if (term && !c.name.toLowerCase().includes(term)) return;
+        let diff = c.tB - c.tA;
+        let rowHtml = `<tr><td><strong style="color:var(--text-primary)">${c.name}</strong></td>`;
+        activeMonths.forEach(m => { 
+            rowHtml += `<td style="font-variant-numeric:tabular-nums">${c.months[m] === 0 ? '-' : (c.months[m]/1000000).toFixed(2)}</td>`; 
+        });
+        rowHtml += `<td style="font-variant-numeric:tabular-nums; font-weight:bold; color:var(--krn-blue);">${(c.tA/1000000).toFixed(2)}</td>
+                    <td style="font-variant-numeric:tabular-nums; color:var(--text-secondary)">${(c.tB/1000000).toFixed(2)}</td>
+                    <td style="font-variant-numeric:tabular-nums; font-weight:bold; color:${diff >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'}">${(diff/1000000).toFixed(2)}</td></tr>`;
+        tbody.innerHTML += rowHtml;
+    });
+}
+
+function filterStaffModal() { renderModalTable(); }
 function closeModal() { document.getElementById('staffModal').style.display = 'none'; }
 window.onclick = function(e) { if (e.target == document.getElementById('staffModal')) closeModal(); }
+
+function exportModalCSV() {
+    const table = document.querySelector("#staffModal .detail-table");
+    let csv = [];
+    for (let i = 0; i < table.rows.length; i++) {
+        let row = [], cols = table.rows[i].querySelectorAll("td, th");
+        for (let j = 0; j < cols.length; j++) row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"');
+        csv.push(row.join(","));
+    }
+    const csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
+    const link = document.createElement("a");
+    let fName = activeModalType === 'Component' ? activeModalTarget : activeModalTarget;
+    link.download = `HR_${fName.replace(/[^a-zA-Z0-9]/g, '_')}_${timeLabel}.csv`;
+    link.href = window.URL.createObjectURL(csvFile);
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+}
 
 function formatPKRInline(num) { let p = getFormattedParts(num); return `<span class="val-unit-inline">${p.u}</span> <span class="val-num-inline">${p.v}</span>`; }
 function formatPKRShort(num) { let p = getFormattedParts(num); return `${p.v} ${p.u.charAt(0)}`; }
@@ -565,10 +663,7 @@ function renderDonorDonut(containerId, donorObj) {
 function renderSvgDonut(containerId, items, centerBadge = null, bottomLabel = null, showLegend = true) {
     const container = document.getElementById(containerId); if (!container) return;
     const total = items.reduce((acc, it) => acc + (parseFloat(it.value) || 0), 0);
-    const radius = 33; // Reduced slightly to prevent the thick stroke from clipping the edges
-    const C = 2 * Math.PI * radius; 
-    let cumulativePercent = 0; 
-    const strokeWidth = 22; // Increased from 14 for a much thicker donut
+    const radius = 33; const C = 2 * Math.PI * radius; let cumulativePercent = 0; const strokeWidth = 22; 
     let circlesHtml = `<circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--border-color)" stroke-width="${strokeWidth}" opacity="0.3" />`; let legendHtml = '';
     
     if (total > 0) {
