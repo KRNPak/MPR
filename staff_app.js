@@ -14,9 +14,10 @@ let granularity = 'Monthly';
 let periodView = 'QTD'; 
 let timeLabel = 'QTD'; 
 
+let tableView = 'Component'; // 'Component' or 'Employee'
+
 let positionMaster = {}; 
 let unifiedLedger = []; 
-let activeFilteredData = [];
 let activeMonths = [];
 let activeModalComponent = '';
 
@@ -62,7 +63,6 @@ async function unlockDashboard() {
 // ========================================================================
 // 2. BULLETPROOF DATA ENGINE
 // ========================================================================
-// Quote-aware parser to prevent commas in large numbers (e.g., "290,000") from splitting columns
 function parseCSV(text) {
     let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
     if (lines.length < 2) return [];
@@ -90,22 +90,15 @@ function getSafeNum(val) {
     return isNaN(num) ? 0 : num; 
 }
 
-// Resilient Date Parser (Handles Excel serials like 46204, or Strings like 'July-26')
 function getStandardMonth(mthRaw) {
     let m = String(mthRaw).trim();
     if (!m) return '';
-    
-    // Excel Serial Number detection
     if (/^\d{4,5}$/.test(m)) {
         let d = new Date((parseInt(m) - 25569) * 86400 * 1000);
         return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()];
     }
-    
-    // Text extraction
     let months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    for (let i = 0; i < months.length; i++) {
-        if (m.toLowerCase().includes(months[i].toLowerCase())) return months[i];
-    }
+    for (let i = 0; i < months.length; i++) { if (m.toLowerCase().includes(months[i].toLowerCase())) return months[i]; }
     return m.substring(0,3).charAt(0).toUpperCase() + m.substring(1,3).toLowerCase();
 }
 
@@ -113,23 +106,20 @@ function createHeaderMap(rawKeys) {
     let map = {};
     let lowerKeys = rawKeys.map(k => ({ orig: k, low: k.toLowerCase().trim() }));
     
-    let baseMatch = lowerKeys.find(k => k.low.includes('base salary after inflation')) || 
-                    lowerKeys.find(k => k.low.includes('updated base')) || 
-                    lowerKeys.find(k => k.low === 'base salary') ||
-                    lowerKeys.find(k => k.low.includes('base'));
-                    
+    let baseMatch = lowerKeys.find(k => k.low.includes('base salary after inflation')) || lowerKeys.find(k => k.low.includes('updated base')) || lowerKeys.find(k => k.low === 'base salary') || lowerKeys.find(k => k.low.includes('base'));
     if (baseMatch) map[baseMatch.orig] = 'Base Salary';
 
     lowerKeys.forEach(k => {
         if (baseMatch && k.orig === baseMatch.orig) return; 
         
         let lower = k.low;
-        // Explicitly block calculated totals and deductions from mapping to prevent duplicates
         if (lower.includes('gross') || lower.includes('net') || lower.includes('payable') || lower.includes('tax') || lower.includes('advance') || lower.includes('deduction') || lower.includes('other')) return;
         
-        if (lower.includes('car') || lower.includes('cma') || lower.includes('monetarization')) map[k.orig] = 'Car Monetization';
+        // BUG FIX: Strictly isolate Child Care before looking for 'car'
+        if (lower.includes('child care')) map[k.orig] = 'Child Care';
+        else if (lower.includes('car monet') || lower.includes('cma')) map[k.orig] = 'Car Monetization';
+        
         else if (lower.includes('cola')) map[k.orig] = 'COLA';
-        else if (lower.includes('child care')) map[k.orig] = 'Child Care';
         else if (lower.includes('provident') || lower === 'pf') map[k.orig] = 'Provident Fund';
         else if (lower.includes('eobi')) map[k.orig] = 'EOBI';
         else if (lower.includes('gratuity')) map[k.orig] = 'Gratuity';
@@ -177,26 +167,19 @@ function buildDataEngine(masterRows, budgetRows, actualRows) {
         if (isActual) entry.components[compName].a += val; else entry.components[compName].b += val;
     };
 
-    // Actuals Mapping (WITH Excel Date Parsing & Absolute Values)
     if (actualRows.length > 0) {
         let actualMap = createHeaderMap(Object.keys(actualRows[0]._raw));
         actualRows.forEach(r => {
             let code = String(r['positioncode'] || '').trim().toUpperCase();
             if (!code || !positionMaster[code]) return;
-            
             let mth = getStandardMonth(r['month']);
             if (!mth || !fiscalMonths.includes(mth)) return;
             
             availableMonthsSet.add(mth);
             let entry = ensureLedgerEntry(code, mth);
-            
             Object.keys(r._raw).forEach(rawK => {
                 let compName = actualMap[rawK];
-                if (compName) {
-                    // Force absolute value to prevent PF/EOBI deductions from negatively summing
-                    let val = Math.abs(getSafeNum(r._raw[rawK])); 
-                    addComponentVal(entry, compName, true, val);
-                }
+                if (compName) addComponentVal(entry, compName, true, Math.abs(getSafeNum(r._raw[rawK])));
             });
         });
     }
@@ -213,10 +196,8 @@ function buildDataEngine(masterRows, budgetRows, actualRows) {
             let joinStr = r['joiningdate'] || r['joiningdatenewagreementstartdate'] || '';
             let joinDate = new Date(joinStr);
             let startIdx = 0;
-            
             if (!isNaN(joinDate.getTime()) && joinDate > fyStartDate) {
-                let m = joinDate.getMonth(); 
-                startIdx = m >= 6 ? m - 6 : m + 6; 
+                let m = joinDate.getMonth(); startIdx = m >= 6 ? m - 6 : m + 6; 
             }
             
             let bMonths = parseInt(r['budgetedmonths']) || 12; if (bMonths <= 0) bMonths = 12;
@@ -226,9 +207,7 @@ function buildDataEngine(masterRows, budgetRows, actualRows) {
                 let compName = budgetMap[rawK];
                 if (compName) {
                     let val = getSafeNum(r._raw[rawK]);
-                    if (['LFA', 'Gratuity', 'Health Insurance', 'Life Insurance', 'Learning & Development'].includes(compName)) {
-                        val = val / bMonths; 
-                    }
+                    if (['LFA', 'Gratuity', 'Health Insurance', 'Life Insurance', 'Learning & Development'].includes(compName)) val = val / bMonths; 
                     monthlyComps[compName] = (monthlyComps[compName] || 0) + val;
                 }
             });
@@ -293,6 +272,13 @@ function setPeriod(val) {
     updateStaffDashboard();
 }
 
+function setTableView(view) {
+    tableView = view;
+    document.getElementById('btnViewComp').classList.toggle('active', view === 'Component');
+    document.getElementById('btnViewEmp').classList.toggle('active', view === 'Employee');
+    updateStaffDashboard();
+}
+
 function updateStaffDashboard() {
     const endIdx = fiscalMonths.indexOf(selectedMonth);
     activeMonths = [];
@@ -310,60 +296,87 @@ function updateStaffDashboard() {
         else if (periodView === 'YTD') { activeMonths = fiscalMonths.slice(0, endIdx + 1); timeLabel = 'YTD'; }
     }
 
-    document.getElementById('leftLblBudget').innerText = `${timeLabel} Budget`;
-    document.getElementById('leftLblActual').innerText = `${timeLabel} Actual`;
-    document.getElementById('thBudgetLbl').innerText = `${timeLabel} Budget`;
-    document.getElementById('thActualLbl').innerText = `${timeLabel} Actual`;
+    document.getElementById('leftLblBudget').innerText = `${timeLabel} BUDGET`;
+    document.getElementById('leftLblActual').innerText = `${timeLabel} ACTUAL`;
 
     let totBud = 0, totAct = 0;
     let compSummary = {};
+    let empSummary = {}; // Used for CTC View
+    
     let activeHeads = new Set(), budHeads = new Set();
     let donorSpent = {}; let donorBudget = {}; 
 
+    const elapsedMonths = endIdx + 1; // Used for Option A Forecasting
+
     unifiedLedger.forEach(row => {
-        if (!activeMonths.includes(row.month)) return;
-        
         let master = positionMaster[row.code];
         if (selectedDepartment !== 'All Departments' && master.dept !== selectedDepartment) return;
-
         let pct = selectedDonor === 'All Donors' ? 1.0 : (master.donorAllocations[selectedDonor] || 0);
         if (pct === 0) return;
 
+        // Initialize employee object if needed
+        if (!empSummary[row.code]) empSummary[row.code] = { name: master.name, periodAct: 0, ytdAct: 0, fyBud: 0 };
+
         let rowTotB = 0, rowTotA = 0;
+        let isActiveMonth = activeMonths.includes(row.month);
+        let isYtdMonth = fiscalMonths.indexOf(row.month) <= endIdx;
 
         Object.keys(row.components).forEach(cName => {
             let b = row.components[cName].b * pct;
             let a = row.components[cName].a * pct;
-            if (b > 0 || a > 0) {
+            
+            // FY Totals for Employee
+            empSummary[row.code].fyBud += b;
+            if (isYtdMonth) empSummary[row.code].ytdAct += a;
+            
+            if (isActiveMonth) {
                 if (!compSummary[cName]) compSummary[cName] = { b: 0, a: 0 };
                 compSummary[cName].b += b; compSummary[cName].a += a;
                 rowTotB += b; rowTotA += a;
+                empSummary[row.code].periodAct += a;
             }
         });
 
-        totBud += rowTotB; totAct += rowTotA;
-        if (rowTotB > 0) budHeads.add(row.code);
-        if (rowTotA > 0) activeHeads.add(row.code);
+        if (isActiveMonth) {
+            totBud += rowTotB; totAct += rowTotA;
+            if (rowTotB > 0) budHeads.add(row.code);
+            if (rowTotA > 0) activeHeads.add(row.code);
 
-        if (selectedDonor === 'All Donors') {
-            Object.keys(master.donorAllocations).forEach(d => {
-                if (rowTotA > 0) donorSpent[d] = (donorSpent[d] || 0) + (rowTotA * master.donorAllocations[d]);
-                if (rowTotB > 0) donorBudget[d] = (donorBudget[d] || 0) + (rowTotB * master.donorAllocations[d]);
-            });
+            if (selectedDonor === 'All Donors') {
+                Object.keys(master.donorAllocations).forEach(d => {
+                    if (rowTotA > 0) donorSpent[d] = (donorSpent[d] || 0) + (rowTotA * master.donorAllocations[d]);
+                    if (rowTotB > 0) donorBudget[d] = (donorBudget[d] || 0) + (rowTotB * master.donorAllocations[d]);
+                });
+            }
         }
     });
 
     document.getElementById('headcountKpi').innerText = `${activeHeads.size}/${budHeads.size}`;
-    document.getElementById('leftKpiBudget').innerHTML = `<span class="sidebar-kpi-unit">M PKR</span>${(totBud/1000000).toFixed(1)}`;
-    document.getElementById('leftKpiActual').innerHTML = `<span class="sidebar-kpi-unit">M PKR</span>${(totAct/1000000).toFixed(1)}`;
+    
+    // Formatting left KPIs to exact image spec
+    document.getElementById('leftKpiBudget').innerText = (totBud >= 1000000) ? (totBud/1000000).toFixed(1) : (totBud/1000).toFixed(1);
+    document.getElementById('leftKpiActual').innerText = (totAct >= 1000000) ? (totAct/1000000).toFixed(1) : (totAct/1000).toFixed(1);
+    
+    // Switch unit based on millions vs thousands
+    document.querySelectorAll('#leftKpiBudget').forEach(el => el.previousElementSibling.innerText = (totBud >= 1000000) ? 'M PKR' : 'K PKR');
+    document.querySelectorAll('#leftKpiActual').forEach(el => el.previousElementSibling.innerText = (totAct >= 1000000) ? 'M PKR' : 'K PKR');
+
     document.getElementById('mainTableVariance').innerText = formatPKRShort(Math.abs(totBud - totAct));
 
-    renderComponentTable(compSummary);
+    if (tableView === 'Component') {
+        renderComponentTable(compSummary);
+    } else {
+        renderEmployeeTable(empSummary, elapsedMonths);
+    }
+
     renderDonorDonut('spentDonutContainer', donorSpent); 
     renderDonorDonut('budgetDonutContainer', donorBudget); 
 }
 
 function renderComponentTable(compSummary) {
+    const thead = document.getElementById('mainTableHeader');
+    thead.innerHTML = `<tr><th>Component</th><th>${timeLabel} Budget</th><th>${timeLabel} Actual</th><th>Variance</th><th>% Spent</th></tr>`;
+    
     const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
     let sortedComps = Object.keys(compSummary).sort((x, y) => {
         if (x === 'Base Salary') return -1; if (y === 'Base Salary') return 1;
@@ -388,6 +401,37 @@ function renderComponentTable(compSummary) {
     });
 }
 
+function renderEmployeeTable(empSummary, elapsedMonths) {
+    const thead = document.getElementById('mainTableHeader');
+    thead.innerHTML = `<tr><th>Position & Name</th><th>${timeLabel} Actual</th><th>FY Forecast (Run-Rate)</th><th>FY Budget</th><th>FY Variance</th></tr>`;
+    
+    const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
+    
+    let sortedEmps = Object.keys(empSummary).sort((x, y) => empSummary[y].periodAct - empSummary[x].periodAct);
+
+    sortedEmps.forEach(code => {
+        let e = empSummary[code]; 
+        if (e.periodAct === 0 && e.fyBud === 0) return;
+        
+        // Option A: Annualized Forecast
+        let forecast = (e.ytdAct / elapsedMonths) * 12;
+        let varNum = e.fyBud - forecast;
+        
+        tbody.innerHTML += `
+            <tr class="summary-table-row">
+                <td>
+                    <div style="font-weight: bold; color: var(--krn-blue);">${code}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">${e.name}</div>
+                </td>
+                <td style="font-variant-numeric: tabular-nums;">${formatPKRInline(e.periodAct)}</td>
+                <td style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight: 500;">${formatPKRInline(forecast)}</td>
+                <td style="font-variant-numeric: tabular-nums; color: var(--text-secondary);">${formatPKRInline(e.fyBud)}</td>
+                <td style="font-variant-numeric: tabular-nums; font-weight: bold; color: ${varNum >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'};">${formatPKRInline(Math.abs(varNum))}</td>
+            </tr>
+        `;
+    });
+}
+
 function renderDonorDonut(containerId, donorObj) {
     if (Object.keys(donorObj).length === 0) { document.getElementById(containerId).innerHTML = '<div style="font-size:0.7rem; color:var(--text-secondary); text-align:center; margin-top:40px;">N/A</div>'; return; }
     let colors = ['var(--krn-blue)', '#14b8a6', 'var(--krn-orange)', '#8b5cf6', 'var(--krn-light-blue)'];
@@ -399,6 +443,8 @@ function renderDonorDonut(containerId, donorObj) {
 // 4. MODAL & SVG DRILL DOWN LOGIC
 // ========================================================================
 function openComponentModal(compName) {
+    if (tableView === 'Employee') return; // Disable click if in employee view
+    
     activeModalComponent = compName;
     document.getElementById('modalStaffTitle').innerText = `${compName} Breakup`;
     document.getElementById('modalStaffSubtitle').innerText = `Period: ${timeLabel} | Dept: ${selectedDepartment}`;
