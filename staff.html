@@ -27,8 +27,9 @@
         .sidebar-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         
         /* Fixed Header & Small Back Button */
-        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.85rem; font-weight: bold; color: var(--text-secondary); white-space: nowrap; }
-        .back-btn { padding: 3px 8px; border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-secondary); text-decoration: none; font-size: 0.65rem; display: flex; align-items: center; gap: 4px; margin-left: auto; }
+        .sidebar-header { display: flex; align-items: center; margin-bottom: 15px; font-size: 0.85rem; font-weight: bold; color: var(--text-secondary); }
+        .back-btn { padding: 4px 10px; border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-secondary); text-decoration: none; font-size: 0.65rem; display: inline-flex; align-items: center; gap: 4px; margin-left: auto; flex: 0 0 auto; width: fit-content; transition: 0.2s;}
+        .back-btn:hover { background: var(--border-color); color: var(--text-primary); }
         
         .toggle-row { display: flex; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
         .toggle-btn { flex: 1; background: transparent; border: none; padding: 8px 0; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; transition: 0.2s; border-right: 1px solid var(--border-color); font-weight: 500;}
