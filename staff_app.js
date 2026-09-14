@@ -119,8 +119,8 @@ function createHeaderMap(rawKeys) {
     lowerKeys.forEach(k => {
         if (baseMatch && k.orig === baseMatch.orig) return; 
         let lower = k.low;
-        if (lower.includes('gross') || lower.includes('net') || lower.includes('payable') || lower.includes('tax') || lower.includes('advance') || lower.includes('deduction') || lower.includes('other')) return;
         
+        // Map exact components FIRST to avoid the "moNETization" trap
         if (lower.includes('child care')) map[k.orig] = 'Child Care';
         else if (lower.includes('car monet') || lower.includes('cma')) map[k.orig] = 'Car Monetization';
         else if (lower.includes('cola')) map[k.orig] = 'COLA';
