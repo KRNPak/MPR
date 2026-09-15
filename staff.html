@@ -58,6 +58,12 @@
         .view-toggle { display: flex; background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
         .view-toggle-btn { padding: 7px 16px; border: none; background: transparent; color: var(--text-secondary); font-size: 0.75rem; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         .view-toggle-btn.active { background: var(--krn-blue); color: #fff; }
+
+        /* Mini List Styles for Vacant Widget */
+        .mini-list-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+        .mini-list-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .mini-list-left { display: flex; flex-direction: column; text-align: left; }
+        .mini-list-right { display: flex; flex-direction: column; text-align: right; }
     </style>
 </head>
 <body class="view-summary light-mode"> 
@@ -158,11 +164,11 @@
                     <!-- Increased Donut Container Sizes -->
                     <div style="text-align: center;">
                         <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: bold; margin-bottom: 8px;">Spent (Donor)</div>
-                        <div id="spentDonutContainer" style="width: 170px; height: 170px; margin: 0 auto;"></div>
+                        <div id="spentDonutContainer" style="width: 200px; height: 200px; margin: 0 auto;"></div>
                     </div>
                     <div style="text-align: center;">
                         <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: bold; margin-bottom: 8px;">Budget (Donor)</div>
-                        <div id="budgetDonutContainer" style="width: 170px; height: 170px; margin: 0 auto;"></div>
+                        <div id="budgetDonutContainer" style="width: 200px; height: 200px; margin: 0 auto;"></div>
                     </div>
                 </div>
                 
@@ -172,9 +178,21 @@
                     <div class="sidebar-kpi-lbl" style="margin-bottom: 5px; font-size: 0.75rem;">Active Headcount</div>
                     <div class="sidebar-kpi-val" id="headcountKpi" style="font-size: 2.2rem;">0/0</div>
                 </div>
+                <div style="text-align: center;">
+                    <div class="sidebar-kpi-lbl" style="margin-bottom: 5px; font-size: 0.75rem;">Active Headcount</div>
+                    <div class="sidebar-kpi-val" id="headcountKpi" style="font-size: 2.2rem;">0/0</div>
+                </div>
+
+                <!-- NEW: Vacant Positions Widget -->
+                <div style="margin-top: 20px; background: var(--bg-page); border-radius: 6px; padding: 12px; border: 1px solid var(--border-color);">
+                    <div class="sidebar-kpi-lbl" style="margin-bottom: 10px; text-align: left;">Top Vacant Positions</div>
+                    <div id="vacantPositionsContainer">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
             </div>
         </div>
-
+            
         <!-- MAIN CONTENT (Component Table & Employee View) -->
         <div class="main-content">
             <div class="summary-table-container" style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); padding: 15px;">
