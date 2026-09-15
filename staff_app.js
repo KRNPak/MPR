@@ -120,7 +120,9 @@ function createHeaderMap(rawKeys) {
         if (baseMatch && k.orig === baseMatch.orig) return; 
         let lower = k.low;
         
-        // Map exact components FIRST to avoid the "moNETization" trap
+        if (lower.includes('gross') || lower.includes('net') || lower.includes('payable') || lower.includes('tax') || lower.includes('advance') || lower.includes('deduction') || lower.includes('other')) return;
+        
+        // Strictly match Child Care before Car Monetization to prevent overlap
         if (lower.includes('child care')) map[k.orig] = 'Child Care';
         else if (lower.includes('car monet') || lower.includes('cma')) map[k.orig] = 'Car Monetization';
         else if (lower.includes('cola')) map[k.orig] = 'COLA';
@@ -133,6 +135,7 @@ function createHeaderMap(rawKeys) {
         else if (lower.includes('life insura')) map[k.orig] = 'Life Insurance';
         else if (lower.includes('learning')) map[k.orig] = 'Learning & Development';
         else if (lower.includes('performance') || lower.includes('one-off')) map[k.orig] = 'Performance / Bonus';
+        // Merge Arrears, Overtime, and Leave Encashment
         else if (lower.includes('arrears') || lower.includes('overtime') || lower.includes('leave encashment')) map[k.orig] = 'Overtime, Arrears & Encashment';
     });
     return map;
@@ -343,7 +346,8 @@ function updateStaffDashboard() {
 
         if (!empSummary[row.code]) {
             empSummary[row.code] = { 
-                code: row.code, name: master.name, periodAct: 0, fyBud: 0, 
+                code: row.code, name: master.name, dept: master.dept,
+                periodAct: 0, periodBud: 0, fyBud: 0, 
                 cAct: {}, cBud: {} 
             };
         }
@@ -368,16 +372,14 @@ function updateStaffDashboard() {
                 compSummary[cName].b += b; compSummary[cName].a += a;
                 rowTotB += b; rowTotA += a;
                 empSummary[row.code].periodAct += a;
+                empSummary[row.code].periodBud += b;
             }
         });
-        
-        // Count FY budgeted seats globally regardless of time filter
-        if (empSummary[row.code].fyBud > 0) {
-            budHeads.add(row.code);
-        }
 
         if (isActiveMonth) {
             totBud += rowTotB; totAct += rowTotA;
+            // Dynamic headcount tracking strictly for active period
+            if (rowTotB > 0) budHeads.add(row.code);
             if (rowTotA > 0) activeHeads.add(row.code);
 
             if (selectedDonor === 'All Donors') {
@@ -390,11 +392,13 @@ function updateStaffDashboard() {
     });
 
     document.getElementById('headcountKpi').innerText = `${activeHeads.size}/${budHeads.size}`;
+    
     document.getElementById('leftKpiBudget').innerText = (totBud >= 1000000) ? (totBud/1000000).toFixed(1) : (totBud/1000).toFixed(1);
     document.getElementById('leftKpiActual').innerText = (totAct >= 1000000) ? (totAct/1000000).toFixed(1) : (totAct/1000).toFixed(1);
     document.querySelectorAll('#leftKpiBudget').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totBud >= 1000000) ? 'M PKR' : 'K PKR');
     document.querySelectorAll('#leftKpiActual').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totAct >= 1000000) ? 'M PKR' : 'K PKR');
     
+    // Total Variance math and color logic
     let netVar = totBud - totAct;
     document.getElementById('mainTableVariance').innerText = formatPKRShort(Math.abs(netVar));
     document.getElementById('mainTableVariance').parentElement.style.color = netVar >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)';
@@ -404,6 +408,10 @@ function updateStaffDashboard() {
 
     renderDonorDonut('spentDonutContainer', donorSpent); 
     renderDonorDonut('budgetDonutContainer', donorBudget); 
+    
+    // Trigger Vacant Positions Widget
+    let vacantList = Object.values(empSummary).filter(e => e.periodBud > 0 && e.periodAct === 0);
+    renderVacantPositions(vacantList);
 }
 
 function renderComponentTable(compSummary, searchTerm) {
@@ -411,7 +419,6 @@ function renderComponentTable(compSummary, searchTerm) {
     thead.innerHTML = `<tr><th>Component</th><th>${timeLabel} Budget</th><th>${timeLabel} Actual</th><th>Variance</th><th>% Spent</th></tr>`;
     
     const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
-    
     let sortedComps = Object.keys(compSummary).sort((x, y) => {
         if (x === 'Base Salary') return -1; if (y === 'Base Salary') return 1;
         if (x === 'Overtime, Arrears & Encashment') return 1; if (y === 'Overtime, Arrears & Encashment') return -1;
@@ -636,6 +643,9 @@ function exportModalCSV() {
     link.click();
 }
 
+// ========================================================================
+// 5. UTILS, DONUTS, AND VACANT WIDGET
+// ========================================================================
 function formatPKRInline(num) { let p = getFormattedParts(num); return `<span class="val-unit-inline">${p.u}</span> <span class="val-num-inline">${p.v}</span>`; }
 function formatPKRShort(num) { let p = getFormattedParts(num); return `${p.v} ${p.u.charAt(0)}`; }
 function getFormattedParts(num) {
@@ -676,4 +686,33 @@ function renderSvgDonut(containerId, items, centerBadge = null, bottomLabel = nu
     container.innerHTML = `<div class="svg-donut-wrapper" style="margin-top:-10px;"><div class="donut-chart-box"><svg viewBox="0 0 100 100" class="donut-svg">${circlesHtml}</svg></div>${showLegend && legendHtml ? `<div class="donut-legend-list">${legendHtml}</div>` : ''}</div>`;
     requestAnimationFrame(() => requestAnimationFrame(() => { container.querySelectorAll(`.donut-slice-${containerId}`).forEach(s => { const tl = parseFloat(s.getAttribute('data-target-len')) || 0; s.style.strokeDasharray = `${tl} ${C - tl}`; }); }));
 }
-applyTheme();
+
+function renderVacantPositions(list) {
+    const container = document.getElementById('vacantPositionsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    if (list.length === 0) {
+        container.innerHTML = '<div style="padding:10px; text-align:center; color:var(--text-secondary); font-size:0.7rem;">No vacant positions in period.</div>';
+        return;
+    }
+    
+    // Sort by highest budgeted savings
+    list.sort((a, b) => b.periodBud - a.periodBud);
+    
+    // Show top 5 vacant positions
+    list.slice(0, 5).forEach(p => {
+        container.innerHTML += `
+            <div class="mini-list-item">
+                <div class="mini-list-left">
+                    <strong style="color:var(--text-primary); font-size:0.75rem;">${p.code}</strong>
+                    <span style="color:var(--text-secondary); font-size:0.65rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 140px;">${p.dept}</span>
+                </div>
+                <div class="mini-list-right">
+                    <strong style="color:var(--krn-green); font-size:0.75rem;">${formatPKRShort(p.periodBud)}</strong>
+                    <span style="color:var(--text-secondary); font-size:0.65rem;">Saved</span>
+                </div>
+            </div>
+        `;
+    });
+}
