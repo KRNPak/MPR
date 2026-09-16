@@ -328,7 +328,7 @@ function updateStaffDashboard() {
     const elapsedMonths = endIdx + 1; 
     const searchTerm = document.getElementById('mainTableSearch').value.toLowerCase();
 
-    // Variables for Volatility and Sparkline Math
+    // Variables for Volatility and MoM Math
     let monthlySpendTrend = {};
     activeMonths.forEach(m => monthlySpendTrend[m] = 0);
     let compMonthly = {};
@@ -365,7 +365,6 @@ function updateStaffDashboard() {
                 empSummary[row.code].periodAct += a;
                 empSummary[row.code].periodBud += b;
                 
-                // Track for Insights
                 monthlySpendTrend[row.month] += a;
                 if (!compMonthly[cName]) { compMonthly[cName] = {}; activeMonths.forEach(m => compMonthly[cName][m] = 0); }
                 compMonthly[cName][row.month] += a;
@@ -401,8 +400,8 @@ function updateStaffDashboard() {
         document.getElementById('componentDonutWrapper').style.display = 'flex';
         document.getElementById('employeeTableWrapper').style.display = 'none';
         
-        // Render Giant Donut and Executive Panel
-        renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, empSummary, elapsedMonths, activeMonths, compMonthly, monthlySpendTrend);
+        // Passing the new tracking variables into the insights engine
+        renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, empSummary, elapsedMonths, activeMonths, compMonthly, monthlySpendTrend, activeHeads.size, budHeads.size, donorSpent);
     } else {
         document.getElementById('componentDonutWrapper').style.display = 'none';
         document.getElementById('employeeTableWrapper').style.display = 'block';
@@ -419,7 +418,7 @@ function updateStaffDashboard() {
 // ========================================================================
 // GIANT DONUT & EXECUTIVE INSIGHTS ENGINE
 // ========================================================================
-function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, empSummary, elapsedMonths, activeMonths, compMonthly, monthlySpendTrend) {
+function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, empSummary, elapsedMonths, activeMonths, compMonthly, monthlySpendTrend, activeHeadsCount, budHeadsCount, donorSpent) {
     const container = document.getElementById('componentDonutWrapper');
     let items = [];
     
@@ -472,7 +471,7 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
     svgHtml += `<text x="230" y="265" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="44" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text></svg>`;
 
     // --- 2. INSIGHTS MATH ---
-    // A. FY Projection
+    // A. FY Projection & Premium
     let totFyBud = 0; let totFyForecast = 0;
     Object.values(empSummary).forEach(e => {
         totFyBud += e.fyBud;
@@ -482,45 +481,65 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
         });
     });
     let fyVar = totFyBud - totFyForecast;
-    
-    // B. Vacancy vs Premium
     let vacantSavings = Object.values(empSummary).filter(e => e.periodBud > 0 && e.periodAct === 0).reduce((sum, e) => sum + e.periodBud, 0);
-    let netVariance = totBud - totAct;
-    let activePremium = netVariance - vacantSavings; // If negative, active staff are overspending
+    let activePremium = (totBud - totAct) - vacantSavings; 
 
-    // C. Volatility Alerts
-    let volHtml = '';
+    // B. Average Cost Per Head
+    let avgCostPerHead = activeHeadsCount > 0 ? (totAct / activeHeadsCount) : 0;
+    
+    // C. Budget-to-Headcount Efficiency
+    let hcCapacity = budHeadsCount > 0 ? Math.round((activeHeadsCount / budHeadsCount) * 100) : 0;
+    let finBurn = totBud > 0 ? Math.round((totAct / totBud) * 100) : 0;
+    
+    // D. Donor Dependency
+    let donorDepHtml = '';
+    if (selectedDonor === 'All Donors') {
+        let osrSpend = donorSpent['OSR'] || donorSpent['osr'] || 0; 
+        let externalSpend = totAct - osrSpend;
+        let donorDepPct = totAct > 0 ? Math.round((externalSpend / totAct) * 100) : 0;
+        donorDepHtml = `<strong style="font-size: 0.8rem; color: var(--text-primary);">${donorDepPct}% Ext / ${100 - donorDepPct}% Core</strong>`;
+    } else {
+        donorDepHtml = `<strong style="font-size: 0.8rem; color: var(--text-primary);">100% ${selectedDonor}</strong>`;
+    }
+
+    // E. Volatility & MoM Velocity
+    let volHtml = ''; let momHtml = '';
     if (activeMonths.length >= 2) {
         let sortedActive = activeMonths.slice().sort((a,b) => fiscalMonths.indexOf(a) - fiscalMonths.indexOf(b));
         let lastM = sortedActive[sortedActive.length - 1]; let prevM = sortedActive[sortedActive.length - 2];
+        
+        // Component Volatility Flag
         let maxSpike = 0; let spikeComp = '';
         Object.keys(compMonthly).forEach(c => {
             let pVal = compMonthly[c][prevM]; let lVal = compMonthly[c][lastM];
-            if (pVal > 50000 && lVal > pVal) { // Minimum threshold to avoid noise
+            if (pVal > 50000 && lVal > pVal) { 
                 let jump = (lVal - pVal) / pVal;
                 if (jump > maxSpike) { maxSpike = jump; spikeComp = c; }
             }
         });
-        if (maxSpike > 0.10) volHtml = `<div style="font-size:0.75rem; color:var(--krn-orange); margin-top:5px; font-weight:500;">⚠️ ${spikeComp} spiked +${Math.round(maxSpike*100)}% in ${lastM}</div>`;
+        if (maxSpike > 0.10) volHtml = `<div style="font-size:0.75rem; color:var(--krn-orange); margin-top:8px; font-weight:500; border-top:1px dashed var(--border-color); padding-top:8px;">⚠️ ${spikeComp} spiked +${Math.round(maxSpike*100)}% in ${lastM}</div>`;
+        
+        // Total Spend MoM Velocity
+        let totLastM = monthlySpendTrend[lastM] || 0;
+        let totPrevM = monthlySpendTrend[prevM] || 0;
+        if (totPrevM > 0) {
+            let momDiff = totLastM - totPrevM;
+            let momPct = Math.abs(Math.round((momDiff / totPrevM) * 100));
+            let momColor = momDiff > 0 ? 'var(--krn-orange)' : 'var(--krn-green)';
+            let momSign = momDiff > 0 ? '+' : '-';
+            momHtml = `
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 0.8rem; color: var(--text-primary);">MoM Velocity (${prevM}➔${lastM})</span>
+                    <strong style="font-size: 0.8rem; color: ${momColor};">${momSign}${momPct}% (${formatPKRShort(Math.abs(momDiff))})</strong>
+                </div>`;
+        }
     }
 
-    // D. Mini Sparkline
-    let sparkMax = Math.max(...Object.values(monthlySpendTrend));
-    let sparkMin = Math.min(...Object.values(monthlySpendTrend));
-    let pts = activeMonths.map((m, i) => {
-        let x = i * (200 / Math.max(1, activeMonths.length - 1));
-        let y = 40 - (((monthlySpendTrend[m] - sparkMin) / Math.max(1, sparkMax - sparkMin)) * 30);
-        return `${x},${y}`;
-    }).join(' ');
-
     // --- 3. LAYOUT ASSEMBLY ---
-// --- 3. LAYOUT ASSEMBLY ---
     let insightsHtml = `
         <div style="flex: 1; display: flex; flex-direction: column; gap: 15px; max-width: 450px;">
-            
-            <!-- Insight Card: Executive Summary -->
             <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 10px;">Executive Highlights</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 12px;">Executive Highlights</div>
                 
                 <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                     <span style="font-size: 0.8rem; color: var(--text-primary);">FY Projection</span>
@@ -532,10 +551,27 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
                     <strong style="font-size: 0.8rem; color: var(--krn-green);">+${formatPKRShort(vacantSavings)}</strong>
                 </div>
                 
-                <div style="display: flex; justify-content: space-between;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                     <span style="font-size: 0.8rem; color: var(--text-primary);">Active Premium/Deficit</span>
                     <strong style="font-size: 0.8rem; color: ${activePremium >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'};">${activePremium >= 0 ? '+' : ''}${formatPKRShort(activePremium)}</strong>
                 </div>
+                
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 0.8rem; color: var(--text-primary);">Avg Cost Per Head</span>
+                    <strong style="font-size: 0.8rem; color: var(--krn-blue);">${formatPKRShort(avgCostPerHead)}</strong>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 0.8rem; color: var(--text-primary);">Donor Dependency</span>
+                    ${donorDepHtml}
+                </div>
+
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 0.8rem; color: var(--text-primary);">Efficiency (HC vs Bud)</span>
+                    <strong style="font-size: 0.8rem; color: ${finBurn > hcCapacity ? 'var(--krn-orange)' : 'var(--krn-green)'};">${hcCapacity}% Filled / ${finBurn}% Burn</strong>
+                </div>
+
+                ${momHtml}
                 ${volHtml}
             </div>
         </div>
