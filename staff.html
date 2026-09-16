@@ -64,6 +64,16 @@
         .mini-list-item:last-child { border-bottom: none; padding-bottom: 0; }
         .mini-list-left { display: flex; flex-direction: column; text-align: left; }
         .mini-list-right { display: flex; flex-direction: column; text-align: right; }
+
+        /* Smooth Tooltip Animation */
+        .hover-tooltip {
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out !important;
+            transform: translateY(10px) scale(0.95);
+        }
+        .hover-tooltip.visible {
+            transform: translateY(0) scale(1);
+        }
+        
     </style>
 </head>
 <body class="view-summary light-mode"> 
