@@ -497,7 +497,7 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
         let osrSpend = donorSpent['OSR'] || donorSpent['osr'] || 0; 
         let externalSpend = totAct - osrSpend;
         let donorDepPct = totAct > 0 ? Math.round((externalSpend / totAct) * 100) : 0;
-        donorDepHtml = `<strong style="font-size: 0.8rem; color: var(--text-primary);">${donorDepPct}% Ext / ${100 - donorDepPct}% Core</strong>`;
+        donorDepHtml = `<strong style="font-size: 0.8rem; color: var(--text-primary);">${donorDepPct}% Donor / ${100 - donorDepPct}% OSR</strong>`;
     } else {
         donorDepHtml = `<strong style="font-size: 0.8rem; color: var(--text-primary);">100% ${selectedDonor}</strong>`;
     }
