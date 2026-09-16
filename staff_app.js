@@ -24,7 +24,6 @@ let activeModalType = 'Component';
 let activeModalTarget = ''; 
 let activeModalTargetName = '';
 
-// Entitlement-based components (Updated with new merged names)
 const annualComponents = ['LFA', 'Gratuity', 'Insurances (Health & Life)', 'Learning & Development', 'Performance'];
 
 async function unlockDashboard() {
@@ -129,11 +128,9 @@ function createHeaderMap(rawKeys) {
         else if (lower.includes('gratuity')) map[k.orig] = 'Gratuity';
         else if (lower.includes('lfa') || lower.includes('leave fare')) map[k.orig] = 'LFA';
         else if (lower.includes('wellness')) map[k.orig] = 'Wellness Allowance';
-        // Club Health & Life Insurance
         else if (lower.includes('health ins') || lower.includes('life insura')) map[k.orig] = 'Insurances (Health & Life)';
         else if (lower.includes('learning')) map[k.orig] = 'Learning & Development';
         else if (lower.includes('performance') || lower.includes('one-off')) map[k.orig] = 'Performance';
-        // Club Arrears, Overtime, Encashments into Base Salary
         else if (lower.includes('arrears') || lower.includes('overtime') || lower.includes('leave encashment') || lower.includes('base salary')) map[k.orig] = 'Base Salary (Inc. Encashments)';
     });
     return map;
@@ -266,13 +263,7 @@ function populateTimeDropdown() {
     }
 }
 
-function onGlobalFilterChange() {
-    selectedYear = document.getElementById('yearDropdown').value;
-    selectedDepartment = document.getElementById('deptDropdown').value;
-    selectedDonor = document.getElementById('donorDropdown').value;
-    updateStaffDashboard();
-}
-
+function onGlobalFilterChange() { selectedYear = document.getElementById('yearDropdown').value; selectedDepartment = document.getElementById('deptDropdown').value; selectedDonor = document.getElementById('donorDropdown').value; updateStaffDashboard(); }
 function onTimeFilterChange() { selectedMonth = document.getElementById('monthDropdown').value; updateStaffDashboard(); }
 
 function setGranularity(val) {
@@ -280,13 +271,8 @@ function setGranularity(val) {
     document.querySelectorAll('button[data-group="granularity"]').forEach(btn => btn.classList.toggle('active', btn.dataset.val === val));
     const pRow = document.getElementById('periodToggleRow');
     const mDrop = document.getElementById('monthDropdown');
-    
-    if (val === 'Yearly') {
-        pRow.style.opacity = '0.3'; pRow.style.pointerEvents = 'none'; mDrop.disabled = true;
-    } else {
-        pRow.style.opacity = '1'; pRow.style.pointerEvents = 'auto'; mDrop.disabled = false;
-        populateTimeDropdown(); 
-    }
+    if (val === 'Yearly') { pRow.style.opacity = '0.3'; pRow.style.pointerEvents = 'none'; mDrop.disabled = true; } 
+    else { pRow.style.opacity = '1'; pRow.style.pointerEvents = 'auto'; mDrop.disabled = false; populateTimeDropdown(); }
     updateStaffDashboard();
 }
 
@@ -329,12 +315,16 @@ function updateStaffDashboard() {
     let totBud = 0, totAct = 0;
     let compSummary = {};
     let empSummary = {}; 
-    
     let activeHeads = new Set(), budHeads = new Set();
     let donorSpent = {}; let donorBudget = {}; 
 
     const elapsedMonths = endIdx + 1; 
     const searchTerm = document.getElementById('mainTableSearch').value.toLowerCase();
+
+    // Variables for Volatility and Sparkline Math
+    let monthlySpendTrend = {};
+    activeMonths.forEach(m => monthlySpendTrend[m] = 0);
+    let compMonthly = {};
 
     unifiedLedger.forEach(row => {
         let master = positionMaster[row.code];
@@ -367,6 +357,11 @@ function updateStaffDashboard() {
                 rowTotB += b; rowTotA += a;
                 empSummary[row.code].periodAct += a;
                 empSummary[row.code].periodBud += b;
+                
+                // Track for Insights
+                monthlySpendTrend[row.month] += a;
+                if (!compMonthly[cName]) { compMonthly[cName] = {}; activeMonths.forEach(m => compMonthly[cName][m] = 0); }
+                compMonthly[cName][row.month] += a;
             }
         });
 
@@ -395,11 +390,12 @@ function updateStaffDashboard() {
     document.getElementById('mainTableVariance').innerText = formatPKRShort(Math.abs(netVar));
     document.getElementById('mainTableVariance').parentElement.style.color = netVar >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)';
 
-    // TOGGLE VIEWS
     if (tableView === 'Component') {
         document.getElementById('componentDonutWrapper').style.display = 'flex';
         document.getElementById('employeeTableWrapper').style.display = 'none';
-        renderGiantDonut(compSummary, totAct, searchTerm);
+        
+        // Render Giant Donut and Executive Panel
+        renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, empSummary, elapsedMonths, activeMonths, compMonthly, monthlySpendTrend);
     } else {
         document.getElementById('componentDonutWrapper').style.display = 'none';
         document.getElementById('employeeTableWrapper').style.display = 'block';
@@ -414,22 +410,16 @@ function updateStaffDashboard() {
 }
 
 // ========================================================================
-// GIANT COMPONENT DONUT ENGINE
+// GIANT DONUT & EXECUTIVE INSIGHTS ENGINE
 // ========================================================================
-function renderGiantDonut(compSummary, totAct, searchTerm) {
+function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, empSummary, elapsedMonths, activeMonths, compMonthly, monthlySpendTrend) {
     const container = document.getElementById('componentDonutWrapper');
     let items = [];
     
     Object.keys(compSummary).forEach(c => {
         if (compSummary[c].a > 0) {
             if (searchTerm && !c.toLowerCase().includes(searchTerm)) return;
-            // Added budget (compSummary[c].b) into the data array for the tooltip
-            items.push({ 
-                label: c, 
-                val: compSummary[c].a, 
-                bud: compSummary[c].b, 
-                pct: Math.round((compSummary[c].a / totAct) * 100) 
-            });
+            items.push({ label: c, val: compSummary[c].a, bud: compSummary[c].b, pct: Math.round((compSummary[c].a / totAct) * 100) });
         }
     });
 
@@ -440,68 +430,143 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
         return;
     }
 
+    // --- 1. SVG DONUT CREATION ---
     const colors = ['#0073a8', '#14b8a6', '#f59e0b', '#8b5cf6', '#3b82f6', '#ef4444', '#10b981', '#f43f5e', '#84cc16', '#d946ef', '#06b6d4', '#eab308'];
-    const N = items.length;
+    const N = items.length; const radius = 145; const strokeWidth = 110; const C = 2 * Math.PI * radius;
+    const sliceLength = C / N; const gap = 6; const dashLength = sliceLength - gap;
     
-    const radius = 145;
-    const strokeWidth = 110; 
-    
-    const C = 2 * Math.PI * radius;
-    const sliceLength = C / N;
-    const gap = 6; 
-    const dashLength = sliceLength - gap;
-    
-    let svgHtml = `<svg viewBox="0 0 460 460" style="width: 100%; max-width: 550px; max-height: 550px; overflow: visible;">`;
+    let svgHtml = `<svg viewBox="0 0 460 460" style="width: 100%; max-width: 480px; max-height: 480px; overflow: visible;">`;
     
     items.forEach((item, i) => {
-        const color = colors[i % colors.length];
-        const offset = -(i * sliceLength);
-        
-        // Added the hover tooltip triggers (onmouseenter, onmousemove, onmouseleave)
+        const color = colors[i % colors.length]; const offset = -(i * sliceLength);
         svgHtml += `<circle cx="230" cy="230" r="${radius}" fill="none" stroke="${color}" 
                     stroke-dasharray="${dashLength} ${C - dashLength}" stroke-dashoffset="${offset}" 
                     style="stroke-width: ${strokeWidth}px; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dasharray 1s ease-out; cursor: pointer;" 
                     onmouseenter="showGiantTooltip(event, '${item.label.replace(/'/g, "\\'")}', ${item.val}, ${item.bud})"
-                    onmousemove="moveTooltip(event)"
-                    onmouseleave="hideTooltip()"
+                    onmousemove="moveTooltip(event)" onmouseleave="hideTooltip()"
                     onclick="openComponentModal('${item.label.replace(/'/g, "\\'")}')" />`;
         
-        const sliceAngleDeg = 360 / N;
-        const midAngleDeg = -90 + (i * sliceAngleDeg) + (sliceAngleDeg / 2);
-        const midAngleRad = midAngleDeg * Math.PI / 180;
-        
-        const textX = 230 + radius * Math.cos(midAngleRad);
-        const textY = 230 + radius * Math.sin(midAngleRad);
+        const sliceAngleDeg = 360 / N; const midAngleDeg = -90 + (i * sliceAngleDeg) + (sliceAngleDeg / 2); const midAngleRad = midAngleDeg * Math.PI / 180;
+        const textX = 230 + radius * Math.cos(midAngleRad); const textY = 230 + radius * Math.sin(midAngleRad);
         
         let l1 = item.label; let l2 = "";
-        if (item.label.includes('(')) {
-            const parts = item.label.split('(');
-            l1 = parts[0].trim();
-            l2 = '(' + parts[1];
-        } else if (item.label.includes(' ')) {
-            const parts = item.label.split(' ');
-            if (parts[0].length > 3) {
-                l1 = parts[0];
-                l2 = parts.slice(1).join(' ');
-            }
-        }
+        if (item.label.includes('(')) { const parts = item.label.split('('); l1 = parts[0].trim(); l2 = '(' + parts[1]; } 
+        else if (item.label.includes(' ')) { const parts = item.label.split(' '); if (parts[0].length > 3) { l1 = parts[0]; l2 = parts.slice(1).join(' '); } }
         
         svgHtml += `<text x="${textX}" y="${textY - (l2 ? 8 : 0)}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-size="12" font-family="Calibri, sans-serif" font-weight="bold" style="pointer-events: none;">`;
         svgHtml += `<tspan x="${textX}" dy="0">${l1}</tspan>`;
         if (l2) svgHtml += `<tspan x="${textX}" dy="15">${l2}</tspan>`;
-        svgHtml += `<tspan x="${textX}" dy="18" fill="rgba(255,255,255,0.9)">${item.pct}%</tspan>`;
-        svgHtml += `</text>`;
+        svgHtml += `<tspan x="${textX}" dy="18" fill="rgba(255,255,255,0.9)">${item.pct}%</tspan></text>`;
     });
 
     const totParts = getFormattedParts(totAct);
-    
     svgHtml += `<text x="230" y="195" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="14" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${timeLabel.toUpperCase()} SPENT</text>`;
     svgHtml += `<text x="230" y="220" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-light-blue)" font-size="16" font-family="Calibri, sans-serif" font-weight="bold">${totParts.u}</text>`;
-    svgHtml += `<text x="230" y="265" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="44" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text>`;
+    svgHtml += `<text x="230" y="265" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="44" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text></svg>`;
+
+    // --- 2. INSIGHTS MATH ---
+    // A. FY Projection
+    let totFyBud = 0; let totFyForecast = 0;
+    Object.values(empSummary).forEach(e => {
+        totFyBud += e.fyBud;
+        Object.keys(e.cBud).forEach(cName => {
+            let act = e.cAct[cName] || 0; let bud = e.cBud[cName] || 0;
+            if (annualComponents.includes(cName)) totFyForecast += Math.max(act, bud); else totFyForecast += (act / elapsedMonths) * 12;
+        });
+    });
+    let fyVar = totFyBud - totFyForecast;
     
-    svgHtml += `</svg>`;
-    container.innerHTML = svgHtml;
+    // B. Vacancy vs Premium
+    let vacantSavings = Object.values(empSummary).filter(e => e.periodBud > 0 && e.periodAct === 0).reduce((sum, e) => sum + e.periodBud, 0);
+    let netVariance = totBud - totAct;
+    let activePremium = netVariance - vacantSavings; // If negative, active staff are overspending
+
+    // C. Volatility Alerts
+    let volHtml = '';
+    if (activeMonths.length >= 2) {
+        let sortedActive = activeMonths.slice().sort((a,b) => fiscalMonths.indexOf(a) - fiscalMonths.indexOf(b));
+        let lastM = sortedActive[sortedActive.length - 1]; let prevM = sortedActive[sortedActive.length - 2];
+        let maxSpike = 0; let spikeComp = '';
+        Object.keys(compMonthly).forEach(c => {
+            let pVal = compMonthly[c][prevM]; let lVal = compMonthly[c][lastM];
+            if (pVal > 50000 && lVal > pVal) { // Minimum threshold to avoid noise
+                let jump = (lVal - pVal) / pVal;
+                if (jump > maxSpike) { maxSpike = jump; spikeComp = c; }
+            }
+        });
+        if (maxSpike > 0.10) volHtml = `<div style="font-size:0.75rem; color:var(--krn-orange); margin-top:5px; font-weight:500;">⚠️ ${spikeComp} spiked +${Math.round(maxSpike*100)}% in ${lastM}</div>`;
+    }
+
+    // D. Mini Sparkline
+    let sparkMax = Math.max(...Object.values(monthlySpendTrend));
+    let sparkMin = Math.min(...Object.values(monthlySpendTrend));
+    let pts = activeMonths.map((m, i) => {
+        let x = i * (200 / Math.max(1, activeMonths.length - 1));
+        let y = 40 - (((monthlySpendTrend[m] - sparkMin) / Math.max(1, sparkMax - sparkMin)) * 30);
+        return `${x},${y}`;
+    }).join(' ');
+
+    // --- 3. LAYOUT ASSEMBLY ---
+    let insightsHtml = `
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 15px; max-width: 450px;">
+            
+            <!-- Insight Card 1: Executive Summary -->
+            <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
+                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 10px;">Executive Highlights</div>
+                
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 0.8rem; color: var(--text-primary);">FY Projection</span>
+                    <strong style="font-size: 0.8rem; color: ${fyVar >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'};">${fyVar >= 0 ? '+' : ''}${formatPKRShort(fyVar)} ${fyVar >= 0 ? '(Surplus)' : '(Deficit)'}</strong>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 0.8rem; color: var(--text-primary);">Vacancy Savings</span>
+                    <strong style="font-size: 0.8rem; color: var(--krn-green);">+${formatPKRShort(vacantSavings)}</strong>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="font-size: 0.8rem; color: var(--text-primary);">Active Premium/Deficit</span>
+                    <strong style="font-size: 0.8rem; color: ${activePremium >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'};">${activePremium >= 0 ? '+' : ''}${formatPKRShort(activePremium)}</strong>
+                </div>
+                ${volHtml}
+            </div>
+
+            <!-- Insight Card 2: Trend & Top 5 -->
+            <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase;">Top 5 Elements</div>
+                    
+                    <div style="text-align:right;">
+                        <div style="font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 2px;">Monthly Trend</div>
+                        <svg width="60" height="25" viewBox="0 0 200 40" style="overflow: visible;">
+                            <polyline fill="none" stroke="var(--krn-light-blue)" stroke-width="4" points="${pts}" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div style="display:flex; flex-direction: column; gap: 8px;">
+                    ${items.slice(0,5).map((it, i) => `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width:10px; height:10px; border-radius:50%; background-color:${colors[i % colors.length]};"></div>
+                                <span style="font-size: 0.8rem; color: var(--text-primary); font-weight: 500;">${it.label.split('(')[0].trim()}</span>
+                            </div>
+                            <strong style="font-size: 0.8rem; color: var(--krn-blue); font-variant-numeric: tabular-nums;">${formatPKRShort(it.val)}</strong>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.style.justifyContent = 'space-between';
+    container.style.alignItems = 'flex-start';
+    container.innerHTML = `
+        <div style="flex: 1.2; display: flex; justify-content: center; align-items: center;">${svgHtml}</div>
+        ${insightsHtml}
+    `;
 }
+
 function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
     const thead = document.getElementById('mainTableHeader');
     thead.innerHTML = `<tr><th>Position & Name</th><th>${timeLabel} Actual</th><th>FY Forecast (Smart)</th><th>FY Budget</th><th>FY Variance</th></tr>`;
@@ -528,8 +593,7 @@ function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
         if (e.periodAct === 0 && e.fyBud === 0) return;
         if (searchTerm && !code.toLowerCase().includes(searchTerm) && !e.name.toLowerCase().includes(searchTerm)) return;
         
-        let forecast = getSmartForecast(e);
-        let varNum = e.fyBud - forecast;
+        let forecast = getSmartForecast(e); let varNum = e.fyBud - forecast;
         
         tbody.innerHTML += `
             <tr class="clickable-tr summary-table-row" onclick="openEmployeeModal('${code.replace(/'/g, "\\'")}', '${e.name.replace(/'/g, "\\'")}')">
@@ -566,8 +630,7 @@ function openEmployeeModal(empCode, empName) {
 }
 
 function renderModalTable() {
-    if (activeModalType === 'Component') renderStaffModalTable();
-    else renderEmployeeModalTable();
+    if (activeModalType === 'Component') renderStaffModalTable(); else renderEmployeeModalTable();
 }
 
 function renderStaffModalTable() {
@@ -638,9 +701,7 @@ function renderEmployeeModalTable() {
                 activeMonths.forEach(m => compData[cName].months[m] = 0);
             }
             
-            compData[cName].months[row.month] += a;
-            compData[cName].tA += a;
-            compData[cName].tB += b;
+            compData[cName].months[row.month] += a; compData[cName].tA += a; compData[cName].tB += b;
         });
     });
 
@@ -654,9 +715,7 @@ function renderEmployeeModalTable() {
         if (term && !c.name.toLowerCase().includes(term)) return;
         let diff = c.tB - c.tA;
         let rowHtml = `<tr><td><strong style="color:var(--text-primary)">${c.name}</strong></td>`;
-        activeMonths.forEach(m => { 
-            rowHtml += `<td style="font-variant-numeric:tabular-nums">${c.months[m] === 0 ? '-' : (c.months[m]/1000000).toFixed(2)}</td>`; 
-        });
+        activeMonths.forEach(m => { rowHtml += `<td style="font-variant-numeric:tabular-nums">${c.months[m] === 0 ? '-' : (c.months[m]/1000000).toFixed(2)}</td>`; });
         rowHtml += `<td style="font-variant-numeric:tabular-nums; font-weight:bold; color:var(--krn-blue);">${(c.tA/1000000).toFixed(2)}</td>
                     <td style="font-variant-numeric:tabular-nums; color:var(--text-secondary)">${(c.tB/1000000).toFixed(2)}</td>
                     <td style="font-variant-numeric:tabular-nums; font-weight:bold; color:${diff >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'}">${(diff/1000000).toFixed(2)}</td></tr>`;
@@ -685,16 +744,11 @@ function showTooltip(e, label, value, pct) {
     const parts = getFormattedParts(value);
     if(tooltip) { tooltip.innerHTML = `<strong>${label}</strong><br><span class="val-num-inline" style="color:inherit">${parts.v}</span> ${parts.u} (<span class="val-num-inline" style="color:inherit">${pct}</span>%)`; tooltip.classList.add('visible'); moveTooltip(e); }
 }
-function moveTooltip(e) { if(tooltip) { tooltip.style.left = (e.clientX + 15) + 'px'; tooltip.style.top = (e.clientY + 15) + 'px'; } }
-function hideTooltip() { if(tooltip) tooltip.classList.remove('visible'); }
 function showGiantTooltip(e, label, actual, budget) {
-    const actParts = getFormattedParts(actual);
-    const budParts = getFormattedParts(budget);
-    const varNum = budget - actual;
-    const varParts = getFormattedParts(Math.abs(varNum));
+    const actParts = getFormattedParts(actual); const budParts = getFormattedParts(budget);
+    const varNum = budget - actual; const varParts = getFormattedParts(Math.abs(varNum));
     const varColor = varNum >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)';
     const pct = budget > 0 ? Math.round((actual / budget) * 100) : (actual > 0 ? 'N/A' : 0);
-
     if (tooltip) {
         tooltip.innerHTML = `
             <div style="font-weight:bold; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:4px; font-size: 0.9rem;">${label}</div>
@@ -703,10 +757,12 @@ function showGiantTooltip(e, label, actual, budget) {
             <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem; margin-bottom:3px;"><span>Variance:</span> <strong style="color:${varColor}">${varParts.v} ${varParts.u}</strong></div>
             <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem;"><span>% Spent:</span> <strong>${pct}${pct !== 'N/A' ? '%' : ''}</strong></div>
         `;
-        tooltip.classList.add('visible');
-        moveTooltip(e);
+        tooltip.classList.add('visible'); moveTooltip(e);
     }
 }
+function moveTooltip(e) { if(tooltip) { tooltip.style.left = (e.clientX + 15) + 'px'; tooltip.style.top = (e.clientY + 15) + 'px'; } }
+function hideTooltip() { if(tooltip) tooltip.classList.remove('visible'); }
+
 function renderDonorDonut(containerId, donorObj) {
     if (Object.keys(donorObj).length === 0) { document.getElementById(containerId).innerHTML = '<div style="font-size:0.7rem; color:var(--text-secondary); text-align:center; margin-top:40px;">N/A</div>'; return; }
     let colors = ['var(--krn-blue)', '#14b8a6', 'var(--krn-orange)', '#8b5cf6', 'var(--krn-light-blue)'];
