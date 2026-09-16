@@ -507,6 +507,7 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
     }).join(' ');
 
     // --- 3. LAYOUT ASSEMBLY ---
+// --- 3. LAYOUT ASSEMBLY ---
     let insightsHtml = `
         <div style="flex: 1; display: flex; flex-direction: column; gap: 15px; max-width: 450px;">
             
@@ -531,29 +532,13 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
                 ${volHtml}
             </div>
 
-            <!-- Insight Card 2: Trend & Top 5 -->
+            <!-- Insight Card 2: Expanded Monthly Trend -->
             <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase;">Top 5 Elements</div>
-                    
-                    <div style="text-align:right;">
-                        <div style="font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 2px;">Monthly Trend</div>
-                        <svg width="60" height="25" viewBox="0 0 200 40" style="overflow: visible;">
-                            <polyline fill="none" stroke="var(--krn-light-blue)" stroke-width="4" points="${pts}" />
-                        </svg>
-                    </div>
-                </div>
-
-                <div style="display:flex; flex-direction: column; gap: 8px;">
-                    ${items.slice(0,5).map((it, i) => `
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width:10px; height:10px; border-radius:50%; background-color:${colors[i % colors.length]};"></div>
-                                <span style="font-size: 0.8rem; color: var(--text-primary); font-weight: 500;">${it.label.split('(')[0].trim()}</span>
-                            </div>
-                            <strong style="font-size: 0.8rem; color: var(--krn-blue); font-variant-numeric: tabular-nums;">${formatPKRShort(it.val)}</strong>
-                        </div>
-                    `).join('')}
+                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 15px;">Monthly Spend Trend</div>
+                <div style="width: 100%; height: 75px; display: flex; align-items: flex-end;">
+                    <svg width="100%" height="100%" viewBox="0 -5 200 45" style="overflow: visible;" preserveAspectRatio="none">
+                        <polyline fill="none" stroke="var(--krn-blue)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="${pts}" />
+                    </svg>
                 </div>
             </div>
         </div>
