@@ -490,8 +490,8 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
     // Inner Core: Total Spent
     const totParts = getFormattedParts(totAct);
     svgHtml += `<text x="230" y="210" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="14" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${timeLabel.toUpperCase()} SPENT</text>`;
-    svgHtml += `<text x="230" y="250" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="38" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v} ${totParts.u}</text>`;
-    
+    svgHtml += `<text x="230" y="250" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="38" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text>`;
+    svgHtml += `<text x="230" y="210" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="14" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${totParts.u}</text>`;
     svgHtml += `</svg>`;
     container.innerHTML = svgHtml;
 }
