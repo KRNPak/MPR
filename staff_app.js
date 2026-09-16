@@ -494,10 +494,10 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
     svgHtml += `<text x="230" y="195" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="14" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${timeLabel.toUpperCase()} SPENT</text>`;
     
     // Unit (y=265)
-    svgHtml += `<text x="230" y="260" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-light-blue)" font-size="16" font-family="Calibri, sans-serif" font-weight="bold">${totParts.u}</text>`;
+    svgHtml += `<text x="230" y="265" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-light-blue)" font-size="16" font-family="Calibri, sans-serif" font-weight="bold">${totParts.u}</text>`;
     
-    // Value (y=265) - Made slightly larger to stand out!
-    svgHtml += `<text x="230" y="210" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="44" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text>`;
+    // Value (y=230) - Made slightly larger to stand out!
+    svgHtml += `<text x="230" y="230" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="44" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text>`;
     
     svgHtml += `</svg>`;
     container.innerHTML = svgHtml;
