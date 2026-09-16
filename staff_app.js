@@ -436,11 +436,14 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
 
     const colors = ['#0073a8', '#14b8a6', '#f59e0b', '#8b5cf6', '#3b82f6', '#ef4444', '#10b981', '#f43f5e', '#84cc16', '#d946ef', '#06b6d4', '#eab308'];
     const N = items.length;
-    const radius = 150;
-    const strokeWidth = 90;
+    
+    // Bumping radius and forcing ultra-thick inline stroke
+    const radius = 145;
+    const strokeWidth = 110; 
+    
     const C = 2 * Math.PI * radius;
     const sliceLength = C / N;
-    const gap = 5; 
+    const gap = 6; 
     const dashLength = sliceLength - gap;
     
     let svgHtml = `<svg viewBox="0 0 460 460" style="width: 100%; max-width: 550px; max-height: 550px; overflow: visible;">`;
@@ -449,10 +452,10 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
         const color = colors[i % colors.length];
         const offset = -(i * sliceLength);
         
-        // Equal Slice Arcs
-        svgHtml += `<circle cx="230" cy="230" r="${radius}" fill="none" stroke="${color}" stroke-width="${strokeWidth}" 
+        // MOVED stroke-width into the style tag to force override any external CSS
+        svgHtml += `<circle cx="230" cy="230" r="${radius}" fill="none" stroke="${color}" 
                     stroke-dasharray="${dashLength} ${C - dashLength}" stroke-dashoffset="${offset}" 
-                    style="transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dasharray 1s ease-out; cursor: pointer;" 
+                    style="stroke-width: ${strokeWidth}px; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dasharray 1s ease-out; cursor: pointer;" 
                     onclick="openComponentModal('${item.label.replace(/'/g, "\\'")}')" />`;
         
         // Exact mathematical center of the slice for text placement
@@ -477,17 +480,17 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
             }
         }
         
-        svgHtml += `<text x="${textX}" y="${textY - (l2 ? 8 : 0)}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-size="11" font-family="Calibri, sans-serif" font-weight="bold" style="pointer-events: none;">`;
+        svgHtml += `<text x="${textX}" y="${textY - (l2 ? 8 : 0)}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-size="12" font-family="Calibri, sans-serif" font-weight="bold" style="pointer-events: none;">`;
         svgHtml += `<tspan x="${textX}" dy="0">${l1}</tspan>`;
-        if (l2) svgHtml += `<tspan x="${textX}" dy="14">${l2}</tspan>`;
-        svgHtml += `<tspan x="${textX}" dy="16" fill="rgba(255,255,255,0.8)">${item.pct}%</tspan>`;
+        if (l2) svgHtml += `<tspan x="${textX}" dy="15">${l2}</tspan>`;
+        svgHtml += `<tspan x="${textX}" dy="18" fill="rgba(255,255,255,0.9)">${item.pct}%</tspan>`;
         svgHtml += `</text>`;
     });
 
     // Inner Core: Total Spent
     const totParts = getFormattedParts(totAct);
-    svgHtml += `<text x="230" y="215" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="13" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${timeLabel.toUpperCase()} SPENT</text>`;
-    svgHtml += `<text x="230" y="250" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="34" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v} ${totParts.u}</text>`;
+    svgHtml += `<text x="230" y="210" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="14" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${timeLabel.toUpperCase()} SPENT</text>`;
+    svgHtml += `<text x="230" y="250" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="38" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v} ${totParts.u}</text>`;
     
     svgHtml += `</svg>`;
     container.innerHTML = svgHtml;
