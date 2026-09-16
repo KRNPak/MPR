@@ -40,9 +40,16 @@ async function unlockDashboard() {
             const res = await fetch(`Data/${selectedYear}/${filename}`);
             if (!res.ok) return null; 
             const encryptedText = await res.text();
-            const decrypted = CryptoJS.AES.decrypt(encryptedText, pwdInput).toString(CryptoJS.enc.Utf8);
-            if (!decrypted) throw new Error("Invalid Key");
-            return parseCSV(decrypted);
+            
+            try {
+                // We wrap the decryption in its own try/catch to catch the UTF-8 error
+                const decrypted = CryptoJS.AES.decrypt(encryptedText, pwdInput).toString(CryptoJS.enc.Utf8);
+                if (!decrypted) throw new Error("Invalid Key");
+                return parseCSV(decrypted);
+            } catch (error) {
+                // If CryptoJS throws "Malformed UTF-8 data", it means the password was wrong
+                throw new Error("Invalid Key");
+            }
         };
 
         const masterRows = await fetchAndDecrypt('Staff_Master.enc');
