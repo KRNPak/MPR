@@ -20,13 +20,12 @@ let positionMaster = {};
 let unifiedLedger = []; 
 let activeMonths = [];
 
-// Dynamic Modal State Tracking
 let activeModalType = 'Component'; 
 let activeModalTarget = ''; 
 let activeModalTargetName = '';
 
-// The components that should NOT be multiplied by 12 (Entitlement based)
-const annualComponents = ['LFA', 'Gratuity', 'Health Insurance', 'Life Insurance', 'Learning & Development', 'Performance / Bonus'];
+// Entitlement-based components (Updated with new merged names)
+const annualComponents = ['LFA', 'Gratuity', 'Insurances (Health & Life)', 'Learning & Development', 'Performance'];
 
 async function unlockDashboard() {
     const pwdInput = document.getElementById('authPassword').value;
@@ -114,7 +113,7 @@ function createHeaderMap(rawKeys) {
     let lowerKeys = rawKeys.map(k => ({ orig: k, low: k.toLowerCase().trim() }));
     
     let baseMatch = lowerKeys.find(k => k.low.includes('base salary after inflation')) || lowerKeys.find(k => k.low.includes('updated base')) || lowerKeys.find(k => k.low === 'base salary') || lowerKeys.find(k => k.low.includes('base'));
-    if (baseMatch) map[baseMatch.orig] = 'Base Salary';
+    if (baseMatch) map[baseMatch.orig] = 'Base Salary (Inc. Encashments)';
 
     lowerKeys.forEach(k => {
         if (baseMatch && k.orig === baseMatch.orig) return; 
@@ -122,7 +121,6 @@ function createHeaderMap(rawKeys) {
         
         if (lower.includes('gross') || lower.includes('net') || lower.includes('payable') || lower.includes('tax') || lower.includes('advance') || lower.includes('deduction') || lower.includes('other')) return;
         
-        // Strictly match Child Care before Car Monetization to prevent overlap
         if (lower.includes('child care')) map[k.orig] = 'Child Care';
         else if (lower.includes('car monet') || lower.includes('cma')) map[k.orig] = 'Car Monetization';
         else if (lower.includes('cola')) map[k.orig] = 'COLA';
@@ -131,12 +129,12 @@ function createHeaderMap(rawKeys) {
         else if (lower.includes('gratuity')) map[k.orig] = 'Gratuity';
         else if (lower.includes('lfa') || lower.includes('leave fare')) map[k.orig] = 'LFA';
         else if (lower.includes('wellness')) map[k.orig] = 'Wellness Allowance';
-        else if (lower.includes('health ins')) map[k.orig] = 'Health Insurance';
-        else if (lower.includes('life insura')) map[k.orig] = 'Life Insurance';
+        // Club Health & Life Insurance
+        else if (lower.includes('health ins') || lower.includes('life insura')) map[k.orig] = 'Insurances (Health & Life)';
         else if (lower.includes('learning')) map[k.orig] = 'Learning & Development';
-        else if (lower.includes('performance') || lower.includes('one-off')) map[k.orig] = 'Performance / Bonus';
-        // Merge Arrears, Overtime, and Leave Encashment
-        else if (lower.includes('arrears') || lower.includes('overtime') || lower.includes('leave encashment')) map[k.orig] = 'Overtime, Arrears & Encashment';
+        else if (lower.includes('performance') || lower.includes('one-off')) map[k.orig] = 'Performance';
+        // Club Arrears, Overtime, Encashments into Base Salary
+        else if (lower.includes('arrears') || lower.includes('overtime') || lower.includes('leave encashment') || lower.includes('base salary')) map[k.orig] = 'Base Salary (Inc. Encashments)';
     });
     return map;
 }
@@ -345,11 +343,7 @@ function updateStaffDashboard() {
         if (pct === 0) return;
 
         if (!empSummary[row.code]) {
-            empSummary[row.code] = { 
-                code: row.code, name: master.name, dept: master.dept,
-                periodAct: 0, periodBud: 0, fyBud: 0, 
-                cAct: {}, cBud: {} 
-            };
+            empSummary[row.code] = { code: row.code, name: master.name, dept: master.dept, periodAct: 0, periodBud: 0, fyBud: 0, cAct: {}, cBud: {} };
         }
 
         let rowTotB = 0, rowTotA = 0;
@@ -376,10 +370,10 @@ function updateStaffDashboard() {
             }
         });
 
+        if (empSummary[row.code].fyBud > 0) budHeads.add(row.code);
+
         if (isActiveMonth) {
             totBud += rowTotB; totAct += rowTotA;
-            // Dynamic headcount tracking strictly for active period
-            if (rowTotB > 0) budHeads.add(row.code);
             if (rowTotA > 0) activeHeads.add(row.code);
 
             if (selectedDonor === 'All Donors') {
@@ -392,82 +386,131 @@ function updateStaffDashboard() {
     });
 
     document.getElementById('headcountKpi').innerText = `${activeHeads.size}/${budHeads.size}`;
-    
     document.getElementById('leftKpiBudget').innerText = (totBud >= 1000000) ? (totBud/1000000).toFixed(1) : (totBud/1000).toFixed(1);
     document.getElementById('leftKpiActual').innerText = (totAct >= 1000000) ? (totAct/1000000).toFixed(1) : (totAct/1000).toFixed(1);
     document.querySelectorAll('#leftKpiBudget').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totBud >= 1000000) ? 'M PKR' : 'K PKR');
     document.querySelectorAll('#leftKpiActual').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totAct >= 1000000) ? 'M PKR' : 'K PKR');
     
-    // Total Variance math and color logic
     let netVar = totBud - totAct;
     document.getElementById('mainTableVariance').innerText = formatPKRShort(Math.abs(netVar));
     document.getElementById('mainTableVariance').parentElement.style.color = netVar >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)';
 
-    if (tableView === 'Component') renderComponentTable(compSummary, searchTerm);
-    else renderEmployeeTable(empSummary, elapsedMonths, searchTerm);
+    // TOGGLE VIEWS
+    if (tableView === 'Component') {
+        document.getElementById('componentDonutWrapper').style.display = 'flex';
+        document.getElementById('employeeTableWrapper').style.display = 'none';
+        renderGiantDonut(compSummary, totAct, searchTerm);
+    } else {
+        document.getElementById('componentDonutWrapper').style.display = 'none';
+        document.getElementById('employeeTableWrapper').style.display = 'block';
+        renderEmployeeTable(empSummary, elapsedMonths, searchTerm);
+    }
 
     renderDonorDonut('spentDonutContainer', donorSpent); 
     renderDonorDonut('budgetDonutContainer', donorBudget); 
     
-    // Trigger Vacant Positions Widget
     let vacantList = Object.values(empSummary).filter(e => e.periodBud > 0 && e.periodAct === 0);
     renderVacantPositions(vacantList);
 }
 
-function renderComponentTable(compSummary, searchTerm) {
-    const thead = document.getElementById('mainTableHeader');
-    thead.innerHTML = `<tr><th>Component</th><th>${timeLabel} Budget</th><th>${timeLabel} Actual</th><th>Variance</th><th>% Spent</th></tr>`;
+// ========================================================================
+// GIANT COMPONENT DONUT ENGINE
+// ========================================================================
+function renderGiantDonut(compSummary, totAct, searchTerm) {
+    const container = document.getElementById('componentDonutWrapper');
+    let items = [];
     
-    const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
-    let sortedComps = Object.keys(compSummary).sort((x, y) => {
-        if (x === 'Base Salary') return -1; if (y === 'Base Salary') return 1;
-        if (x === 'Overtime, Arrears & Encashment') return 1; if (y === 'Overtime, Arrears & Encashment') return -1;
-        return compSummary[y].a - compSummary[x].a;
+    Object.keys(compSummary).forEach(c => {
+        if (compSummary[c].a > 0) {
+            if (searchTerm && !c.toLowerCase().includes(searchTerm)) return;
+            items.push({ label: c, val: compSummary[c].a, pct: Math.round((compSummary[c].a / totAct) * 100) });
+        }
     });
 
-    sortedComps.forEach(c => {
-        if (searchTerm && !c.toLowerCase().includes(searchTerm)) return;
-        let item = compSummary[c]; if (item.b === 0 && item.a === 0) return;
-        let varNum = item.b - item.a;
-        let pctDisplay = item.b > 0 ? `${Math.round((item.a / item.b) * 100)}%` : (item.a > 0 ? 'N/A' : '0%');
-        let badgeClass = item.a > item.b ? 'badge-orange' : 'badge-primary';
+    items.sort((a, b) => b.val - a.val);
+
+    if (items.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-secondary); font-size: 1rem; font-weight: bold;">No data available for this filter.</div>';
+        return;
+    }
+
+    const colors = ['#0073a8', '#14b8a6', '#f59e0b', '#8b5cf6', '#3b82f6', '#ef4444', '#10b981', '#f43f5e', '#84cc16', '#d946ef', '#06b6d4', '#eab308'];
+    const N = items.length;
+    const radius = 150;
+    const strokeWidth = 90;
+    const C = 2 * Math.PI * radius;
+    const sliceLength = C / N;
+    const gap = 5; 
+    const dashLength = sliceLength - gap;
+    
+    let svgHtml = `<svg viewBox="0 0 460 460" style="width: 100%; max-width: 550px; max-height: 550px; overflow: visible;">`;
+    
+    items.forEach((item, i) => {
+        const color = colors[i % colors.length];
+        const offset = -(i * sliceLength);
         
-        tbody.innerHTML += `
-            <tr class="clickable-tr summary-table-row" onclick="openComponentModal('${c.replace(/'/g, "\\'")}')">
-                <td style="color: var(--text-primary); font-weight:500;">${c}</td>
-                <td style="font-variant-numeric: tabular-nums;">${formatPKRInline(item.b)}</td>
-                <td style="font-variant-numeric: tabular-nums; color: var(--krn-blue); font-weight: 500;">${formatPKRInline(item.a)}</td>
-                <td style="font-variant-numeric: tabular-nums; color: ${varNum >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'};">${formatPKRInline(Math.abs(varNum))}</td>
-                <td><span class="badge-pill ${badgeClass}">${pctDisplay}</span></td>
-            </tr>
-        `;
+        // Equal Slice Arcs
+        svgHtml += `<circle cx="230" cy="230" r="${radius}" fill="none" stroke="${color}" stroke-width="${strokeWidth}" 
+                    stroke-dasharray="${dashLength} ${C - dashLength}" stroke-dashoffset="${offset}" 
+                    style="transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dasharray 1s ease-out; cursor: pointer;" 
+                    onclick="openComponentModal('${item.label.replace(/'/g, "\\'")}')" />`;
+        
+        // Exact mathematical center of the slice for text placement
+        const sliceAngleDeg = 360 / N;
+        const midAngleDeg = -90 + (i * sliceAngleDeg) + (sliceAngleDeg / 2);
+        const midAngleRad = midAngleDeg * Math.PI / 180;
+        
+        const textX = 230 + radius * Math.cos(midAngleRad);
+        const textY = 230 + radius * Math.sin(midAngleRad);
+        
+        // Smart Text Wrapping for SVG
+        let l1 = item.label; let l2 = "";
+        if (item.label.includes('(')) {
+            const parts = item.label.split('(');
+            l1 = parts[0].trim();
+            l2 = '(' + parts[1];
+        } else if (item.label.includes(' ')) {
+            const parts = item.label.split(' ');
+            if (parts[0].length > 3) {
+                l1 = parts[0];
+                l2 = parts.slice(1).join(' ');
+            }
+        }
+        
+        svgHtml += `<text x="${textX}" y="${textY - (l2 ? 8 : 0)}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-size="11" font-family="Calibri, sans-serif" font-weight="bold" style="pointer-events: none;">`;
+        svgHtml += `<tspan x="${textX}" dy="0">${l1}</tspan>`;
+        if (l2) svgHtml += `<tspan x="${textX}" dy="14">${l2}</tspan>`;
+        svgHtml += `<tspan x="${textX}" dy="16" fill="rgba(255,255,255,0.8)">${item.pct}%</tspan>`;
+        svgHtml += `</text>`;
     });
+
+    // Inner Core: Total Spent
+    const totParts = getFormattedParts(totAct);
+    svgHtml += `<text x="230" y="215" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="13" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${timeLabel.toUpperCase()} SPENT</text>`;
+    svgHtml += `<text x="230" y="250" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="34" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v} ${totParts.u}</text>`;
+    
+    svgHtml += `</svg>`;
+    container.innerHTML = svgHtml;
 }
 
 function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
     const thead = document.getElementById('mainTableHeader');
     thead.innerHTML = `<tr><th>Position & Name</th><th>${timeLabel} Actual</th><th>FY Forecast (Smart)</th><th>FY Budget</th><th>FY Variance</th></tr>`;
-    
     const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
     
     const getSmartForecast = (e) => {
         let totalF = 0;
         Object.keys(e.cBud).forEach(cName => {
-            let act = e.cAct[cName] || 0;
-            let bud = e.cBud[cName] || 0;
-            if (annualComponents.includes(cName)) {
-                totalF += Math.max(act, bud); 
-            } else {
-                totalF += (act / elapsedMonths) * 12; 
-            }
+            let act = e.cAct[cName] || 0; let bud = e.cBud[cName] || 0;
+            if (annualComponents.includes(cName)) totalF += Math.max(act, bud); 
+            else totalF += (act / elapsedMonths) * 12; 
         });
         return totalF;
     };
 
     let sortedEmps = Object.keys(empSummary).sort((x, y) => {
         let eX = empSummary[x]; let eY = empSummary[y];
-        let vX = eX.fyBud - getSmartForecast(eX);
-        let vY = eY.fyBud - getSmartForecast(eY);
+        let vX = eX.fyBud - getSmartForecast(eX); let vY = eY.fyBud - getSmartForecast(eY);
         return vX - vY; 
     });
 
@@ -498,26 +541,19 @@ function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
 // 4. MODAL & SVG DRILL DOWN LOGIC
 // ========================================================================
 function openComponentModal(compName) {
-    activeModalType = 'Component';
-    activeModalTarget = compName;
+    activeModalType = 'Component'; activeModalTarget = compName;
     document.getElementById('modalStaffTitle').innerText = `${compName} Breakup`;
     document.getElementById('modalStaffSubtitle').innerText = `Period: ${timeLabel} | Dept: ${selectedDepartment}`;
-    document.getElementById('modalSearch').value = '';
-    document.getElementById('modalSearch').placeholder = 'Search Employee...';
-    renderModalTable(); 
-    document.getElementById('staffModal').style.display = 'block';
+    document.getElementById('modalSearch').value = ''; document.getElementById('modalSearch').placeholder = 'Search Employee...';
+    renderModalTable(); document.getElementById('staffModal').style.display = 'block';
 }
 
 function openEmployeeModal(empCode, empName) {
-    activeModalType = 'Employee';
-    activeModalTarget = empCode;
-    activeModalTargetName = empName;
+    activeModalType = 'Employee'; activeModalTarget = empCode; activeModalTargetName = empName;
     document.getElementById('modalStaffTitle').innerText = `${empCode} - ${empName}`;
     document.getElementById('modalStaffSubtitle').innerText = `Period: ${timeLabel} Component Breakup`;
-    document.getElementById('modalSearch').value = '';
-    document.getElementById('modalSearch').placeholder = 'Search Component...';
-    renderModalTable(); 
-    document.getElementById('staffModal').style.display = 'block';
+    document.getElementById('modalSearch').value = ''; document.getElementById('modalSearch').placeholder = 'Search Component...';
+    renderModalTable(); document.getElementById('staffModal').style.display = 'block';
 }
 
 function renderModalTable() {
@@ -600,10 +636,8 @@ function renderEmployeeModalTable() {
     });
 
     let sortedComps = Object.values(compData).sort((x, y) => {
-        if (x.name === 'Base Salary') return -1;
-        if (y.name === 'Base Salary') return 1;
-        if (x.name === 'Overtime, Arrears & Encashment') return 1;
-        if (y.name === 'Overtime, Arrears & Encashment') return -1;
+        if (x.name === 'Base Salary (Inc. Encashments)') return -1;
+        if (y.name === 'Base Salary (Inc. Encashments)') return 1;
         return y.tA - x.tA;
     });
 
@@ -625,26 +659,8 @@ function filterStaffModal() { renderModalTable(); }
 function closeModal() { document.getElementById('staffModal').style.display = 'none'; }
 window.onclick = function(e) { if (e.target == document.getElementById('staffModal')) closeModal(); }
 
-function exportModalCSV() {
-    const table = document.querySelector("#staffModal .detail-table");
-    let csv = [];
-    for (let i = 0; i < table.rows.length; i++) {
-        let row = [], cols = table.rows[i].querySelectorAll("td, th");
-        for (let j = 0; j < cols.length; j++) row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"');
-        csv.push(row.join(","));
-    }
-    const csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
-    const link = document.createElement("a");
-    let fName = activeModalType === 'Component' ? activeModalTarget : activeModalTarget;
-    link.download = `HR_${fName.replace(/[^a-zA-Z0-9]/g, '_')}_${timeLabel}.csv`;
-    link.href = window.URL.createObjectURL(csvFile);
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-}
-
 // ========================================================================
-// 5. UTILS, DONUTS, AND VACANT WIDGET
+// 5. UTILS, SIDEBAR DONUTS, AND VACANT WIDGET
 // ========================================================================
 function formatPKRInline(num) { let p = getFormattedParts(num); return `<span class="val-unit-inline">${p.u}</span> <span class="val-num-inline">${p.v}</span>`; }
 function formatPKRShort(num) { let p = getFormattedParts(num); return `${p.v} ${p.u.charAt(0)}`; }
@@ -689,30 +705,11 @@ function renderSvgDonut(containerId, items, centerBadge = null, bottomLabel = nu
 
 function renderVacantPositions(list) {
     const container = document.getElementById('vacantPositionsContainer');
-    if (!container) return;
-    container.innerHTML = '';
+    if (!container) return; container.innerHTML = '';
+    if (list.length === 0) { container.innerHTML = '<div style="padding:10px; text-align:center; color:var(--text-secondary); font-size:0.7rem;">No vacant positions in period.</div>'; return; }
     
-    if (list.length === 0) {
-        container.innerHTML = '<div style="padding:10px; text-align:center; color:var(--text-secondary); font-size:0.7rem;">No vacant positions in period.</div>';
-        return;
-    }
-    
-    // Sort by highest budgeted savings
     list.sort((a, b) => b.periodBud - a.periodBud);
-    
-    // Show top 5 vacant positions
     list.slice(0, 5).forEach(p => {
-        container.innerHTML += `
-            <div class="mini-list-item">
-                <div class="mini-list-left">
-                    <strong style="color:var(--text-primary); font-size:0.75rem;">${p.code}</strong>
-                    <span style="color:var(--text-secondary); font-size:0.65rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 140px;">${p.dept}</span>
-                </div>
-                <div class="mini-list-right">
-                    <strong style="color:var(--krn-green); font-size:0.75rem;">${formatPKRShort(p.periodBud)}</strong>
-                    <span style="color:var(--text-secondary); font-size:0.65rem;">Saved</span>
-                </div>
-            </div>
-        `;
+        container.innerHTML += `<div class="mini-list-item"><div class="mini-list-left"><strong style="color:var(--text-primary); font-size:0.75rem;">${p.code}</strong><span style="color:var(--text-secondary); font-size:0.65rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 140px;">${p.dept}</span></div><div class="mini-list-right"><strong style="color:var(--krn-green); font-size:0.75rem;">${formatPKRShort(p.periodBud)}</strong><span style="color:var(--text-secondary); font-size:0.65rem;">Saved</span></div></div>`;
     });
 }
