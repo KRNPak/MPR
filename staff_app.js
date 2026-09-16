@@ -2,7 +2,7 @@
 // 1. STATE & SECURITY PROTOCOL
 // ========================================================================
 let isDarkMode = false;
-let availableYears = ['FY2025', 'FY2026', 'FY2027'];
+let availableYears = ['FY2026', 'FY2027'];
 let selectedYear = availableYears[availableYears.length - 1];
 let selectedDepartment = 'All Departments';
 let selectedDonor = 'All Donors';
@@ -487,13 +487,21 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
         svgHtml += `</text>`;
     });
 
-    // Inner Core: Total Spent
+// Inner Core: Total Spent
     const totParts = getFormattedParts(totAct);
-    svgHtml += `<text x="230" y="210" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="14" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${timeLabel.toUpperCase()} SPENT</text>`;
-    svgHtml += `<text x="230" y="250" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="38" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text>`;
-    svgHtml += `<text x="230" y="210" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="14" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${totParts.u}</text>`;
+    
+    // Label (y=195)
+    svgHtml += `<text x="230" y="195" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="14" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${timeLabel.toUpperCase()} SPENT</text>`;
+    
+    // Unit (y=220)
+    svgHtml += `<text x="230" y="220" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-light-blue)" font-size="16" font-family="Calibri, sans-serif" font-weight="bold">${totParts.u}</text>`;
+    
+    // Value (y=265) - Made slightly larger to stand out!
+    svgHtml += `<text x="230" y="265" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="44" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text>`;
+    
     svgHtml += `</svg>`;
     container.innerHTML = svgHtml;
+    
 }
 
 function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
