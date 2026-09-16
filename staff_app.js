@@ -501,7 +501,7 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
     } else {
         donorDepHtml = `<strong style="font-size: 0.8rem; color: var(--text-primary);">100% ${selectedDonor}</strong>`;
     }
-
+  
     // E. Volatility & MoM Velocity
     let volHtml = ''; let momHtml = '';
     if (activeMonths.length >= 2) {
