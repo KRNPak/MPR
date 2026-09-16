@@ -207,10 +207,17 @@
                     <div style="font-size: 0.75rem; font-weight: bold; color: var(--krn-orange);">Total Variance: <span id="mainTableVariance">0.0</span></div>
                 </div>
 
-                <div class="table-wrapper">
+                <!-- DYNAMIC VIEWS -->
+                <!-- 1. Giant Donut View (Components) -->
+                <div id="componentDonutWrapper" style="display: flex; justify-content: center; align-items: center; min-height: 520px; width: 100%;">
+                    <!-- SVG Injected by JS -->
+                </div>
+
+                <!-- 2. Table View (Employees) -->
+                <div class="table-wrapper" id="employeeTableWrapper" style="display: none;">
                     <table class="detail-table" style="margin-top: 0;">
                         <thead id="mainTableHeader">
-                            <!-- Injected by JS based on Toggle -->
+                            <!-- Injected by JS -->
                         </thead>
                         <tbody id="componentTableBody"></tbody>
                     </table>
