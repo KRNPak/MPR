@@ -492,18 +492,20 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
     let finBurn = totBud > 0 ? Math.round((totAct / totBud) * 100) : 0;
     
     // D. Donor Dependency
-    let donorDepHtml = '';
+    let donorDepPct = 0;
     if (selectedDonor === 'All Donors') {
         let osrSpend = donorSpent['OSR'] || donorSpent['osr'] || 0; 
         let externalSpend = totAct - osrSpend;
-        let donorDepPct = totAct > 0 ? Math.round((externalSpend / totAct) * 100) : 0;
-        donorDepHtml = `<strong style="font-size: 0.8rem; color: var(--text-primary);">${donorDepPct}% Donor / ${100 - donorDepPct}% OSR</strong>`;
+        donorDepPct = totAct > 0 ? Math.round((externalSpend / totAct) * 100) : 0;
     } else {
-        donorDepHtml = `<strong style="font-size: 0.8rem; color: var(--text-primary);">100% ${selectedDonor}</strong>`;
+        donorDepPct = 100;
     }
-  
+
     // E. Volatility & MoM Velocity
-    let volHtml = ''; let momHtml = '';
+    let volHtml = ''; 
+    let momValueHtml = `<span style="font-size: 1.6rem; font-weight: bold; color: var(--text-secondary);">N/A</span>`;
+    let momSubHtml = `<span style="font-size: 0.75rem; color: var(--text-secondary);">Requires >1 active month</span>`;
+    
     if (activeMonths.length >= 2) {
         let sortedActive = activeMonths.slice().sort((a,b) => fiscalMonths.indexOf(a) - fiscalMonths.indexOf(b));
         let lastM = sortedActive[sortedActive.length - 1]; let prevM = sortedActive[sortedActive.length - 2];
@@ -517,7 +519,13 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
                 if (jump > maxSpike) { maxSpike = jump; spikeComp = c; }
             }
         });
-        if (maxSpike > 0.10) volHtml = `<div style="font-size:0.75rem; color:var(--krn-orange); margin-top:8px; font-weight:500; border-top:1px dashed var(--border-color); padding-top:8px;">⚠️ ${spikeComp} spiked +${Math.round(maxSpike*100)}% in ${lastM}</div>`;
+        if (maxSpike > 0.10) {
+            volHtml = `
+            <div style="background: rgba(234, 88, 12, 0.08); border: 1px solid rgba(234, 88, 12, 0.3); border-radius: 12px; padding: 14px; margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.2rem;">⚠️</span>
+                <span style="font-size: 0.85rem; color: #ea580c; font-weight: bold;">${spikeComp} spiked +${Math.round(maxSpike*100)}% in ${lastM}</span>
+            </div>`;
+        }
         
         // Total Spend MoM Velocity
         let totLastM = monthlySpendTrend[lastM] || 0;
@@ -527,107 +535,89 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
             let momPct = Math.abs(Math.round((momDiff / totPrevM) * 100));
             let momColor = momDiff > 0 ? 'var(--krn-orange)' : 'var(--krn-green)';
             let momSign = momDiff > 0 ? '+' : '-';
-            momHtml = `
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 0.8rem; color: var(--text-primary);">MoM Velocity (${prevM}➔${lastM})</span>
-                    <strong style="font-size: 0.8rem; color: ${momColor};">${momSign}${momPct}% (${formatPKRShort(Math.abs(momDiff))})</strong>
-                </div>`;
+            
+            momValueHtml = `<span style="font-size: 1.6rem; font-weight: bold; color: ${momColor};">${momSign}${momPct}%</span>`;
+            momSubHtml = `<span style="font-size: 0.75rem; color: var(--text-secondary);">${momSign}${formatPKRShort(Math.abs(momDiff))} (${prevM}➔${lastM})</span>`;
         }
     }
 
-    // --- 3. LAYOUT ASSEMBLY ---
+    // --- 3. LAYOUT ASSEMBLY (BENTO BOX) ---
+    let fyColor = fyVar >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)';
+    let fySign = fyVar >= 0 ? '+' : '';
+    let fyText = fyVar >= 0 ? '(Surplus)' : '(Deficit)';
+    let actPremStr = `${activePremium >= 0 ? '+' : ''}${formatPKRShort(activePremium)}`;
+    
     let insightsHtml = `
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 15px; max-width: 450px;">
-            <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 12px;">Executive Highlights</div>
-                
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 0.8rem; color: var(--text-primary);">FY Projection</span>
-                    <strong style="font-size: 0.8rem; color: ${fyVar >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'};">${fyVar >= 0 ? '+' : ''}${formatPKRShort(fyVar)} ${fyVar >= 0 ? '(Surplus)' : '(Deficit)'}</strong>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 0.8rem; color: var(--text-primary);">Vacancy Savings</span>
-                    <strong style="font-size: 0.8rem; color: var(--krn-green);">+${formatPKRShort(vacantSavings)}</strong>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 0.8rem; color: var(--text-primary);">Active Premium/Deficit</span>
-                    <strong style="font-size: 0.8rem; color: ${activePremium >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'};">${activePremium >= 0 ? '+' : ''}${formatPKRShort(activePremium)}</strong>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 0.8rem; color: var(--text-primary);">Avg Cost Per Head</span>
-                    <strong style="font-size: 0.8rem; color: var(--krn-blue);">${formatPKRShort(avgCostPerHead)}</strong>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 0.8rem; color: var(--text-primary);">Donor Dependency</span>
-                    ${donorDepHtml}
-                </div>
-
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 0.8rem; color: var(--text-primary);">Efficiency (HC vs Bud)</span>
-                    <strong style="font-size: 0.8rem; color: ${finBurn > hcCapacity ? 'var(--krn-orange)' : 'var(--krn-green)'};">${hcCapacity}% Filled / ${finBurn}% Burn</strong>
-                </div>
-
-                ${momHtml}
-                ${volHtml}
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; max-width: 480px;">
+            
+            <!-- Card 1: FY PROJECTION -->
+            <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
+                <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">FY Projection</div>
+                <div style="font-size: 1.8rem; font-weight: bold; color: ${fyColor}; margin-bottom: 2px;">${fySign}${formatPKRShort(Math.abs(fyVar))} ${fyText}</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Driven by Vacancy Savings (+${formatPKRShort(vacantSavings)}) and Active Premium/Deficit (${actPremStr})</div>
             </div>
+
+            <!-- GRID (2x2) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                
+                <!-- Card 2: AVG COST / HEAD -->
+                <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">Avg Cost / Head</div>
+                    <div style="font-size: 1.6rem; font-weight: bold; color: var(--krn-blue); margin-bottom: 2px;">${formatPKRShort(avgCostPerHead)}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Per active employee</div>
+                </div>
+
+                <!-- Card 3: MOM VELOCITY -->
+                <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">MoM Velocity</div>
+                    <div style="margin-bottom: 2px;">${momValueHtml}</div>
+                    <div>${momSubHtml}</div>
+                </div>
+
+                <!-- Card 4: FUNDING SPLIT -->
+                <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 12px; text-transform: uppercase;">Funding Split</div>
+                    
+                    <div style="width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; margin-bottom: 8px;">
+                        <div style="width: ${donorDepPct}%; height: 100%; background: var(--krn-blue); border-radius: 3px;"></div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold;">
+                        <span style="color: var(--krn-blue);">${donorDepPct}% Donor</span>
+                        <span style="color: var(--text-secondary);">${100 - donorDepPct}% OSR</span>
+                    </div>
+                </div>
+
+                <!-- Card 5: EFFICIENCY -->
+                <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">Efficiency</div>
+                    
+                    <div style="display: flex; gap: 12px; align-items: baseline; margin-bottom: 2px;">
+                        <div>
+                            <span style="font-size: 1.4rem; font-weight: bold; color: ${hcCapacity > 100 ? 'var(--krn-orange)' : 'var(--krn-green)'};">${hcCapacity}%</span>
+                            <span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 1px;">Filled</span>
+                        </div>
+                        <div>
+                            <span style="font-size: 1.4rem; font-weight: bold; color: var(--krn-blue);">${finBurn}%</span>
+                            <span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 1px;">Burn</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Headcount vs. Budget Run-Rate</div>
+                </div>
+            </div>
+
+            <!-- Card 6: VOLATILITY ALERT (Dynamic) -->
+            ${volHtml}
         </div>
     `;
 
     container.style.justifyContent = 'space-between';
     container.style.alignItems = 'flex-start';
     container.innerHTML = `
-        <div style="flex: 1.2; display: flex; justify-content: center; align-items: center;">${svgHtml}</div>
+        <div style="flex: 1.2; display: flex; justify-content: center; align-items: center; margin-top: 20px;">${svgHtml}</div>
         ${insightsHtml}
     `;
 }
-
-function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
-    const thead = document.getElementById('mainTableHeader');
-    thead.innerHTML = `<tr><th>Position & Name</th><th>${timeLabel} Actual</th><th>FY Forecast (Smart)</th><th>FY Budget</th><th>FY Variance</th></tr>`;
-    const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
-    
-    const getSmartForecast = (e) => {
-        let totalF = 0;
-        Object.keys(e.cBud).forEach(cName => {
-            let act = e.cAct[cName] || 0; let bud = e.cBud[cName] || 0;
-            if (annualComponents.includes(cName)) totalF += Math.max(act, bud); 
-            else totalF += (act / elapsedMonths) * 12; 
-        });
-        return totalF;
-    };
-
-    let sortedEmps = Object.keys(empSummary).sort((x, y) => {
-        let eX = empSummary[x]; let eY = empSummary[y];
-        let vX = eX.fyBud - getSmartForecast(eX); let vY = eY.fyBud - getSmartForecast(eY);
-        return vX - vY; 
-    });
-
-    sortedEmps.forEach(code => {
-        let e = empSummary[code]; 
-        if (e.periodAct === 0 && e.fyBud === 0) return;
-        if (searchTerm && !code.toLowerCase().includes(searchTerm) && !e.name.toLowerCase().includes(searchTerm)) return;
-        
-        let forecast = getSmartForecast(e); let varNum = e.fyBud - forecast;
-        
-        tbody.innerHTML += `
-            <tr class="clickable-tr summary-table-row" onclick="openEmployeeModal('${code.replace(/'/g, "\\'")}', '${e.name.replace(/'/g, "\\'")}')">
-                <td>
-                    <div style="font-weight: bold; color: var(--krn-blue); font-size: 0.8rem;">${code}</div>
-                    <div style="font-size: 0.95rem; font-weight: 500; color: var(--text-primary); margin-top: 3px;">${e.name}</div>
-                </td>
-                <td style="font-variant-numeric: tabular-nums;">${formatPKRInline(e.periodAct)}</td>
-                <td style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight: 500;">${formatPKRInline(forecast)}</td>
-                <td style="font-variant-numeric: tabular-nums; color: var(--text-secondary);">${formatPKRInline(e.fyBud)}</td>
-                <td style="font-variant-numeric: tabular-nums; font-weight: bold; color: ${varNum >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'};">${formatPKRInline(Math.abs(varNum))}</td>
-            </tr>
-        `;
-    });
-}
-
 // ========================================================================
 // 4. MODAL & SVG DRILL DOWN LOGIC
 // ========================================================================
