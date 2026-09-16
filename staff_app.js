@@ -40,14 +40,11 @@ async function unlockDashboard() {
             const res = await fetch(`Data/${selectedYear}/${filename}`);
             if (!res.ok) return null; 
             const encryptedText = await res.text();
-            
             try {
-                // We wrap the decryption in its own try/catch to catch the UTF-8 error
                 const decrypted = CryptoJS.AES.decrypt(encryptedText, pwdInput).toString(CryptoJS.enc.Utf8);
                 if (!decrypted) throw new Error("Invalid Key");
                 return parseCSV(decrypted);
             } catch (error) {
-                // If CryptoJS throws "Malformed UTF-8 data", it means the password was wrong
                 throw new Error("Invalid Key");
             }
         };
@@ -328,7 +325,6 @@ function updateStaffDashboard() {
     const elapsedMonths = endIdx + 1; 
     const searchTerm = document.getElementById('mainTableSearch').value.toLowerCase();
 
-    // Variables for Volatility and MoM Math
     let monthlySpendTrend = {};
     activeMonths.forEach(m => monthlySpendTrend[m] = 0);
     let compMonthly = {};
@@ -399,8 +395,6 @@ function updateStaffDashboard() {
     if (tableView === 'Component') {
         document.getElementById('componentDonutWrapper').style.display = 'flex';
         document.getElementById('employeeTableWrapper').style.display = 'none';
-        
-        // Passing the new tracking variables into the insights engine
         renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, empSummary, elapsedMonths, activeMonths, compMonthly, monthlySpendTrend, activeHeads.size, budHeads.size, donorSpent);
     } else {
         document.getElementById('componentDonutWrapper').style.display = 'none';
@@ -410,7 +404,6 @@ function updateStaffDashboard() {
 
     renderDonorDonut('spentDonutContainer', donorSpent); 
     renderDonorDonut('budgetDonutContainer', donorBudget); 
-    
     let vacantList = Object.values(empSummary).filter(e => e.periodBud > 0 && e.periodAct === 0);
     renderVacantPositions(vacantList);
 }
@@ -436,7 +429,6 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
         return;
     }
 
-    // --- 1. SVG DONUT CREATION ---
     const colors = ['#0073a8', '#14b8a6', '#f59e0b', '#8b5cf6', '#3b82f6', '#ef4444', '#10b981', '#f43f5e', '#84cc16', '#d946ef', '#06b6d4', '#eab308'];
     const N = items.length; const radius = 145; const strokeWidth = 110; const C = 2 * Math.PI * radius;
     const sliceLength = C / N; const gap = 6; const dashLength = sliceLength - gap;
@@ -471,7 +463,6 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
     svgHtml += `<text x="230" y="265" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="44" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text></svg>`;
 
     // --- 2. INSIGHTS MATH ---
-    // A. FY Projection & Premium
     let totFyBud = 0; let totFyForecast = 0;
     Object.values(empSummary).forEach(e => {
         totFyBud += e.fyBud;
@@ -483,25 +474,17 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
     let fyVar = totFyBud - totFyForecast;
     let vacantSavings = Object.values(empSummary).filter(e => e.periodBud > 0 && e.periodAct === 0).reduce((sum, e) => sum + e.periodBud, 0);
     let activePremium = (totBud - totAct) - vacantSavings; 
-
-    // B. Average Cost Per Head
     let avgCostPerHead = activeHeadsCount > 0 ? (totAct / activeHeadsCount) : 0;
-    
-    // C. Budget-to-Headcount Efficiency
     let hcCapacity = budHeadsCount > 0 ? Math.round((activeHeadsCount / budHeadsCount) * 100) : 0;
     let finBurn = totBud > 0 ? Math.round((totAct / totBud) * 100) : 0;
     
-    // D. Donor Dependency
     let donorDepPct = 0;
     if (selectedDonor === 'All Donors') {
         let osrSpend = donorSpent['OSR'] || donorSpent['osr'] || 0; 
         let externalSpend = totAct - osrSpend;
         donorDepPct = totAct > 0 ? Math.round((externalSpend / totAct) * 100) : 0;
-    } else {
-        donorDepPct = 100;
-    }
+    } else { donorDepPct = 100; }
 
-    // E. Volatility & MoM Velocity
     let volHtml = ''; 
     let momValueHtml = `<span style="font-size: 1.6rem; font-weight: bold; color: var(--text-secondary);">N/A</span>`;
     let momSubHtml = `<span style="font-size: 0.75rem; color: var(--text-secondary);">Requires >1 active month</span>`;
@@ -510,7 +493,6 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
         let sortedActive = activeMonths.slice().sort((a,b) => fiscalMonths.indexOf(a) - fiscalMonths.indexOf(b));
         let lastM = sortedActive[sortedActive.length - 1]; let prevM = sortedActive[sortedActive.length - 2];
         
-        // Component Volatility Flag
         let maxSpike = 0; let spikeComp = '';
         Object.keys(compMonthly).forEach(c => {
             let pVal = compMonthly[c][prevM]; let lVal = compMonthly[c][lastM];
@@ -527,9 +509,7 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
             </div>`;
         }
         
-        // Total Spend MoM Velocity
-        let totLastM = monthlySpendTrend[lastM] || 0;
-        let totPrevM = monthlySpendTrend[prevM] || 0;
+        let totLastM = monthlySpendTrend[lastM] || 0; let totPrevM = monthlySpendTrend[prevM] || 0;
         if (totPrevM > 0) {
             let momDiff = totLastM - totPrevM;
             let momPct = Math.abs(Math.round((momDiff / totPrevM) * 100));
@@ -549,49 +529,38 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
     
     let insightsHtml = `
         <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; max-width: 480px;">
-            
-            <!-- Card 1: FY PROJECTION -->
             <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
                 <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">FY Projection</div>
                 <div style="font-size: 1.8rem; font-weight: bold; color: ${fyColor}; margin-bottom: 2px;">${fySign}${formatPKRShort(Math.abs(fyVar))} ${fyText}</div>
                 <div style="font-size: 0.75rem; color: var(--text-secondary);">Driven by Vacancy Savings (+${formatPKRShort(vacantSavings)}) and Active Premium/Deficit (${actPremStr})</div>
             </div>
 
-            <!-- GRID (2x2) -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                
-                <!-- Card 2: AVG COST / HEAD -->
                 <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
                     <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">Avg Cost / Head</div>
                     <div style="font-size: 1.6rem; font-weight: bold; color: var(--krn-blue); margin-bottom: 2px;">${formatPKRShort(avgCostPerHead)}</div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary);">Per active employee</div>
                 </div>
 
-                <!-- Card 3: MOM VELOCITY -->
                 <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
                     <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">MoM Velocity</div>
                     <div style="margin-bottom: 2px;">${momValueHtml}</div>
                     <div>${momSubHtml}</div>
                 </div>
 
-                <!-- Card 4: FUNDING SPLIT -->
                 <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
                     <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 12px; text-transform: uppercase;">Funding Split</div>
-                    
                     <div style="width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; margin-bottom: 8px;">
                         <div style="width: ${donorDepPct}%; height: 100%; background: var(--krn-blue); border-radius: 3px;"></div>
                     </div>
-                    
                     <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold;">
                         <span style="color: var(--krn-blue);">${donorDepPct}% Donor</span>
                         <span style="color: var(--text-secondary);">${100 - donorDepPct}% OSR</span>
                     </div>
                 </div>
 
-                <!-- Card 5: EFFICIENCY -->
                 <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
                     <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">Efficiency</div>
-                    
                     <div style="display: flex; gap: 12px; align-items: baseline; margin-bottom: 2px;">
                         <div>
                             <span style="font-size: 1.4rem; font-weight: bold; color: ${hcCapacity > 100 ? 'var(--krn-orange)' : 'var(--krn-green)'};">${hcCapacity}%</span>
@@ -602,11 +571,9 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
                             <span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 1px;">Burn</span>
                         </div>
                     </div>
-                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Headcount vs. Budget Run-Rate</div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Headcount vs. Budget</div>
                 </div>
             </div>
-
-            <!-- Card 6: VOLATILITY ALERT (Dynamic) -->
             ${volHtml}
         </div>
     `;
@@ -618,6 +585,53 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
         ${insightsHtml}
     `;
 }
+
+// ========================================================================
+// EMPLOYEE TABLE RENDER
+// ========================================================================
+function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
+    const thead = document.getElementById('mainTableHeader');
+    thead.innerHTML = `<tr><th>Position & Name</th><th>${timeLabel} Actual</th><th>FY Forecast (Smart)</th><th>FY Budget</th><th>FY Variance</th></tr>`;
+    const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
+    
+    const getSmartForecast = (e) => {
+        let totalF = 0;
+        Object.keys(e.cBud).forEach(cName => {
+            let act = e.cAct[cName] || 0; let bud = e.cBud[cName] || 0;
+            if (annualComponents.includes(cName)) totalF += Math.max(act, bud); 
+            else totalF += (act / elapsedMonths) * 12; 
+        });
+        return totalF;
+    };
+
+    let sortedEmps = Object.keys(empSummary).sort((x, y) => {
+        let eX = empSummary[x]; let eY = empSummary[y];
+        let vX = eX.fyBud - getSmartForecast(eX); let vY = eY.fyBud - getSmartForecast(eY);
+        return vX - vY; 
+    });
+
+    sortedEmps.forEach(code => {
+        let e = empSummary[code]; 
+        if (e.periodAct === 0 && e.fyBud === 0) return;
+        if (searchTerm && !code.toLowerCase().includes(searchTerm) && !e.name.toLowerCase().includes(searchTerm)) return;
+        
+        let forecast = getSmartForecast(e); let varNum = e.fyBud - forecast;
+        
+        tbody.innerHTML += `
+            <tr class="clickable-tr summary-table-row" onclick="openEmployeeModal('${code.replace(/'/g, "\\'")}', '${e.name.replace(/'/g, "\\'")}')">
+                <td>
+                    <div style="font-weight: bold; color: var(--krn-blue); font-size: 0.8rem;">${code}</div>
+                    <div style="font-size: 0.95rem; font-weight: 500; color: var(--text-primary); margin-top: 3px;">${e.name}</div>
+                </td>
+                <td style="font-variant-numeric: tabular-nums;">${formatPKRInline(e.periodAct)}</td>
+                <td style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight: 500;">${formatPKRInline(forecast)}</td>
+                <td style="font-variant-numeric: tabular-nums; color: var(--text-secondary);">${formatPKRInline(e.fyBud)}</td>
+                <td style="font-variant-numeric: tabular-nums; font-weight: bold; color: ${varNum >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'};">${formatPKRInline(Math.abs(varNum))}</td>
+            </tr>
+        `;
+    });
+}
+
 // ========================================================================
 // 4. MODAL & SVG DRILL DOWN LOGIC
 // ========================================================================
@@ -637,9 +651,7 @@ function openEmployeeModal(empCode, empName) {
     renderModalTable(); document.getElementById('staffModal').style.display = 'block';
 }
 
-function renderModalTable() {
-    if (activeModalType === 'Component') renderStaffModalTable(); else renderEmployeeModalTable();
-}
+function renderModalTable() { if (activeModalType === 'Component') renderStaffModalTable(); else renderEmployeeModalTable(); }
 
 function renderStaffModalTable() {
     const thead = document.getElementById('modalTableHeader');
@@ -660,13 +672,8 @@ function renderStaffModalTable() {
         let pct = selectedDonor === 'All Donors' ? 1.0 : (master.donorAllocations[selectedDonor] || 0); if (pct === 0) return;
         let comp = row.components[activeModalTarget]; if (!comp || (comp.b === 0 && comp.a === 0)) return;
 
-        if (!empData[row.code]) {
-            empData[row.code] = { code: row.code, name: master.name, months: {}, tB: 0, tA: 0 };
-            activeMonths.forEach(m => empData[row.code].months[m] = 0);
-        }
-        
-        empData[row.code].months[row.month] += comp.a * pct;
-        empData[row.code].tA += comp.a * pct; empData[row.code].tB += comp.b * pct;
+        if (!empData[row.code]) { empData[row.code] = { code: row.code, name: master.name, months: {}, tB: 0, tA: 0 }; activeMonths.forEach(m => empData[row.code].months[m] = 0); }
+        empData[row.code].months[row.month] += comp.a * pct; empData[row.code].tA += comp.a * pct; empData[row.code].tB += comp.b * pct;
     });
 
     Object.values(empData).sort((x, y) => y.tA - x.tA).forEach(p => {
@@ -696,37 +703,23 @@ function renderEmployeeModalTable() {
         if (!activeMonths.includes(row.month)) return;
         
         let master = positionMaster[row.code];
-        let pct = selectedDonor === 'All Donors' ? 1.0 : (master.donorAllocations[selectedDonor] || 0); 
-        if (pct === 0) return;
+        let pct = selectedDonor === 'All Donors' ? 1.0 : (master.donorAllocations[selectedDonor] || 0); if (pct === 0) return;
 
         Object.keys(row.components).forEach(cName => {
-            let b = row.components[cName].b * pct;
-            let a = row.components[cName].a * pct;
+            let b = row.components[cName].b * pct; let a = row.components[cName].a * pct;
             if (b === 0 && a === 0) return;
-
-            if (!compData[cName]) {
-                compData[cName] = { name: cName, months: {}, tB: 0, tA: 0 };
-                activeMonths.forEach(m => compData[cName].months[m] = 0);
-            }
-            
+            if (!compData[cName]) { compData[cName] = { name: cName, months: {}, tB: 0, tA: 0 }; activeMonths.forEach(m => compData[cName].months[m] = 0); }
             compData[cName].months[row.month] += a; compData[cName].tA += a; compData[cName].tB += b;
         });
     });
 
-    let sortedComps = Object.values(compData).sort((x, y) => {
-        if (x.name === 'Base Salary (Inc. Encashments)') return -1;
-        if (y.name === 'Base Salary (Inc. Encashments)') return 1;
-        return y.tA - x.tA;
-    });
-
+    let sortedComps = Object.values(compData).sort((x, y) => { if (x.name === 'Base Salary (Inc. Encashments)') return -1; if (y.name === 'Base Salary (Inc. Encashments)') return 1; return y.tA - x.tA; });
     sortedComps.forEach(c => {
         if (term && !c.name.toLowerCase().includes(term)) return;
         let diff = c.tB - c.tA;
         let rowHtml = `<tr><td><strong style="color:var(--text-primary)">${c.name}</strong></td>`;
         activeMonths.forEach(m => { rowHtml += `<td style="font-variant-numeric:tabular-nums">${c.months[m] === 0 ? '-' : (c.months[m]/1000000).toFixed(2)}</td>`; });
-        rowHtml += `<td style="font-variant-numeric:tabular-nums; font-weight:bold; color:var(--krn-blue);">${(c.tA/1000000).toFixed(2)}</td>
-                    <td style="font-variant-numeric:tabular-nums; color:var(--text-secondary)">${(c.tB/1000000).toFixed(2)}</td>
-                    <td style="font-variant-numeric:tabular-nums; font-weight:bold; color:${diff >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'}">${(diff/1000000).toFixed(2)}</td></tr>`;
+        rowHtml += `<td style="font-variant-numeric:tabular-nums; font-weight:bold; color:var(--krn-blue);">${(c.tA/1000000).toFixed(2)}</td><td style="font-variant-numeric:tabular-nums; color:var(--text-secondary)">${(c.tB/1000000).toFixed(2)}</td><td style="font-variant-numeric:tabular-nums; font-weight:bold; color:${diff >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'}">${(diff/1000000).toFixed(2)}</td></tr>`;
         tbody.innerHTML += rowHtml;
     });
 }
@@ -740,68 +733,35 @@ window.onclick = function(e) { if (e.target == document.getElementById('staffMod
 // ========================================================================
 function formatPKRInline(num) { let p = getFormattedParts(num); return `<span class="val-unit-inline">${p.u}</span> <span class="val-num-inline">${p.v}</span>`; }
 function formatPKRShort(num) { let p = getFormattedParts(num); return `${p.v} ${p.u.charAt(0)}`; }
-function getFormattedParts(num) {
-    let v = parseFloat(num)||0; let a = Math.abs(v);
-    if(a>=1000000) return {v:(v/1000000).toFixed(1), u:'M PKR'}; if(a>=1000) return {v:(v/1000).toFixed(1), u:'K PKR'}; return {v:v.toLocaleString(), u:'PKR'};
-}
+function getFormattedParts(num) { let v = parseFloat(num)||0; let a = Math.abs(v); if(a>=1000000) return {v:(v/1000000).toFixed(1), u:'M PKR'}; if(a>=1000) return {v:(v/1000).toFixed(1), u:'K PKR'}; return {v:v.toLocaleString(), u:'PKR'}; }
 function applyTheme() { document.body.classList.toggle('light-mode', !isDarkMode); }
 function toggleDarkMode() { isDarkMode = !isDarkMode; applyTheme(); }
 
 const tooltip = document.getElementById('hoverTooltip');
-function showTooltip(e, label, value, pct) {
-    const parts = getFormattedParts(value);
-    if(tooltip) { tooltip.innerHTML = `<strong>${label}</strong><br><span class="val-num-inline" style="color:inherit">${parts.v}</span> ${parts.u} (<span class="val-num-inline" style="color:inherit">${pct}</span>%)`; tooltip.classList.add('visible'); moveTooltip(e); }
-}
+function showTooltip(e, label, value, pct) { const parts = getFormattedParts(value); if(tooltip) { tooltip.innerHTML = `<strong>${label}</strong><br><span class="val-num-inline" style="color:inherit">${parts.v}</span> ${parts.u} (<span class="val-num-inline" style="color:inherit">${pct}</span>%)`; tooltip.classList.add('visible'); moveTooltip(e); } }
 function showGiantTooltip(e, label, actual, budget) {
-    const actParts = getFormattedParts(actual); const budParts = getFormattedParts(budget);
-    const varNum = budget - actual; const varParts = getFormattedParts(Math.abs(varNum));
-    const varColor = varNum >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)';
-    const pct = budget > 0 ? Math.round((actual / budget) * 100) : (actual > 0 ? 'N/A' : 0);
+    const actParts = getFormattedParts(actual); const budParts = getFormattedParts(budget); const varNum = budget - actual; const varParts = getFormattedParts(Math.abs(varNum));
+    const varColor = varNum >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'; const pct = budget > 0 ? Math.round((actual / budget) * 100) : (actual > 0 ? 'N/A' : 0);
     if (tooltip) {
         tooltip.innerHTML = `
             <div style="font-weight:bold; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:4px; font-size: 0.9rem;">${label}</div>
             <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem; margin-bottom:3px;"><span>Budget:</span> <strong>${budParts.v} ${budParts.u}</strong></div>
             <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem; margin-bottom:3px;"><span>Spent:</span> <strong style="color:var(--krn-light-blue)">${actParts.v} ${actParts.u}</strong></div>
             <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem; margin-bottom:3px;"><span>Variance:</span> <strong style="color:${varColor}">${varParts.v} ${varParts.u}</strong></div>
-            <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem;"><span>% Spent:</span> <strong>${pct}${pct !== 'N/A' ? '%' : ''}</strong></div>
-        `;
+            <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem;"><span>% Spent:</span> <strong>${pct}${pct !== 'N/A' ? '%' : ''}</strong></div>`;
         tooltip.classList.add('visible'); moveTooltip(e);
     }
 }
 function moveTooltip(e) { if(tooltip) { tooltip.style.left = (e.clientX + 15) + 'px'; tooltip.style.top = (e.clientY + 15) + 'px'; } }
 function hideTooltip() { if(tooltip) tooltip.classList.remove('visible'); }
-
-function renderDonorDonut(containerId, donorObj) {
-    if (Object.keys(donorObj).length === 0) { document.getElementById(containerId).innerHTML = '<div style="font-size:0.7rem; color:var(--text-secondary); text-align:center; margin-top:40px;">N/A</div>'; return; }
-    let colors = ['var(--krn-blue)', '#14b8a6', 'var(--krn-orange)', '#8b5cf6', 'var(--krn-light-blue)'];
-    let items = Object.keys(donorObj).sort((a,b) => donorObj[b] - donorObj[a]).map((d, i) => { return { label: d, value: donorObj[d], color: colors[i % colors.length] }; });
-    renderSvgDonut(containerId, items, null, null, true);
-}
-
+function renderDonorDonut(containerId, donorObj) { if (Object.keys(donorObj).length === 0) { document.getElementById(containerId).innerHTML = '<div style="font-size:0.7rem; color:var(--text-secondary); text-align:center; margin-top:40px;">N/A</div>'; return; } let colors = ['var(--krn-blue)', '#14b8a6', 'var(--krn-orange)', '#8b5cf6', 'var(--krn-light-blue)']; let items = Object.keys(donorObj).sort((a,b) => donorObj[b] - donorObj[a]).map((d, i) => { return { label: d, value: donorObj[d], color: colors[i % colors.length] }; }); renderSvgDonut(containerId, items, null, null, true); }
 function renderSvgDonut(containerId, items, centerBadge = null, bottomLabel = null, showLegend = true) {
-    const container = document.getElementById(containerId); if (!container) return;
-    const total = items.reduce((acc, it) => acc + (parseFloat(it.value) || 0), 0);
-    const radius = 33; const C = 2 * Math.PI * radius; let cumulativePercent = 0; const strokeWidth = 22; 
-    let circlesHtml = `<circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--border-color)" stroke-width="${strokeWidth}" opacity="0.3" />`; let legendHtml = '';
-    
-    if (total > 0) {
-        items.forEach((it) => {
-            const fraction = it.value / total; const sliceLen = fraction * C; const offset = cumulativePercent * C; cumulativePercent += fraction;
-            circlesHtml += `<circle class="donut-slice-${containerId}" cx="50" cy="50" r="${radius}" fill="none" stroke="${it.color}" stroke-width="${strokeWidth}" stroke-dasharray="0 ${C}" stroke-dashoffset="-${offset}" data-target-len="${sliceLen}" onmouseenter="showTooltip(event, '${it.label.replace(/'/g, "\\'")}', ${it.value}, '${Math.round(fraction*100)}')" onmousemove="moveTooltip(event)" onmouseleave="hideTooltip()" style="transform: rotate(-90deg); transform-origin: 50% 50%; pointer-events: stroke; transition: stroke-dasharray 1.4s cubic-bezier(0.16, 1, 0.3, 1), stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);" />`;
-            if (showLegend) legendHtml += `<div class="donut-legend-item"><div class="donut-legend-item-left"><div class="donut-legend-dot" style="background-color: ${it.color};"></div><span style="white-space:nowrap; font-size:0.75rem; font-family: Calibri, sans-serif;">${it.label}</span></div><strong style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-size:0.75rem;">${Math.round(fraction * 100)}%</strong></div>`;
-        });
-    }
-    container.innerHTML = `<div class="svg-donut-wrapper" style="margin-top:-10px;"><div class="donut-chart-box"><svg viewBox="0 0 100 100" class="donut-svg">${circlesHtml}</svg></div>${showLegend && legendHtml ? `<div class="donut-legend-list">${legendHtml}</div>` : ''}</div>`;
-    requestAnimationFrame(() => requestAnimationFrame(() => { container.querySelectorAll(`.donut-slice-${containerId}`).forEach(s => { const tl = parseFloat(s.getAttribute('data-target-len')) || 0; s.style.strokeDasharray = `${tl} ${C - tl}`; }); }));
+    const container = document.getElementById(containerId); if (!container) return; const total = items.reduce((acc, it) => acc + (parseFloat(it.value) || 0), 0);
+    const radius = 33; const C = 2 * Math.PI * radius; let cumulativePercent = 0; const strokeWidth = 22; let circlesHtml = `<circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--border-color)" stroke-width="${strokeWidth}" opacity="0.3" />`; let legendHtml = '';
+    if (total > 0) { items.forEach((it) => { const fraction = it.value / total; const sliceLen = fraction * C; const offset = cumulativePercent * C; cumulativePercent += fraction; circlesHtml += `<circle class="donut-slice-${containerId}" cx="50" cy="50" r="${radius}" fill="none" stroke="${it.color}" stroke-width="${strokeWidth}" stroke-dasharray="0 ${C}" stroke-dashoffset="-${offset}" data-target-len="${sliceLen}" onmouseenter="showTooltip(event, '${it.label.replace(/'/g, "\\'")}', ${it.value}, '${Math.round(fraction*100)}')" onmousemove="moveTooltip(event)" onmouseleave="hideTooltip()" style="transform: rotate(-90deg); transform-origin: 50% 50%; pointer-events: stroke; transition: stroke-dasharray 1.4s cubic-bezier(0.16, 1, 0.3, 1), stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);" />`; if (showLegend) legendHtml += `<div class="donut-legend-item"><div class="donut-legend-item-left"><div class="donut-legend-dot" style="background-color: ${it.color};"></div><span style="white-space:nowrap; font-size:0.75rem; font-family: Calibri, sans-serif;">${it.label}</span></div><strong style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-size:0.75rem;">${Math.round(fraction * 100)}%</strong></div>`; }); }
+    container.innerHTML = `<div class="svg-donut-wrapper" style="margin-top:-10px;"><div class="donut-chart-box"><svg viewBox="0 0 100 100" class="donut-svg">${circlesHtml}</svg></div>${showLegend && legendHtml ? `<div class="donut-legend-list">${legendHtml}</div>` : ''}</div>`; requestAnimationFrame(() => requestAnimationFrame(() => { container.querySelectorAll(`.donut-slice-${containerId}`).forEach(s => { const tl = parseFloat(s.getAttribute('data-target-len')) || 0; s.style.strokeDasharray = `${tl} ${C - tl}`; }); }));
 }
-
 function renderVacantPositions(list) {
-    const container = document.getElementById('vacantPositionsContainer');
-    if (!container) return; container.innerHTML = '';
-    if (list.length === 0) { container.innerHTML = '<div style="padding:10px; text-align:center; color:var(--text-secondary); font-size:0.7rem;">No vacant positions in period.</div>'; return; }
-    
-    list.sort((a, b) => b.periodBud - a.periodBud);
-    list.slice(0, 5).forEach(p => {
-        container.innerHTML += `<div class="mini-list-item"><div class="mini-list-left"><strong style="color:var(--text-primary); font-size:0.75rem;">${p.code}</strong><span style="color:var(--text-secondary); font-size:0.65rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 140px;">${p.dept}</span></div><div class="mini-list-right"><strong style="color:var(--krn-green); font-size:0.75rem;">${formatPKRShort(p.periodBud)}</strong><span style="color:var(--text-secondary); font-size:0.65rem;">Saved</span></div></div>`;
-    });
+    const container = document.getElementById('vacantPositionsContainer'); if (!container) return; container.innerHTML = ''; if (list.length === 0) { container.innerHTML = '<div style="padding:10px; text-align:center; color:var(--text-secondary); font-size:0.7rem;">No vacant positions in period.</div>'; return; }
+    list.sort((a, b) => b.periodBud - a.periodBud); list.slice(0, 5).forEach(p => { container.innerHTML += `<div class="mini-list-item"><div class="mini-list-left"><strong style="color:var(--text-primary); font-size:0.75rem;">${p.code}</strong><span style="color:var(--text-secondary); font-size:0.65rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 140px;">${p.dept}</span></div><div class="mini-list-right"><strong style="color:var(--krn-green); font-size:0.75rem;">${formatPKRShort(p.periodBud)}</strong><span style="color:var(--text-secondary); font-size:0.65rem;">Saved</span></div></div>`; });
 }
