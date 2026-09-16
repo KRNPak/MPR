@@ -423,7 +423,13 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
     Object.keys(compSummary).forEach(c => {
         if (compSummary[c].a > 0) {
             if (searchTerm && !c.toLowerCase().includes(searchTerm)) return;
-            items.push({ label: c, val: compSummary[c].a, pct: Math.round((compSummary[c].a / totAct) * 100) });
+            // Added budget (compSummary[c].b) into the data array for the tooltip
+            items.push({ 
+                label: c, 
+                val: compSummary[c].a, 
+                bud: compSummary[c].b, 
+                pct: Math.round((compSummary[c].a / totAct) * 100) 
+            });
         }
     });
 
@@ -437,7 +443,6 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
     const colors = ['#0073a8', '#14b8a6', '#f59e0b', '#8b5cf6', '#3b82f6', '#ef4444', '#10b981', '#f43f5e', '#84cc16', '#d946ef', '#06b6d4', '#eab308'];
     const N = items.length;
     
-    // Bumping radius and forcing ultra-thick inline stroke
     const radius = 145;
     const strokeWidth = 110; 
     
@@ -452,13 +457,15 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
         const color = colors[i % colors.length];
         const offset = -(i * sliceLength);
         
-        // MOVED stroke-width into the style tag to force override any external CSS
+        // Added the hover tooltip triggers (onmouseenter, onmousemove, onmouseleave)
         svgHtml += `<circle cx="230" cy="230" r="${radius}" fill="none" stroke="${color}" 
                     stroke-dasharray="${dashLength} ${C - dashLength}" stroke-dashoffset="${offset}" 
                     style="stroke-width: ${strokeWidth}px; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dasharray 1s ease-out; cursor: pointer;" 
+                    onmouseenter="showGiantTooltip(event, '${item.label.replace(/'/g, "\\'")}', ${item.val}, ${item.bud})"
+                    onmousemove="moveTooltip(event)"
+                    onmouseleave="hideTooltip()"
                     onclick="openComponentModal('${item.label.replace(/'/g, "\\'")}')" />`;
         
-        // Exact mathematical center of the slice for text placement
         const sliceAngleDeg = 360 / N;
         const midAngleDeg = -90 + (i * sliceAngleDeg) + (sliceAngleDeg / 2);
         const midAngleRad = midAngleDeg * Math.PI / 180;
@@ -466,7 +473,6 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
         const textX = 230 + radius * Math.cos(midAngleRad);
         const textY = 230 + radius * Math.sin(midAngleRad);
         
-        // Smart Text Wrapping for SVG
         let l1 = item.label; let l2 = "";
         if (item.label.includes('(')) {
             const parts = item.label.split('(');
@@ -487,23 +493,15 @@ function renderGiantDonut(compSummary, totAct, searchTerm) {
         svgHtml += `</text>`;
     });
 
-// Inner Core: Total Spent
     const totParts = getFormattedParts(totAct);
     
-    // Label (y=195)
     svgHtml += `<text x="230" y="195" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="14" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${timeLabel.toUpperCase()} SPENT</text>`;
-    
-    // Unit (y=265)
-    svgHtml += `<text x="230" y="265" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-light-blue)" font-size="16" font-family="Calibri, sans-serif" font-weight="bold">${totParts.u}</text>`;
-    
-    // Value (y=230) - Made slightly larger to stand out!
-    svgHtml += `<text x="230" y="230" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="44" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text>`;
+    svgHtml += `<text x="230" y="220" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-light-blue)" font-size="16" font-family="Calibri, sans-serif" font-weight="bold">${totParts.u}</text>`;
+    svgHtml += `<text x="230" y="265" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="44" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text>`;
     
     svgHtml += `</svg>`;
     container.innerHTML = svgHtml;
-    
 }
-
 function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
     const thead = document.getElementById('mainTableHeader');
     thead.innerHTML = `<tr><th>Position & Name</th><th>${timeLabel} Actual</th><th>FY Forecast (Smart)</th><th>FY Budget</th><th>FY Variance</th></tr>`;
@@ -689,7 +687,26 @@ function showTooltip(e, label, value, pct) {
 }
 function moveTooltip(e) { if(tooltip) { tooltip.style.left = (e.clientX + 15) + 'px'; tooltip.style.top = (e.clientY + 15) + 'px'; } }
 function hideTooltip() { if(tooltip) tooltip.classList.remove('visible'); }
+function showGiantTooltip(e, label, actual, budget) {
+    const actParts = getFormattedParts(actual);
+    const budParts = getFormattedParts(budget);
+    const varNum = budget - actual;
+    const varParts = getFormattedParts(Math.abs(varNum));
+    const varColor = varNum >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)';
+    const pct = budget > 0 ? Math.round((actual / budget) * 100) : (actual > 0 ? 'N/A' : 0);
 
+    if (tooltip) {
+        tooltip.innerHTML = `
+            <div style="font-weight:bold; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:4px; font-size: 0.9rem;">${label}</div>
+            <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem; margin-bottom:3px;"><span>Budget:</span> <strong>${budParts.v} ${budParts.u}</strong></div>
+            <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem; margin-bottom:3px;"><span>Spent:</span> <strong style="color:var(--krn-light-blue)">${actParts.v} ${actParts.u}</strong></div>
+            <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem; margin-bottom:3px;"><span>Variance:</span> <strong style="color:${varColor}">${varParts.v} ${varParts.u}</strong></div>
+            <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem;"><span>% Spent:</span> <strong>${pct}${pct !== 'N/A' ? '%' : ''}</strong></div>
+        `;
+        tooltip.classList.add('visible');
+        moveTooltip(e);
+    }
+}
 function renderDonorDonut(containerId, donorObj) {
     if (Object.keys(donorObj).length === 0) { document.getElementById(containerId).innerHTML = '<div style="font-size:0.7rem; color:var(--text-secondary); text-align:center; margin-top:40px;">N/A</div>'; return; }
     let colors = ['var(--krn-blue)', '#14b8a6', 'var(--krn-orange)', '#8b5cf6', 'var(--krn-light-blue)'];
