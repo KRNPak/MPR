@@ -518,7 +518,7 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
     let insightsHtml = `
         <div style="flex: 1; display: flex; flex-direction: column; gap: 15px; max-width: 450px;">
             
-            <!-- Insight Card 1: Executive Summary -->
+            <!-- Insight Card: Executive Summary -->
             <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
                 <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 10px;">Executive Highlights</div>
                 
@@ -537,16 +537,6 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
                     <strong style="font-size: 0.8rem; color: ${activePremium >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'};">${activePremium >= 0 ? '+' : ''}${formatPKRShort(activePremium)}</strong>
                 </div>
                 ${volHtml}
-            </div>
-
-            <!-- Insight Card 2: Expanded Monthly Trend -->
-            <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 15px;">Monthly Spend Trend</div>
-                <div style="width: 100%; height: 75px; display: flex; align-items: flex-end;">
-                    <svg width="100%" height="100%" viewBox="0 -5 200 45" style="overflow: visible;" preserveAspectRatio="none">
-                        <polyline fill="none" stroke="var(--krn-blue)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="${pts}" />
-                    </svg>
-                </div>
             </div>
         </div>
     `;
