@@ -459,7 +459,7 @@ function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, em
 
     const totParts = getFormattedParts(totAct);
     svgHtml += `<text x="230" y="195" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="14" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${timeLabel.toUpperCase()} SPENT</text>`;
-    svgHtml += `<text x="230" y="265" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-light-blue)" font-size="16" font-family="Calibri, sans-serif" font-weight="bold">${totParts.u}</text>`;
+    svgHtml += `<text x="230" y="270" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-light-blue)" font-size="16" font-family="Calibri, sans-serif" font-weight="bold">${totParts.u}</text>`;
     svgHtml += `<text x="230" y="225" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="44" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text></svg>`;
 
     // --- 2. INSIGHTS MATH ---
