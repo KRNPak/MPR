@@ -73,9 +73,11 @@ async function authenticateUser() {
 
     try {
         const path = `Data/${CURRENT_YEAR}/HR_Data`;
+        // CACHE BUSTER: Forces the browser to grab the newest file from GitHub
+        const cb = '?v=' + new Date().getTime(); 
         
         console.log("1. Fetching Staff Master...");
-        const masterRes = await fetch(`${path}/Staff_Master.csv`);
+        const masterRes = await fetch(`${path}/Staff_Master.csv${cb}`);
         if (!masterRes.ok) throw new Error(`Staff_Master.csv not found (HTTP ${masterRes.status})`);
         
         const masterData = parseCSV(await masterRes.text());
@@ -96,11 +98,11 @@ async function authenticateUser() {
         
         console.log("3. Employee Found:", emp._raw);
 
-        // Load files safely. If a file is missing, default to an empty array so it doesn't crash.
+        // Load files safely with Cache Buster
         const files = ['PF', 'Advances', 'Training', 'Gratuity', 'Tax', 'CPR_Master'];
         for (let file of files) {
             try {
-                const res = await fetch(`${path}/${file}.csv`);
+                const res = await fetch(`${path}/${file}.csv${cb}`);
                 if (!res.ok) {
                     console.warn(`File missing, skipping: ${file}.csv`);
                     db[file] = [];
@@ -113,7 +115,7 @@ async function authenticateUser() {
             }
         }
 
-        // FIX: Ensure it grabs 'Employee Code', not 'Position code'
+        // Map Employee Code safely
         let empCodeKey = Object.keys(emp._raw).find(k => k.toLowerCase().trim() === 'employee code' || k.toLowerCase().trim() === 'emp code');
         let empCode = empCodeKey ? emp._raw[empCodeKey] : null;
         console.log("4. Mapped Employee Code:", empCode);
