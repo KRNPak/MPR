@@ -384,7 +384,7 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
         });
     });
 
-    donorTBRows.forEach(r => {
+ donorTBRows.forEach(r => {
         const codeKey = Object.keys(r._raw).find(k => (k.toLowerCase().includes('natural') && k.toLowerCase().includes('value')) || k.toLowerCase() === 'naturalaccount' || k.toLowerCase() === 'accountcode');
         const code = String(r._raw[codeKey] || r['acct'] || r['code'] || '').trim().toUpperCase();
         if (!code) return;
@@ -430,13 +430,24 @@ function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows)
             if (code.startsWith('D')) mapping.Dept = 'Digital Financial Services';
         }
 
-        const donorKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('additionalsegmentdesc') || k.toLowerCase() === 'donor' || k.toLowerCase() === 'fund');
-        let rawDonor = String(r._raw[donorKey] || r['additionalsegmentdesc'] || r['donor'] || mapping.Donor || 'OSR').trim();
-        if (rawDonor === '' || rawDonor.toLowerCase() === 'nan' || rawDonor === '0' || rawDonor === 'undefined') rawDonor = 'OSR';
+        // CORRECTED DONOR PARSING LOGIC
+        // We explicitly look for the 'ADDITIONAL_SEGMENT_DESC' column first to get the true donor.
+        const donorKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'additional_segment_desc' || k.toLowerCase() === 'additionalsegmentdesc');
+        let rawDonor = donorKey ? String(r._raw[donorKey]).trim() : '';
+        
+        // Fallbacks if the specific column is missing
+        if (!rawDonor || rawDonor.toLowerCase() === 'nan' || rawDonor === '0') {
+            const backupKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'donor' || k.toLowerCase() === 'fund');
+            rawDonor = backupKey ? String(r._raw[backupKey]).trim() : (mapping.Donor || 'OSR');
+        }
+        if (rawDonor === '' || rawDonor.toLowerCase() === 'nan' || rawDonor === '0' || rawDonor === 'undefined') {
+            rawDonor = 'OSR';
+        }
         
         let finalDonor = rawDonor;
         let dLower = String(rawDonor).toLowerCase();
         
+        // Consolidate mixed funding or invalid strings down to OSR
         if (dLower.includes(' and ') || dLower.includes(' & ') || dLower.includes('+')) {
             finalDonor = 'OSR';
         } else if (mapping.Dept !== 'Digital Financial Services' && mapping.Dept !== 'DFS') {
