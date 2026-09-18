@@ -98,12 +98,12 @@
     <div class="main-layout-wrapper">
         
 <!-- CARD 1: OVERALL SUMMARY AREA -->
-        <div id="summaryPanel">
+        <div id="summaryPanel" style="height: 100%; display: flex; flex-direction: column;">
             
-            <div class="summary-split-layout">
+            <div class="summary-split-layout" style="flex: 1; min-height: 0;">
                 
-                <!-- NEW LEFT SIDEBAR WRAPPER -->
-                <div style="flex: 1.1; display: flex; flex-direction: column; gap: 12px;">
+                <!-- LEFT SIDEBAR -->
+                <div style="flex: 1.1; display: flex; flex-direction: column; gap: 12px; min-height: 0;">
                     
                     <!-- Filters -->
                     <div class="controls-block">
@@ -126,9 +126,8 @@
                         <select id="periodDropdown" class="select-input" onchange="onPeriodChange()"></select>
                     </div>
 
-                    <!-- Left KPI Card -->
-                    <div class="summary-left-card" style="flex: 1; flex-shrink: 0; display: flex; flex-direction: column;">
-                        
+                    <!-- Left KPI Card (Handles own scrolling) -->
+                    <div class="summary-left-card" style="flex: 1; display: flex; flex-direction: column; overflow-y: auto;">
                         <div class="period-metrics-horizontal">
                             <div class="kpi-item" style="align-items: center;">
                                 <div class="val" id="card1Budget" data-val="0" style="align-items: center;">
@@ -147,17 +146,16 @@
                         </div>
                         
                         <div class="donuts-triplet-container" id="summaryDonutContainer" style="grid-template-columns: repeat(3, 1fr);">
-                            <!-- Managed dynamically via JS depending on view state -->
+                            <!-- Managed dynamically via JS -->
                         </div>
-                        
                     </div>
                 </div>
 
-<!--------------------- RIGHT CARD (Table) ---------------------->
-                <div class="summary-right-card summary-table-container" style="flex: 2.2;">
-                    <div style="font-size: 0.6rem; font-weight: 400; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase;">Departmental Spend (Click to view)</div>
+                <!-- RIGHT CARD (Table handles own scrolling) -->
+                <div class="summary-right-card summary-table-container" style="flex: 2.2; display: flex; flex-direction: column; overflow-y: auto; min-height: 0;">
+                    <div style="font-size: 0.6rem; font-weight: 400; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; flex-shrink: 0;">Departmental Spend (Click to view)</div>
                     
-                    <div class="table-wrapper">
+                    <div class="table-wrapper" style="flex: 1; overflow-y: auto;">
                         <table class="detail-table" style="margin-top: 0;">
                             <thead>
                                 <tr>
