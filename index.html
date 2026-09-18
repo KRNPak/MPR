@@ -97,15 +97,15 @@
     <!-- MAIN DYNAMIC LAYOUT -->
     <div class="main-layout-wrapper">
         
-       <!-- CARD 1: OVERALL SUMMARY AREA -->
-        <div id="summaryPanel" style="height: calc(100vh - 95px);">
+<!-- CARD 1: OVERALL SUMMARY AREA -->
+        <div id="summaryPanel">
             
-            <div class="summary-split-layout" style="height: 100%;">
+            <div class="summary-split-layout">
                 
                 <!-- NEW LEFT SIDEBAR WRAPPER -->
-                <div style="flex: 1.1; display: flex; flex-direction: column; gap: 12px; height: 100%;">
+                <div style="flex: 1.1; display: flex; flex-direction: column; gap: 12px;">
                     
-                    <!-- Filters moved here -->
+                    <!-- Filters -->
                     <div class="controls-block">
                         <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                             <span style="font-size: 0.8rem; color: var(--text-primary);">View & Granularity</span>
@@ -126,43 +126,38 @@
                         <select id="periodDropdown" class="select-input" onchange="onPeriodChange()"></select>
                     </div>
 
-                    <!-- Left KPI Card (Now stretching with space distributed evenly) -->
-                    <div class="summary-left-card" style="flex: 1; flex-shrink: 0; display: flex; flex-direction: column; justify-content: space-between;">
+                    <!-- Left KPI Card -->
+                    <div class="summary-left-card" style="flex: 1; flex-shrink: 0; display: flex; flex-direction: column;">
                         
-                        <!-- Top Half: KPIs and Donuts -->
-                        <div>
-                            <div class="period-metrics-horizontal">
-                                <div class="kpi-item" style="align-items: center;">
-                                    <div class="val" id="card1Budget" data-val="0" style="align-items: center;">
-                                        <span class="val-unit">M PKR</span>
-                                        <span class="val-num">0</span>
-                                    </div>
-                                    <span class="lbl" id="lblPeriodBudget">Period Budget</span>
+                        <div class="period-metrics-horizontal">
+                            <div class="kpi-item" style="align-items: center;">
+                                <div class="val" id="card1Budget" data-val="0" style="align-items: center;">
+                                    <span class="val-unit">M PKR</span>
+                                    <span class="val-num">0</span>
                                 </div>
-                                <div class="kpi-item" style="align-items: center;">
-                                    <div class="val" id="card1Actual" data-val="0" style="align-items: center;">
-                                        <span class="val-unit">M PKR</span>
-                                        <span class="val-num">0</span>
-                                    </div>
-                                    <span class="lbl" id="lblPeriodActual">Period Actual</span>
-                                </div>
+                                <span class="lbl" id="lblPeriodBudget">Period Budget</span>
                             </div>
-                            
-                            <div class="donuts-triplet-container" id="summaryDonutContainer" style="grid-template-columns: repeat(3, 1fr);">
-                                <!-- Managed dynamically via JS depending on view state -->
+                            <div class="kpi-item" style="align-items: center;">
+                                <div class="val" id="card1Actual" data-val="0" style="align-items: center;">
+                                    <span class="val-unit">M PKR</span>
+                                    <span class="val-num">0</span>
+                                </div>
+                                <span class="lbl" id="lblPeriodActual">Period Actual</span>
                             </div>
                         </div>
-
-                        <!-- Bottom Half: The JS engine will naturally append the EOD Tracking table here -->
+                        
+                        <div class="donuts-triplet-container" id="summaryDonutContainer" style="grid-template-columns: repeat(3, 1fr);">
+                            <!-- Managed dynamically via JS depending on view state -->
+                        </div>
+                        
                     </div>
                 </div>
 
                 <!-- RIGHT CARD (Table) -->
-                <div class="summary-right-card summary-table-container" style="flex: 2.2; display: flex; flex-direction: column; height: 100%;">
+                <div class="summary-right-card summary-table-container" style="flex: 2.2; display: flex; flex-direction: column;">
                     <div style="font-size: 0.6rem; font-weight: 400; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase;">Departmental Spend (Click to view)</div>
                     
-                    <!-- Table wrapper explicitly set to flex: 1 to push all the way to the bottom -->
-                    <div class="table-wrapper" style="flex: 1; overflow-y: auto;">
+                    <div class="table-wrapper">
                         <table class="detail-table" style="margin-top: 0;">
                             <thead>
                                 <tr>
@@ -180,6 +175,7 @@
                 
             </div>
         </div>
+        
         
         <!-- DETAILS PANEL: EQUAL HEIGHT DISCONNECTED CARDS 2 & 3 -->
         <div id="detailsPanel">
