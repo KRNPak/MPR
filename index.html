@@ -174,10 +174,11 @@
             </div>
         </div>
 
-        <!-- DETAILS PANEL -->
+<!-- DETAILS PANEL -->
         <div id="detailsPanel" style="height: 100%; min-height: 0;">
+            
             <!-- CARD 2: Department Split -->
-            <div class="details-dept-card" style="min-height: 0;">
+            <div class="details-dept-card" style="min-height: 0; height: 100%;">
                 <h2 class="card-title">
                     <span>Departments</span>
                     <select class="select-mini" id="sortDept" onchange="updateDashboard()">
@@ -185,11 +186,12 @@
                         <option value="Variance">Over Budget</option>
                     </select>
                 </h2>
-                <div class="dept-grid-container" id="deptListContainer" style="flex: 1; min-height: 0;"></div>
+                <!-- overflow-y and grid-auto-rows added here to enforce scrolling -->
+                <div class="dept-grid-container" id="deptListContainer" style="flex: 1; min-height: 0; overflow-y: auto; grid-auto-rows: max-content;"></div>
             </div>
 
             <!-- CARD 3: Department Details -->
-            <div class="details-overview-card" style="min-height: 0;">
+            <div class="details-overview-card" style="min-height: 0; height: 100%;">
                 <h2 class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
                     <span id="card3Title" style="color: var(--text-primary)">Overview</span>
                     
@@ -206,12 +208,12 @@
                 </div>
 
                 <div style="font-size: 0.6rem; font-weight: 400; color: var(--text-secondary); margin-top: 15px; margin-bottom: 5px; text-transform: uppercase;" id="listLabel">Streams & Workstreams (Click to drill)</div>
-                <div class="stream-grid-container" id="streamListContainer" style="flex: 1; min-height: 0;"></div>
+                <!-- overflow-y and grid-auto-rows added here to enforce scrolling -->
+                <div class="stream-grid-container" id="streamListContainer" style="flex: 1; min-height: 0; overflow-y: auto; grid-auto-rows: max-content;"></div>
             </div>
+            
         </div>
-
-    </div>
-    
+        
 <!-- LEVEL 3 POPUP MODAL -->
 <div id="streamModal" class="modal">
     <div class="modal-content">
