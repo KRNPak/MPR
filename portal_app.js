@@ -2,17 +2,16 @@
 // 1. STATE & CONSTANTS
 // ========================================================================
 const CURRENT_YEAR = 'FY2027';
-let emp = null; // Logged-in employee object
-let db = {}; // Holds all loaded CSV data
+let emp = null; 
+let db = {}; 
 
-// Training Limits by Grade
 const trainingLimits = {
     10: 625000, 9: 375000, 8: 312500, 
     7: 250000, 6: 187500, 5: 150000, 4: 100000
 };
 
 // ========================================================================
-// 2. CSV PARSER (Reused from Main Dashboard)
+// 2. CSV PARSER 
 // ========================================================================
 function parseCSV(text) {
     let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -120,11 +119,11 @@ async function authenticateUser() {
         console.log("4. Mapped Employee Code:", empCode);
 
         // Map personal data safely
-        db.myPF = db.PF.find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
+        db.myPF = (db.PF || []).find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
         db.myAdvances = (db.Advances || []).filter(r => r._raw[Object.keys(r._raw)[0]] == empCode) || [];
-        db.myTraining = db.Training.find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
-        db.myGratuity = db.Gratuity.find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
-        db.myTax = db.Tax.find(r => r._raw[Object.keys(r._raw)[1]] == empCode) || {};
+        db.myTraining = (db.Training || []).find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
+        db.myGratuity = (db.Gratuity || []).find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
+        db.myTax = (db.Tax || []).find(r => r._raw[Object.keys(r._raw)[1]] == empCode) || {};
 
         console.log("5. Rendering Dashboard...");
         renderDashboard();
@@ -136,28 +135,6 @@ async function authenticateUser() {
     } catch (err) {
         console.error("Login Crash:", err);
         errorMsg.innerText = `Access Denied: ${err.message}`;
-        errorMsg.style.display = "block";
-        btn.innerText = "Secure Login →";
-    }
-}
-        // Get Employee's specific rows from the databases
-        let empCodeKey = Object.keys(emp._raw).find(k => k.toLowerCase().includes('code') || k.toLowerCase().includes('id'));
-        let empCode = emp._raw[empCodeKey];
-
-        db.myPF = db.PF.find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
-        db.myAdvances = db.Advances.filter(r => r._raw[Object.keys(r._raw)[0]] == empCode) || [];
-        db.myTraining = db.Training.find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
-        db.myGratuity = db.Gratuity.find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
-        db.myTax = db.Tax.find(r => r._raw[Object.keys(r._raw)[1]] == empCode) || {}; // Using index 1 based on your image
-
-        renderDashboard();
-        
-        document.getElementById('loginGate').style.display = "none";
-        document.getElementById('portalDashboard').style.display = "block";
-
-    } catch (err) {
-        console.error(err);
-        errorMsg.innerText = "Access Denied. CNIC not recognized or HR data unavailable.";
         errorMsg.style.display = "block";
         btn.innerText = "Secure Login →";
     }
@@ -175,7 +152,6 @@ function logout() {
 // 4. DASHBOARD RENDERER & BUSINESS LOGIC
 // ========================================================================
 function renderDashboard() {
-    // Standardize Master Data
     const nameKey = Object.keys(emp._raw).find(k => k.toLowerCase().includes('name') || k.toLowerCase().includes('employee'));
     const desigKey = Object.keys(emp._raw).find(k => k.toLowerCase().includes('designation'));
     const gradeKey = Object.keys(emp._raw).find(k => k.toLowerCase().includes('grade'));
@@ -186,7 +162,6 @@ function renderDashboard() {
     const empGrade = parseInt(getSafeNum(emp._raw[gradeKey])) || 0;
     const baseSalary = getSafeNum(emp._raw[salaryKey]);
     
-    // Parse Dates safely
     const joinDate = new Date(emp._raw[joinKey]);
     const today = new Date();
     
@@ -202,12 +177,12 @@ function renderDashboard() {
     document.getElementById('empJoinDisplay').innerText = isNaN(joinDate) ? "Unknown" : joinDate.toLocaleDateString();
 
     // --- 1. PROVIDENT FUND ---
-    let pfEmpCont = getSafeNum(db.myPF['totalaccumulatedcontributons']) / 2; // Approximating split if not explicit
+    let pfEmpCont = getSafeNum(db.myPF['totalaccumulatedcontributons']) / 2; 
     let pfEmployerCont = pfEmpCont;
     let pfProfit = getSafeNum(db.myPF['totalaccumulatedprofit']);
     
     if (tenureMonths < 3) {
-        pfEmployerCont = 0; // Probation rule
+        pfEmployerCont = 0; 
         document.getElementById('pfEmployerBox').style.opacity = '0.3';
         document.getElementById('pfEmployerBox').title = "Employer match locked during probation (unvested).";
     }
@@ -226,7 +201,6 @@ function renderDashboard() {
     let trainingBaseline = getSafeNum((db.myTraining._raw || {})[tBaseKey]); 
     let trainingExpenses = getSafeNum((db.myTraining._raw || {})[tExpKey]);
     
-    // Calculate new accrual from June 30, 2026
     const baselineDate = new Date('2026-06-30');
     let annualLimit = trainingLimits[empGrade] || 0;
     let newAccrual = 0;
@@ -236,7 +210,7 @@ function renderDashboard() {
         newAccrual = (daysSince / 365.25) * annualLimit;
     }
     
-    let totalAccrued = Math.min(trainingBaseline + newAccrual, annualLimit * 3); // 3 Year Cap
+    let totalAccrued = Math.min(trainingBaseline + newAccrual, annualLimit * 3); 
     let trainingAvailable = totalAccrued - trainingExpenses;
     let overUtilizedTraining = 0;
 
@@ -256,7 +230,6 @@ function renderDashboard() {
     const gBaseKey = Object.keys(db.myGratuity._raw || {}).find(k => k.toLowerCase().includes('payable'));
     let gratuityBaseline = getSafeNum((db.myGratuity._raw || {})[gBaseKey]);
     
-    // New Accrual from June 30, 2026
     let gratAccrual = 0;
     if (today > baselineDate) {
         let yearsSince = (today - baselineDate) / (1000 * 60 * 60 * 24 * 365.25);
@@ -264,7 +237,6 @@ function renderDashboard() {
     }
 
     let gratuityTotal = gratuityBaseline + gratAccrual;
-    // 10 Year Cap
     let maxGratuity = (baseSalary * 0.5) * 10;
     gratuityTotal = Math.min(gratuityTotal, maxGratuity);
 
@@ -279,7 +251,7 @@ function renderDashboard() {
                 <span style="font-weight: bold; margin-top: 5px; color: var(--text-primary);">Vests in ${Math.ceil((3 - tenureYears)*12)} Months</span>
             </div>
         `;
-        gratuityTotal = 0; // Vested amount is 0 for calculations
+        gratuityTotal = 0; 
     }
 
 
@@ -288,7 +260,7 @@ function renderDashboard() {
     let advHtml = '';
     
     db.myAdvances.forEach(adv => {
-        let principal = getSafeNum(adv._raw['amount']) || getSafeNum(adv._raw['advance']); // Map as needed
+        let principal = getSafeNum(adv._raw['amount']) || getSafeNum(adv._raw['advance']); 
         let settled = getSafeNum(adv._raw['previously settled']) || 0;
         let remaining = principal - settled;
         activeAdvancesTotal += remaining;
@@ -316,7 +288,6 @@ function renderDashboard() {
     let maxAdvLimit = Math.min(advLimitRule1, advLimitRule2);
     let advAvailable = Math.max(0, maxAdvLimit - activeAdvancesTotal);
     
-    // Hard Limit: Max 3 advances
     if (db.myAdvances.length >= 3) advAvailable = 0; 
     document.getElementById('advLimit').innerText = Math.round(advAvailable).toLocaleString('en-PK');
 
@@ -362,11 +333,9 @@ function generateTaxPDF() {
     let totalDeducted = 0;
 
     months.forEach(m => {
-        // Cross-reference CPR Master
-        let cprRow = db.CPR_Master.find(r => r._raw['Month'] == m);
+        let cprRow = (db.CPR_Master || []).find(r => r._raw['Month'] == m);
         let cprNo = cprRow ? cprRow._raw['CPR_Number'] : 'Pending';
         
-        // Find matching month column in myTax
         let monthCol = Object.keys(db.myTax._raw).find(k => k.toLowerCase().includes(m.toLowerCase()));
         let amount = getSafeNum(db.myTax._raw[monthCol]);
         totalDeducted += amount;
@@ -381,7 +350,7 @@ function generateTaxPDF() {
     });
 
     const template = document.getElementById('pdfTemplate');
-    template.style.display = "block"; // Briefly show to render
+    template.style.display = "block"; 
     
     template.innerHTML = `
         <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; color: #333;">
@@ -439,6 +408,6 @@ function generateTaxPDF() {
     };
 
     html2pdf().set(opt).from(template).save().then(() => {
-        template.style.display = "none"; // Hide after rendering
+        template.style.display = "none";
     });
 }
