@@ -46,8 +46,19 @@ body {
     color: var(--text-primary);
     margin: 0;
     padding: 10px 15px; 
-    overflow-x: hidden;
+    overflow: hidden; /* Locks the browser window from scrolling on desktop */
     transition: background-color 0.3s ease, color 0.3s ease; 
+}
+
+/* FULLSCREEN RESPONSIVE CONTAINER */
+.dashboard-container { 
+    width: 100%; max-width: 100%; margin: 0 auto; padding: 0 5px; 
+    display: flex; flex-direction: column; height: calc(100vh - 20px); 
+}
+
+.main-layout-wrapper { 
+    display: flex; width: 100%; gap: 12px; align-items: stretch; transition: all 0.4s ease; flex-wrap: wrap; 
+    flex: 1; min-height: 0; /* Crucial for nested flexbox scrolling */
 }
 
 body.light-mode {
@@ -556,16 +567,19 @@ body.light-mode .modal { background-color: rgba(255, 255, 255, 0.85); }
 
 /* ---------------- RESPONSIVE MEDIA QUERIES ---------------- */
 @media (max-width: 1024px) {
+    body { overflow-y: auto; overflow-x: hidden; } /* Gives scrolling back to mobile */
+    .dashboard-container { height: auto; display: block; }
+    
     .header-banner { flex-direction: column; align-items: flex-start; gap: 15px; }
     .header-kpi-summary { border-left: none; padding-left: 0; padding-top: 15px; border-top: 1px solid var(--border-color); width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 15px;}
     
     body.view-details #summaryPanel { flex: 0 0 100%; max-width: 100%; height: auto; min-height: unset; margin-bottom: 12px; }
     body.view-details #detailsPanel { flex: 0 0 100%; width: 100%; flex-direction: column; }
     
-    .summary-split-layout { flex-direction: column; }
-    #summaryPanel, .details-dept-card, .details-overview-card { min-height: 400px; height: auto; flex: 1 1 100%; }
+    .summary-split-layout { flex-direction: column; height: auto; }
+    #summaryPanel, .details-dept-card, .details-overview-card { min-height: unset; height: auto; flex: 1 1 100%; }
+    .summary-left-card, .summary-right-card { overflow-y: visible; height: auto; }
 }
-
 @media (max-width: 768px) {
     .header-title-group h1 { font-size: 1.6rem; }
     .val-num { font-size: 1.4rem; }
