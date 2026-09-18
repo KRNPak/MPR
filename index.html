@@ -100,51 +100,59 @@
         <!-- CARD 1: OVERALL SUMMARY AREA -->
         <div id="summaryPanel">
             
-            <div class="controls-block">
-                <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <span style="font-size: 0.8rem; color: var(--text-primary);">View & Granularity</span>
-                    <button id="btnBackToSummary" class="back-btn" style="display:none; width: auto;" onclick="toggleViewMode()">&#8592; Back</button>
-                </div>
-                <div class="control-group-row">
-                    <div class="granularity-btn-group">
-                        <button class="gran-btn active" id="btnMonthly" onclick="setGranularity('Monthly', this)">Monthly</button>
-                        <button class="gran-btn" id="btnQuarterly" onclick="setGranularity('Quarterly', this)">Quarterly</button>
-                        <button class="gran-btn" onclick="setGranularity('Yearly', this)">Yearly</button>
-                    </div>
-                    <div class="granularity-btn-group" style="flex: 0.6;">
-                        <button class="gran-btn" id="btnPeriod" onclick="setViewMode('Period', this)">Period</button>
-                        <button class="gran-btn active" id="btnQTD" onclick="setViewMode('QTD', this)">QTD</button>
-                        <button class="gran-btn" id="btnYTD" onclick="setViewMode('YTD', this)">YTD</button>
-                    </div>
-                </div>
-                <select id="periodDropdown" class="select-input" onchange="onPeriodChange()"></select>
-            </div>
-
             <div class="summary-split-layout">
-                <div class="summary-left-card">
-                    <div class="period-metrics-horizontal">
-                        <div class="kpi-item" style="align-items: center;">
-                            <div class="val" id="card1Budget" data-val="0" style="align-items: center;">
-                                <span class="val-unit">M PKR</span>
-                                <span class="val-num">0</span>
-                            </div>
-                            <span class="lbl" id="lblPeriodBudget">Period Budget</span>
-                        </div>
-                        <div class="kpi-item" style="align-items: center;">
-                            <div class="val" id="card1Actual" data-val="0" style="align-items: center;">
-                                <span class="val-unit">M PKR</span>
-                                <span class="val-num">0</span>
-                            </div>
-                            <span class="lbl" id="lblPeriodActual">Period Actual</span>
-                        </div>
-                    </div>
+                
+                <!-- NEW LEFT SIDEBAR WRAPPER -->
+                <div style="flex: 1.1; display: flex; flex-direction: column; gap: 12px;">
                     
-                    <div class="donuts-triplet-container" id="summaryDonutContainer" style="grid-template-columns: repeat(3, 1fr);">
-                        <!-- Managed dynamically via JS depending on view state -->
+                    <!-- Filters moved here -->
+                    <div class="controls-block">
+                        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span style="font-size: 0.8rem; color: var(--text-primary);">View & Granularity</span>
+                            <button id="btnBackToSummary" class="back-btn" style="display:none; width: auto;" onclick="toggleViewMode()">&#8592; Back</button>
+                        </div>
+                        <div class="control-group-row">
+                            <div class="granularity-btn-group">
+                                <button class="gran-btn active" id="btnMonthly" onclick="setGranularity('Monthly', this)">Monthly</button>
+                                <button class="gran-btn" id="btnQuarterly" onclick="setGranularity('Quarterly', this)">Quarterly</button>
+                                <button class="gran-btn" onclick="setGranularity('Yearly', this)">Yearly</button>
+                            </div>
+                            <div class="granularity-btn-group" style="flex: 0.6;">
+                                <button class="gran-btn" id="btnPeriod" onclick="setViewMode('Period', this)">Period</button>
+                                <button class="gran-btn active" id="btnQTD" onclick="setViewMode('QTD', this)">QTD</button>
+                                <button class="gran-btn" id="btnYTD" onclick="setViewMode('YTD', this)">YTD</button>
+                            </div>
+                        </div>
+                        <select id="periodDropdown" class="select-input" onchange="onPeriodChange()"></select>
+                    </div>
+
+                    <!-- Existing Left KPI Card -->
+                    <div class="summary-left-card" style="flex: 1; flex-shrink: 0;">
+                        <div class="period-metrics-horizontal">
+                            <div class="kpi-item" style="align-items: center;">
+                                <div class="val" id="card1Budget" data-val="0" style="align-items: center;">
+                                    <span class="val-unit">M PKR</span>
+                                    <span class="val-num">0</span>
+                                </div>
+                                <span class="lbl" id="lblPeriodBudget">Period Budget</span>
+                            </div>
+                            <div class="kpi-item" style="align-items: center;">
+                                <div class="val" id="card1Actual" data-val="0" style="align-items: center;">
+                                    <span class="val-unit">M PKR</span>
+                                    <span class="val-num">0</span>
+                                </div>
+                                <span class="lbl" id="lblPeriodActual">Period Actual</span>
+                            </div>
+                        </div>
+                        
+                        <div class="donuts-triplet-container" id="summaryDonutContainer" style="grid-template-columns: repeat(3, 1fr);">
+                            <!-- Managed dynamically via JS depending on view state -->
+                        </div>
                     </div>
                 </div>
 
-                <div class="summary-right-card summary-table-container">
+                <!-- RIGHT CARD (Table) -->
+                <div class="summary-right-card summary-table-container" style="flex: 2.2;">
                     <div style="font-size: 0.6rem; font-weight: 400; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase;">Departmental Spend (Click to view)</div>
                     <div class="table-wrapper">
                         <table class="detail-table" style="margin-top: 0;">
@@ -161,6 +169,7 @@
                         </table>
                     </div>
                 </div>
+                
             </div>
         </div>
 
