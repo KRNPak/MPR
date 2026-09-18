@@ -75,31 +75,71 @@ async function authenticateUser() {
     try {
         const path = `Data/${CURRENT_YEAR}/HR_Data`;
         
-        // Load Master File first
+        console.log("1. Fetching Staff Master...");
         const masterRes = await fetch(`${path}/Staff_Master.csv`);
-        const masterData = parseCSV(await masterRes.text());
+        if (!masterRes.ok) throw new Error(`Staff_Master.csv not found (HTTP ${masterRes.status})`);
         
-        // CNIC Match (Checking raw headers to catch exact matches if normalized headers are weird)
+        const masterData = parseCSV(await masterRes.text());
+        console.log("2. Master Data Parsed. Row count:", masterData.length);
+        
+        // Find employee safely
         emp = masterData.find(r => {
             let cnicKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('cnic'));
-            let val = cnicKey ? String(r._raw[cnicKey]).replace(/[^0-9]/g, '') : '';
+            if (!cnicKey) return false;
+            let val = String(r._raw[cnicKey]).replace(/[^0-9]/g, '');
             return val === cnicInput;
         });
 
-        if (!emp) throw new Error("CNIC not found.");
+        if (!emp) {
+            console.error(`CNIC ${cnicInput} not found in Staff_Master.`);
+            throw new Error("CNIC not found in Master File.");
+        }
+        
+        console.log("3. Employee Found:", emp._raw);
 
-        // We have a match! Now load the specific operational files
+        // Load files safely. If a file is missing, default to an empty array so it doesn't crash.
         const files = ['PF', 'Advances', 'Training', 'Gratuity', 'Tax', 'CPR_Master'];
         for (let file of files) {
             try {
                 const res = await fetch(`${path}/${file}.csv`);
-                db[file] = parseCSV(await res.text());
+                if (!res.ok) {
+                    console.warn(`File missing, skipping: ${file}.csv`);
+                    db[file] = [];
+                } else {
+                    db[file] = parseCSV(await res.text());
+                }
             } catch (e) {
-                console.warn(`Could not load ${file}.csv - ${e.message}`);
+                console.warn(`Error loading ${file}.csv:`, e);
                 db[file] = []; 
             }
         }
 
+        // FIX: Ensure it grabs 'Employee Code', not 'Position code'
+        let empCodeKey = Object.keys(emp._raw).find(k => k.toLowerCase().trim() === 'employee code' || k.toLowerCase().trim() === 'emp code');
+        let empCode = empCodeKey ? emp._raw[empCodeKey] : null;
+        console.log("4. Mapped Employee Code:", empCode);
+
+        // Map personal data safely
+        db.myPF = db.PF.find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
+        db.myAdvances = (db.Advances || []).filter(r => r._raw[Object.keys(r._raw)[0]] == empCode) || [];
+        db.myTraining = db.Training.find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
+        db.myGratuity = db.Gratuity.find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
+        db.myTax = db.Tax.find(r => r._raw[Object.keys(r._raw)[1]] == empCode) || {};
+
+        console.log("5. Rendering Dashboard...");
+        renderDashboard();
+        
+        document.getElementById('loginGate').style.display = "none";
+        document.getElementById('portalDashboard').style.display = "block";
+        console.log("6. Success!");
+
+    } catch (err) {
+        console.error("Login Crash:", err);
+        errorMsg.innerText = `Access Denied: ${err.message}`;
+        errorMsg.style.display = "block";
+        btn.innerText = "Secure Login →";
+    }
+}
         // Get Employee's specific rows from the databases
         let empCodeKey = Object.keys(emp._raw).find(k => k.toLowerCase().includes('code') || k.toLowerCase().includes('id'));
         let empCode = emp._raw[empCodeKey];
