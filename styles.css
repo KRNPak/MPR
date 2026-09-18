@@ -161,7 +161,6 @@ body.light-mode .header-logo img { filter: none; }
 
 #summaryPanel, .details-dept-card, .details-overview-card {
     height: auto;
-    min-height: calc(100vh - 90px);
 }
 
 #summaryPanel {
