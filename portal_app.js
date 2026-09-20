@@ -224,7 +224,7 @@ function renderDashboard() {
         <span style="color: var(--text-secondary);">Utilized:</span> <strong>${Math.round(trainingExpenses).toLocaleString('en-PK')}</strong>
     `;
 
-    // --- 3. GRATUITY PAYABLE ---
+   // --- 3. GRATUITY PAYABLE ---
     let gratuityBaseline = getSafeNum(db.myGratuity.gratuitypayable);
     let gratAccrual = today > baselineDate ? (baseSalary * 0.5) * ((today - baselineDate) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
 
@@ -232,10 +232,24 @@ function renderDashboard() {
     document.getElementById('gratuityTotal').innerText = Math.round(gratuityTotal).toLocaleString('en-PK');
     
     const gratuityCard = document.getElementById('gratuityCard');
+    const gratBreakdown = document.getElementById('gratuityBreakdown');
+    
     if (tenureYears < 3) {
         gratuityCard.classList.add('locked-card');
         gratuityCard.innerHTML += `<div class="locked-overlay" title="3-Year Vesting Cliff Policy"><span style="font-size: 2rem;">🔒</span><span style="font-weight: bold; margin-top: 5px; color: var(--text-primary);">Vests in ${Math.ceil((3 - tenureYears)*12)} Months</span></div>`;
         gratuityTotal = 0; 
+    } else {
+        gratBreakdown.innerHTML = `
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                <span style="color: var(--text-secondary);">Opening Accrued:</span> <strong>${Math.round(gratuityBaseline).toLocaleString('en-PK')}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                <span style="color: var(--text-secondary);">Accrued Year:</span> <strong>${Math.round(gratAccrual).toLocaleString('en-PK')}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px; border-top: 1px solid var(--border-color); padding-top: 4px;">
+                <span style="color: var(--text-secondary);">Time Served:</span> <strong>${Math.floor(tenureYears)} Yrs, ${tenureMonths % 12} Mos</strong>
+            </div>
+        `;
     }
 
     // --- 4. ADVANCES & AMORTIZATION SCHEDULE ---
