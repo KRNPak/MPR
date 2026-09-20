@@ -103,13 +103,21 @@ async function authenticateUser() {
             }
         }
 
-        // SMART MAPPING: Automatically finds the Employee Code column regardless of its position
-        let empCodeKey = Object.keys(emp._raw).find(k => k.toLowerCase().includes('code'));
+      // SMART MAPPING: Explicitly target the Employee Code to avoid "Position code" conflicts
+        let empCodeKey = Object.keys(emp._raw).find(k => 
+            k.toLowerCase().replace(/\s/g, '') === 'employeecode' || 
+            k.toLowerCase().replace(/\s/g, '') === 'empcode'
+        );
         let empCode = empCodeKey ? emp._raw[empCodeKey] : null;
 
         const matchCode = (r) => {
             if (!r || !r._raw) return false;
-            let key = Object.keys(r._raw).find(k => k.toLowerCase().includes('code'));
+            // Find whatever code column exists in the target file
+            let key = Object.keys(r._raw).find(k => 
+                k.toLowerCase().replace(/\s/g, '') === 'employeecode' || 
+                k.toLowerCase().replace(/\s/g, '') === 'empcode' || 
+                k.toLowerCase() === 'code'
+            );
             return key ? r._raw[key] == empCode : false;
         };
 
