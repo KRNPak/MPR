@@ -4,7 +4,7 @@
 const CURRENT_YEAR = 'FY2027';
 let emp = null; 
 let db = {}; 
-window.advancesData = []; // Store for the modal schedule
+window.advancesData = []; 
 
 const trainingLimits = {
     10: 625000, 9: 375000, 8: 312500, 
@@ -12,41 +12,67 @@ const trainingLimits = {
 };
 
 // ========================================================================
-// 2. BULLETPROOF CSV PARSER 
+// 2. INDUSTRIAL-GRADE CSV PARSER 
 // ========================================================================
+// This completely solves the "newline inside quotes" bug found in Advances.csv
 function parseCSV(text) {
-    let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    if (lines.length < 2) return [];
+    let objects = [];
+    let inQuotes = false;
+    let currentRow = [];
+    let currentCell = '';
     
-    function parseCSVLine(line) {
-        let result = [], inQuotes = false, val = '';
-        for (let c = 0; c < line.length; c++) {
-            let char = line[c];
-            if (char === '"' && inQuotes && line[c+1] === '"') { val += '"'; c++; }
-            else if (char === '"') inQuotes = !inQuotes;
-            else if (char === ',' && !inQuotes) { result.push(val); val = ''; }
-            else val += char;
+    // Standardize line endings safely
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    for (let i = 0; i < text.length; i++) {
+        let char = text[i];
+        let nextChar = text[i+1];
+        
+        if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+                currentCell += '"'; // Handle escaped quotes inside quotes
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            currentRow.push(currentCell.trim());
+            currentCell = '';
+        } else if (char === '\n' && !inQuotes) {
+            currentRow.push(currentCell.trim());
+            if (currentRow.join('').trim() !== '') {
+                objects.push(currentRow);
+            }
+            currentRow = [];
+            currentCell = '';
+        } else {
+            currentCell += char;
         }
-        result.push(val);
-        return result.map(v => v.trim());
     }
-
-    const rawHeaders = parseCSVLine(lines[0]);
-    // The regex /[^a-z0-9]/g utterly destroys hidden BOMs, spaces, and weird casing
+    
+    // Push the very last cell/row
+    currentRow.push(currentCell.trim());
+    if (currentRow.join('').trim() !== '') {
+        objects.push(currentRow);
+    }
+    
+    if (objects.length < 2) return [];
+    
+    // Destroy invisible characters, newlines, and spaces in headers
+    const rawHeaders = objects[0];
     const headers = rawHeaders.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
     
-    const objects = [];
-    for(let i = 1; i < lines.length; i++) {
-        const currentline = parseCSVLine(lines[i]);
-        if (currentline.join('').trim() === '') continue;
+    const parsedData = [];
+    for (let i = 1; i < objects.length; i++) {
+        const row = objects[i];
         const obj = { _raw: {} };
-        for(let j = 0; j < headers.length; j++){
-            obj[headers[j]] = currentline[j] || ''; 
-            obj._raw[rawHeaders[j]] = currentline[j] || ''; 
+        for (let j = 0; j < headers.length; j++) {
+            obj[headers[j]] = row[j] || '';
+            obj._raw[rawHeaders[j]] = row[j] || '';
         }
-        objects.push(obj);
+        parsedData.push(obj);
     }
-    return objects;
+    return parsedData;
 }
 
 function getSafeNum(val) {
@@ -74,7 +100,7 @@ async function authenticateUser() {
 
     try {
         const path = `Data/${CURRENT_YEAR}/HR_Data`;
-        const cb = '?v=' + new Date().getTime(); // Anti-Cache Buster
+        const cb = '?v=' + new Date().getTime(); 
         
         const masterRes = await fetch(`${path}/Staff_Master.csv${cb}`);
         if (!masterRes.ok) throw new Error(`Staff_Master.csv not found.`);
@@ -96,23 +122,19 @@ async function authenticateUser() {
             } catch (e) { db[file] = []; }
         }
 
-        // BOM-PROOF SMART MAPPING
-        // Uses strictly sanitized lowercase keys avoiding _raw properties completely
         let empCodeKey = Object.keys(emp).find(k => k === 'employeecode' || k === 'empcode');
-        let empCode = empCodeKey ? emp[empCodeKey] : null;
+        let empCode = empCodeKey ? String(emp[empCodeKey]).trim() : null;
 
         const matchCode = (r) => {
             if (!r) return false;
             let cleanKey = Object.keys(r).find(k => k === 'employeecode' || k === 'empcode' || k === 'code');
-            return cleanKey ? r[cleanKey] === empCode : false;
+            return cleanKey ? String(r[cleanKey]).trim() === empCode : false;
         };
 
         db.myPF = (db.PF || []).find(matchCode) || {};
         db.myAdvances = (db.Advances || []).filter(matchCode) || [];
         db.myTraining = (db.Training || []).find(matchCode) || {};
         db.myGratuity = (db.Gratuity || []).find(matchCode) || {};
-        
-        // Ensure tax maps even if 'Emp Code' is the first column with a BOM
         db.myTax = (db.Tax || []).find(matchCode) || {};
 
         renderDashboard();
@@ -212,12 +234,7 @@ function renderDashboard() {
     const gratuityCard = document.getElementById('gratuityCard');
     if (tenureYears < 3) {
         gratuityCard.classList.add('locked-card');
-        gratuityCard.innerHTML += `
-            <div class="locked-overlay" title="3-Year Vesting Cliff Policy">
-                <span style="font-size: 2rem;">🔒</span>
-                <span style="font-weight: bold; margin-top: 5px; color: var(--text-primary);">Vests in ${Math.ceil((3 - tenureYears)*12)} Months</span>
-            </div>
-        `;
+        gratuityCard.innerHTML += `<div class="locked-overlay" title="3-Year Vesting Cliff Policy"><span style="font-size: 2rem;">🔒</span><span style="font-weight: bold; margin-top: 5px; color: var(--text-primary);">Vests in ${Math.ceil((3 - tenureYears)*12)} Months</span></div>`;
         gratuityTotal = 0; 
     }
 
@@ -233,7 +250,7 @@ function renderDashboard() {
         let totalSettled = settled + settledOutside;
         let remaining = principal - totalSettled;
         
-        let tenure = getSafeNum(adv.tenuremonths) || 12;
+        let tenure = getSafeNum(adv.tenuremonths) || 12; // Adjusted key to catch tenure(months)
         let emi = principal > 0 ? (principal / tenure) : 0;
         let monthsLeft = emi > 0 ? Math.ceil(remaining / emi) : 0;
 
@@ -266,15 +283,10 @@ function renderDashboard() {
     let advContainer = document.getElementById('activeAdvancesContainer').parentElement;
     document.getElementById('activeAdvancesContainer').innerHTML = advHtml || '<div style="font-size:0.8rem; color:var(--text-secondary);">No active advances.</div>';
     
-    // Attach Click Handler for the Modal Schedule
     if (window.advancesData.length > 0) {
         advContainer.style.cursor = 'pointer';
         advContainer.title = "Click to view Amortization Schedule";
         advContainer.onclick = openAdvancesModal;
-    } else {
-        advContainer.style.cursor = 'default';
-        advContainer.title = "";
-        advContainer.onclick = null;
     }
 
     let advAvailable = Math.max(0, Math.min(baseSalary * 5, pfTotal * 0.60) - activeAdvancesTotal);
@@ -359,13 +371,13 @@ function generateTaxPDF() {
     const months = ['Jul-26', 'Aug-26', 'Sep-26', 'Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27', 'Apr-27', 'May-27', 'Jun-27'];
     
     months.forEach(m => {
-        let mClean = m.toLowerCase().replace(/[^a-z0-9]/g, ''); // Safely match 'sept26' vs 'sep26'
+        let mClean = m.toLowerCase().replace(/[^a-z0-9]/g, ''); 
         
         let cprRow = (db.CPR_Master || []).find(r => r.month && r.month.toLowerCase().includes(m.substring(0,3).toLowerCase()));
         let cprNo = cprRow ? cprRow._raw['CPR_Number'] : 'Pending';
         
         let amount = getSafeNum(db.myTax[mClean]);
-        if (!amount && m.includes('Sep')) amount = getSafeNum(db.myTax['sept26']); // specific handler for Sept vs Sep
+        if (!amount && m.includes('Sep')) amount = getSafeNum(db.myTax['sept26']); 
         
         totalDeducted += amount;
 
