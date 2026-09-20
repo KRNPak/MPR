@@ -73,17 +73,13 @@ async function authenticateUser() {
 
     try {
         const path = `Data/${CURRENT_YEAR}/HR_Data`;
-        // CACHE BUSTER: Forces the browser to grab the newest file from GitHub
         const cb = '?v=' + new Date().getTime(); 
         
-        console.log("1. Fetching Staff Master...");
         const masterRes = await fetch(`${path}/Staff_Master.csv${cb}`);
         if (!masterRes.ok) throw new Error(`Staff_Master.csv not found (HTTP ${masterRes.status})`);
         
         const masterData = parseCSV(await masterRes.text());
-        console.log("2. Master Data Parsed. Row count:", masterData.length);
         
-        // Find employee safely
         emp = masterData.find(r => {
             let cnicKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('cnic'));
             if (!cnicKey) return false;
@@ -91,51 +87,44 @@ async function authenticateUser() {
             return val === cnicInput;
         });
 
-        if (!emp) {
-            console.error(`CNIC ${cnicInput} not found in Staff_Master.`);
-            throw new Error("CNIC not found in Master File.");
-        }
+        if (!emp) throw new Error("CNIC not found in Master File.");
         
-        console.log("3. Employee Found:", emp._raw);
-
-        // Load files safely with Cache Buster
         const files = ['PF', 'Advances', 'Training', 'Gratuity', 'Tax', 'CPR_Master'];
         for (let file of files) {
             try {
                 const res = await fetch(`${path}/${file}.csv${cb}`);
-                if (!res.ok) {
-                    console.warn(`File missing, skipping: ${file}.csv`);
-                    db[file] = [];
-                } else {
+                if (res.ok) {
                     db[file] = parseCSV(await res.text());
+                } else {
+                    db[file] = [];
                 }
             } catch (e) {
-                console.warn(`Error loading ${file}.csv:`, e);
                 db[file] = []; 
             }
         }
 
-        // Map Employee Code safely
-        let empCodeKey = Object.keys(emp._raw).find(k => k.toLowerCase().trim() === 'employee code' || k.toLowerCase().trim() === 'emp code');
+        // SMART MAPPING: Automatically finds the Employee Code column regardless of its position
+        let empCodeKey = Object.keys(emp._raw).find(k => k.toLowerCase().includes('code'));
         let empCode = empCodeKey ? emp._raw[empCodeKey] : null;
-        console.log("4. Mapped Employee Code:", empCode);
 
-        // Map personal data safely
-        db.myPF = (db.PF || []).find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
-        db.myAdvances = (db.Advances || []).filter(r => r._raw[Object.keys(r._raw)[0]] == empCode) || [];
-        db.myTraining = (db.Training || []).find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
-        db.myGratuity = (db.Gratuity || []).find(r => r._raw[Object.keys(r._raw)[0]] == empCode) || {};
-        db.myTax = (db.Tax || []).find(r => r._raw[Object.keys(r._raw)[1]] == empCode) || {};
+        const matchCode = (r) => {
+            if (!r || !r._raw) return false;
+            let key = Object.keys(r._raw).find(k => k.toLowerCase().includes('code'));
+            return key ? r._raw[key] == empCode : false;
+        };
 
-        console.log("5. Rendering Dashboard...");
+        db.myPF = (db.PF || []).find(matchCode) || {};
+        db.myAdvances = (db.Advances || []).filter(matchCode) || [];
+        db.myTraining = (db.Training || []).find(matchCode) || {};
+        db.myGratuity = (db.Gratuity || []).find(matchCode) || {};
+        db.myTax = (db.Tax || []).find(matchCode) || {};
+
         renderDashboard();
         
         document.getElementById('loginGate').style.display = "none";
         document.getElementById('portalDashboard').style.display = "block";
-        console.log("6. Success!");
 
     } catch (err) {
-        console.error("Login Crash:", err);
         errorMsg.innerText = `Access Denied: ${err.message}`;
         errorMsg.style.display = "block";
         btn.innerText = "Secure Login →";
@@ -198,7 +187,7 @@ function renderDashboard() {
 
     // --- 2. ACCRUED TRAINING BUDGET ---
     const tBaseKey = Object.keys(db.myTraining._raw || {}).find(k => k.toLowerCase().includes('accrued'));
-    const tExpKey = Object.keys(db.myTraining._raw || {}).find(k => k.toLowerCase().includes('expenses'));
+    const tExpKey = Object.keys(db.myTraining._raw || {}).find(k => k.toLowerCase().includes('expense')); // Fixed to catch 'Expense'
     
     let trainingBaseline = getSafeNum((db.myTraining._raw || {})[tBaseKey]); 
     let trainingExpenses = getSafeNum((db.myTraining._raw || {})[tExpKey]);
@@ -224,9 +213,15 @@ function renderDashboard() {
     }
 
     document.getElementById('trainAvailable').innerText = Math.round(trainingAvailable).toLocaleString('en-PK');
-    document.getElementById('trainAccrued').innerText = Math.round(totalAccrued).toLocaleString('en-PK');
-    document.getElementById('trainUtilized').innerText = Math.round(trainingExpenses).toLocaleString('en-PK');
-
+    
+    // Inject custom HTML for Training Breakdown
+    const trainTextContainer = document.getElementById('trainAccrued').parentElement;
+    trainTextContainer.innerHTML = `
+        <span style="color: var(--text-secondary);">Baseline:</span> <strong>${Math.round(trainingBaseline).toLocaleString('en-PK')}</strong><br>
+        <span style="color: var(--text-secondary);">Accrued Year:</span> <strong>${Math.round(newAccrual).toLocaleString('en-PK')}</strong><br>
+        <span style="color: var(--text-secondary);">Total Accrued:</span> <strong>${Math.round(totalAccrued).toLocaleString('en-PK')}</strong><br>
+        <span style="color: var(--text-secondary);">Utilized:</span> <strong>${Math.round(trainingExpenses).toLocaleString('en-PK')}</strong>
+    `;
 
     // --- 3. GRATUITY PAYABLE ---
     const gBaseKey = Object.keys(db.myGratuity._raw || {}).find(k => k.toLowerCase().includes('payable'));
@@ -256,13 +251,11 @@ function renderDashboard() {
         gratuityTotal = 0; 
     }
 
-
     // --- 4. ADVANCES ---
     let activeAdvancesTotal = 0;
     let advHtml = '';
     
     db.myAdvances.forEach(adv => {
-        // Using normalized keys (lowercase, no spaces) to prevent header mismatches
         let principal = getSafeNum(adv['advances']) || getSafeNum(adv['advance']) || getSafeNum(adv['amount']); 
         let settled = getSafeNum(adv['previouslysettled']) || 0;
         let remaining = principal - settled;
