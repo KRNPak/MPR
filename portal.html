@@ -84,7 +84,7 @@
             </div>
         </div>
 
-        <!-- BENTO WIDGETS -->
+     <!-- BENTO WIDGETS -->
         <div class="portal-grid">
             
             <!-- 1. Provident Fund -->
@@ -98,18 +98,7 @@
                 </div>
             </div>
 
-            <!-- 2. Advances -->
-            <div class="bento-card">
-                <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Salary Advances</h3>
-                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 5px;">Max Available Limit</div>
-                <div class="val" style="margin-bottom: 15px;"><span class="val-num" id="advLimit" style="font-size: 1.4rem;">0</span> <span class="val-unit" style="display:inline;">PKR</span></div>
-                
-                <div id="activeAdvancesContainer">
-                    <!-- Javascript will inject progress bars for active advances here -->
-                </div>
-            </div>
-
-            <!-- 3. Training & Development -->
+            <!-- 2. Training & Development -->
             <div class="bento-card" id="trainingCard">
                 <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Accrued Training Budget</h3>
                 <div style="display: flex; justify-content: space-between; align-items: flex-end;">
@@ -124,21 +113,31 @@
                 </div>
             </div>
 
-            <!-- 4. Gratuity -->
+            <!-- 3. Gratuity -->
             <div class="bento-card" id="gratuityCard">
                 <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Gratuity Payable</h3>
                 <div class="val"><span class="val-unit">Accrued Amount (PKR)</span><span class="val-num" id="gratuityTotal">0</span></div>
-                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 10px;">Based on June 2026 Actuarial Valuation + New Accruals</div>
-                
-                <!-- Locked State Overlay (Injected via JS if tenure < 3 years) -->
+                <div id="gratuityBreakdown" style="font-size: 0.75rem; margin-top: 15px;">
+                    <!-- Breakdown injected by JS -->
+                </div>
             </div>
 
-            <!-- 5. Lease Finance Limit -->
+            <!-- 4. Lease Finance Limit -->
             <div class="bento-card" id="leaseCard">
                 <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Lease Finance Limit</h3>
                 <div class="val"><span class="val-unit">Max Vehicle Lease (PKR)</span><span class="val-num" id="leaseLimit">0</span></div>
                 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 10px;">Calculation: (PF + Gratuity) - (Advances + Overage Training)</div>
-                <!-- Locked Overlay for Grades 1-7 injected via JS -->
+            </div>
+
+            <!-- 5. Advances (MOVED HERE) -->
+            <div class="bento-card">
+                <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Salary Advances</h3>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 5px;">Max Available Limit</div>
+                <div class="val" style="margin-bottom: 15px;"><span class="val-num" id="advLimit" style="font-size: 1.4rem;">0</span> <span class="val-unit" style="display:inline;">PKR</span></div>
+                
+                <div id="activeAdvancesContainer">
+                    <!-- Javascript will inject progress bars for active advances here -->
+                </div>
             </div>
 
             <!-- 6. Tax Certificate -->
@@ -151,6 +150,8 @@
                 </select>
                 <button onclick="generateTaxPDF()" style="background: transparent; color: var(--krn-blue); border: 1px solid var(--krn-blue); padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%;">Generate PDF &darr;</button>
             </div>
+
+        </div>
 
         </div>
     </div>
