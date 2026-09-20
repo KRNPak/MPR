@@ -262,8 +262,9 @@ function renderDashboard() {
     let advHtml = '';
     
     db.myAdvances.forEach(adv => {
-        let principal = getSafeNum(adv._raw['amount']) || getSafeNum(adv._raw['advance']); 
-        let settled = getSafeNum(adv._raw['previously settled']) || 0;
+        // Using normalized keys (lowercase, no spaces) to prevent header mismatches
+        let principal = getSafeNum(adv['advances']) || getSafeNum(adv['advance']) || getSafeNum(adv['amount']); 
+        let settled = getSafeNum(adv['previouslysettled']) || 0;
         let remaining = principal - settled;
         activeAdvancesTotal += remaining;
         
