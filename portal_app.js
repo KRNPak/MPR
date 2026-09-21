@@ -272,10 +272,10 @@ function renderDashboard() {
         animateValue('gratuityTotal', gratuityTotal);
         gratBreakdown.innerHTML = `
             <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
-                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Opening Accrued:</td><td><strong>${Math.round(gratuityBaseline).toLocaleString('en-PK')}</strong></td></tr>
-                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Accrued Year:</td><td><strong>${Math.round(gratAccrual).toLocaleString('en-PK')}</strong></td></tr>
-                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Time Served:</td><td><strong>${Math.floor(tenureYears)} Yrs, ${tenureMonths % 12} Mos</strong></td></tr>
-                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Payable Tenure:</td><td><strong>${gratY} Yrs, ${gratM} Mos</strong></td></tr>
+                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Opening:</td><td><strong>${Math.round(gratuityBaseline).toLocaleString('en-PK')}</strong></td></tr>
+                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Accrued YTD:</td><td><strong>${Math.round(gratAccrual).toLocaleString('en-PK')}</strong></td></tr>
+                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Time Served:</td><td><strong>${Math.floor(tenureYears)} Y, ${tenureMonths % 12} M</strong></td></tr>
+                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Payable Tenure:</td><td><strong>${gratY} Y, ${gratM} M</strong></td></tr>
             </table>
         `;
     }
