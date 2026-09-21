@@ -547,17 +547,35 @@ function generateTaxPDF() {
 // ========================================================================
 function toggleTheme() {
     const body = document.body;
+    const label = document.getElementById('themeLabel');
+    const checkbox = document.getElementById('themeToggleCheckbox');
+    
     if (body.classList.contains('light-mode')) {
         body.classList.replace('light-mode', 'dark-mode');
         localStorage.setItem('krnTheme', 'dark-mode');
+        if(label) label.innerText = 'DARK';
+        if(checkbox) checkbox.checked = true;
     } else {
         body.classList.replace('dark-mode', 'light-mode');
         localStorage.setItem('krnTheme', 'light-mode');
+        if(label) label.innerText = 'LIGHT';
+        if(checkbox) checkbox.checked = false;
     }
 }
 
-// Auto-load the saved theme when the portal opens
 (function initializeTheme() {
     const savedTheme = localStorage.getItem('krnTheme') || 'light-mode';
     document.body.className = savedTheme;
+    
+    setTimeout(() => {
+        const label = document.getElementById('themeLabel');
+        const checkbox = document.getElementById('themeToggleCheckbox');
+        if (savedTheme === 'dark-mode') {
+            if(label) label.innerText = 'DARK';
+            if(checkbox) checkbox.checked = true;
+        } else {
+            if(label) label.innerText = 'LIGHT';
+            if(checkbox) checkbox.checked = false;
+        }
+    }, 100);
 })();
