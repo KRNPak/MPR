@@ -1,2 +1,3 @@
-Position code,Joining Date,Employee Code,CNIC,Employee Name,Department,Designation,Position Grade,Gender,Base Salary,OSR,GF,FIP
-FIN-02,"05-Sep-2022",KRN147,3740561127229,Saad Bin Qaiser,Finance,Assistant Manager Finance,6,M,360000,50%,50%,0%
+Position code,Employee Code,CNIC,Employee Name,Department,Designation,Position Grade,Gender,Base Salary,OSR,GF,FIP
+FIN-02,KRN147,3740561127229,Saad Bin Qaiser,Finance,Assistant Manager Finance,6,M,360000,50%,50%,0%
+KRN218,KRN218,1420155268605,Waqas Ur Rahman,Finance,Manager Finance,7,M,563255,50%,50%,0%

@@ -1,5 +1,6 @@
 Code,Employee,"Tenure
-(months)",Grace period,Date of advance,Advances, Previously settled , Settled outside of payroll ,,,,
-KRN147,Saad Bin Qasier,36,12,17-Oct-2025," 650,000 ", -   , -   ,,,,
-KRN147,Saad Bin Qasier,30,6,04-Apr-2026," 190,000 ", -   , -   ,,,,
-KRN147,Saad Bin Qasier,36,4,22-May-2026," 200,000 ", -   , -   ,,,,
+(months)",Grace period,Date of advance,Advances, Previously settled , Settled outside of payroll 
+KRN147,Saad Bin Qasier,36,12,17-Oct-25,"650,000",0,0
+KRN147,Saad Bin Qasier,30,6,04-Apr-26,"190,000",0,0
+KRN147,Saad Bin Qasier,36,4,22-May-26,"200,000",0,0
+KRN218,Waqas Ur Rahman,36,12,12-Aug-26,"800,000",0,0
