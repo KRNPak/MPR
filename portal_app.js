@@ -177,23 +177,38 @@ function renderDashboard() {
     document.getElementById('empGradeDisplay').innerText = empGrade;
     document.getElementById('empJoinDisplay').innerText = isNaN(joinDate) ? "Unknown" : joinDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-    // --- 1. PROVIDENT FUND ---
-    let pfEmpCont = getSafeNum(db.myPF.totalaccumulatedcontributons) / 2; 
-    let pfEmployerCont = pfEmpCont;
-    let pfProfit = getSafeNum(db.myPF.totalaccumulatedprofit);
+  // --- 1. PROVIDENT FUND ---
+    let pf = db.myPF || {};
+    let openingBal = getSafeNum(pf.openingbalance);
+    let openingProfit = getSafeNum(pf.openingprofit);
     
+    let pfEmpCont = openingBal / 2;
+    let pfEmployerCont = openingBal / 2;
+    let pfProfit = openingProfit;
+
+    // Loop through 12 months to add current year accumulations
+    for (let i = 0; i < 12; i++) {
+        let suffix = i === 0 ? '' : String(i);
+        pfEmpCont += getSafeNum(pf['employeecont' + suffix]);
+        pfEmployerCont += getSafeNum(pf['employercont' + suffix]);
+        pfProfit += (getSafeNum(pf['profitbafl' + suffix]) + getSafeNum(pf['profitfaysal' + suffix]) + getSafeNum(pf['profitubl' + suffix]));
+    }
+
+    let pfWithdrawals = getSafeNum(pf.permanentwithdrawalsopening) + getSafeNum(pf.duringtheyear);
+
     if (tenureMonths < 3) {
         pfEmployerCont = 0; 
         document.getElementById('pfEmployerBox').style.opacity = '0.3';
         document.getElementById('pfEmployerBox').title = "Employer match locked during probation.";
     }
     
-    let pfTotal = pfEmpCont + pfEmployerCont + pfProfit;
+    let pfTotal = (pfEmpCont + pfEmployerCont + pfProfit) - pfWithdrawals;
+    
     animateValue('pfTotal', pfTotal);
-    document.getElementById('pfEmployee').innerText = pfEmpCont.toLocaleString('en-PK');
-    document.getElementById('pfEmployer').innerText = pfEmployerCont.toLocaleString('en-PK');
-    document.getElementById('pfProfit').innerText = pfProfit.toLocaleString('en-PK');
-
+    document.getElementById('pfEmployee').innerText = Math.round(pfEmpCont).toLocaleString('en-PK');
+    document.getElementById('pfEmployer').innerText = Math.round(pfEmployerCont).toLocaleString('en-PK');
+    document.getElementById('pfProfit').innerText = Math.round(pfProfit).toLocaleString('en-PK');
+    document.getElementById('pfWithdrawal').innerText = Math.round(pfWithdrawals).toLocaleString('en-PK');
     // --- 2. ACCRUED TRAINING BUDGET ---
     let trainingBaseline = getSafeNum(db.myTraining.accrued); 
     let trainingExpenses = getSafeNum(db.myTraining.expense);
@@ -366,44 +381,47 @@ function openPFModal() {
     let pf = db.myPF;
     if (!pf || Object.keys(pf).length === 0) return;
 
-    let empContTotal = getSafeNum(pf.totalaccumulatedcontributons) / 2;
-    let erContTotal = empContTotal; 
-    let profitTotal = getSafeNum(pf.totalaccumulatedprofit);
-    let grandTotal = empContTotal + erContTotal + profitTotal;
-    let preference = pf.pfpreference || 'Conventional';
+    let openingBal = getSafeNum(pf.openingbalance);
+    let openingProfit = getSafeNum(pf.openingprofit);
+    let currentEmpTotal = openingBal / 2;
+    let currentErTotal = openingBal / 2;
+    let currentProfitTotal = openingProfit;
 
-    // Extract Monthly Breakdowns
     const displayMonths = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
     let monthlyRows = '';
     
     for (let i = 0; i < 12; i++) {
         let suffix = i === 0 ? '' : String(i);
-        
-        // Grab values, appending the CSV suffix for later months
         let mEmp = getSafeNum(pf['employeecont' + suffix]);
         let mEr = getSafeNum(pf['employercont' + suffix]);
-        
-        // Sum profits from all 3 banks to get total monthly profit
         let mProfit = getSafeNum(pf['profitbafl' + suffix]) + getSafeNum(pf['profitfaysal' + suffix]) + getSafeNum(pf['profitubl' + suffix]);
         
+        currentEmpTotal += mEmp;
+        currentErTotal += mEr;
+        currentProfitTotal += mProfit;
+
         if (mEmp > 0 || mEr > 0 || mProfit > 0) {
             monthlyRows += `
                 <tr style="border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.01);">
                     <td style="padding:6px 0; color:var(--text-secondary);">${displayMonths[i]}</td>
-                    <td style="padding:6px 0; text-align:right;">${mEmp.toLocaleString('en-PK')}</td>
-                    <td style="padding:6px 0; text-align:right;">${mEr.toLocaleString('en-PK')}</td>
+                    <td style="padding:6px 0; text-align:right;">${Math.round(mEmp).toLocaleString('en-PK')}</td>
+                    <td style="padding:6px 0; text-align:right;">${Math.round(mEr).toLocaleString('en-PK')}</td>
                     <td style="padding:6px 0; text-align:right; color:var(--krn-green);">${Math.round(mProfit).toLocaleString('en-PK')}</td>
                 </tr>
             `;
         }
     }
 
+    let pfWithdrawals = getSafeNum(pf.permanentwithdrawalsopening) + getSafeNum(pf.duringtheyear);
+    let grandTotal = (currentEmpTotal + currentErTotal + currentProfitTotal) - pfWithdrawals;
+    let preference = pf.pfpreference || 'Conventional';
+
     let monthlyTableHtml = monthlyRows ? `
-        <div style="margin-top: 15px; margin-bottom: 15px; max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px;">
+        <div style="margin-top: 15px; margin-bottom: 15px; max-height: 160px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px;">
             <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
                 <thead style="background: var(--bg-page); position: sticky; top: 0;">
                     <tr>
-                        <th style="padding:8px 5px; text-align:left; color:var(--text-secondary);">Month</th>
+                        <th style="padding:8px 5px; text-align:left; color:var(--text-secondary);">Current Year</th>
                         <th style="padding:8px 5px; text-align:right; color:var(--text-secondary);">Emp Cont.</th>
                         <th style="padding:8px 5px; text-align:right; color:var(--text-secondary);">Er Cont.</th>
                         <th style="padding:8px 5px; text-align:right; color:var(--text-secondary);">Profit</th>
@@ -412,31 +430,48 @@ function openPFModal() {
                 <tbody style="padding: 0 5px;">${monthlyRows}</tbody>
             </table>
         </div>
-    ` : '<p style="font-size:0.8rem; color:var(--text-secondary);">No monthly breakdown available.</p>';
+    ` : '';
 
     modal.innerHTML = `
-        <div style="background:var(--bg-card); padding:30px; border-radius:12px; width:90%; max-width:550px; color:var(--text-primary); box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-            <h2 style="margin:0 0 5px 0; color:var(--krn-blue);">Provident Fund Ledger</h2>
-            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:10px;">Fund Preference: <strong>${preference}</strong></p>
+        <div style="background:var(--bg-card); padding:25px; border-radius:12px; width:90%; max-width:550px; color:var(--text-primary); box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                <h2 style="margin:0; color:var(--krn-blue);">Provident Fund Ledger</h2>
+                <span style="font-size:0.75rem; background:var(--krn-blue); color:white; padding:3px 8px; border-radius:4px;">${preference}</span>
+            </div>
             
+            <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:10px;">
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                    <td style="padding:8px 0; color:var(--text-secondary);">Opening Balance (Previous Yrs)</td>
+                    <td style="padding:8px 0; text-align:right;"><strong>${Math.round(openingBal).toLocaleString('en-PK')}</strong></td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding:8px 0; color:var(--text-secondary);">Opening Profits (Previous Yrs)</td>
+                    <td style="padding:8px 0; text-align:right;"><strong>${Math.round(openingProfit).toLocaleString('en-PK')}</strong></td>
+                </tr>
+            </table>
+
             ${monthlyTableHtml}
             
-            <table style="width:100%; border-collapse:collapse; font-size:0.95rem;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
                 <tbody>
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding:10px 0; color:var(--text-secondary);">Total Employee Cont.</td>
-                        <td style="padding:10px 0; text-align:right; font-weight:bold;">${Math.round(empContTotal).toLocaleString('en-PK')}</td>
+                    <tr>
+                        <td style="padding:6px 0; color:var(--text-secondary);">Accumulated Employee Portion</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:bold;">${Math.round(currentEmpTotal).toLocaleString('en-PK')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px 0; color:var(--text-secondary);">Accumulated Employer Portion</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:bold;">${Math.round(currentErTotal).toLocaleString('en-PK')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px 0; color:var(--text-secondary);">Accumulated Profits</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:bold; color:var(--krn-green);">${Math.round(currentProfitTotal).toLocaleString('en-PK')}</td>
                     </tr>
                     <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding:10px 0; color:var(--text-secondary);">Total Employer Cont.</td>
-                        <td style="padding:10px 0; text-align:right; font-weight:bold;">${Math.round(erContTotal).toLocaleString('en-PK')}</td>
+                        <td style="padding:6px 0; color:var(--krn-orange);">Less: Withdrawals</td>
+                        <td style="padding:6px 0; text-align:right; font-weight:bold; color:var(--krn-orange);">- ${Math.round(pfWithdrawals).toLocaleString('en-PK')}</td>
                     </tr>
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding:10px 0; color:var(--text-secondary);">Total Accumulated Profit</td>
-                        <td style="padding:10px 0; text-align:right; font-weight:bold; color:var(--krn-green);">${Math.round(profitTotal).toLocaleString('en-PK')}</td>
-                    </tr>
-                    <tr style="border-bottom: 2px solid var(--krn-blue); background:rgba(0,0,0,0.02);">
-                        <td style="padding:15px 5px; font-weight:bold; color:var(--krn-blue);">Total Accumulated Balance</td>
+                    <tr style="background:rgba(0,0,0,0.02);">
+                        <td style="padding:15px 5px; font-weight:bold; color:var(--krn-blue);">Net Closing Balance</td>
                         <td style="padding:15px 5px; text-align:right; font-weight:bold; color:var(--krn-blue); font-size:1.1rem;">${Math.round(grandTotal).toLocaleString('en-PK')} PKR</td>
                     </tr>
                 </tbody>
