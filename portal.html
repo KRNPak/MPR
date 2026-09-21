@@ -49,6 +49,41 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             background: rgba(0,0,0,0.05); border-radius: 12px; backdrop-filter: blur(2px);
         }
+        /* Pill Toggle Switch */
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+}
+.theme-switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.theme-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #cbd5e1;
+  transition: .4s;
+  border-radius: 24px;
+}
+.theme-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px; width: 18px;
+  left: 3px; bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+input:checked + .theme-slider {
+  background-color: #0284c7; /* KRN Blue */
+}
+input:checked + .theme-slider:before {
+  transform: translateX(22px);
+}
     </style>
 </head>
 <body class="light-mode">
@@ -78,9 +113,16 @@
                     </div>
                 </div>
             </div>
-            <div class="toggles-container">
-                <!-- Theme Toggle Button -->
-                <button onclick="toggleTheme()" style="background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 10px;">🌓 Theme</button>
+           <div class="toggles-container" style="display: flex; align-items: center;">
+                <!-- Theme Toggle Pill -->
+                <div style="display: flex; align-items: center; border-left: 1px solid var(--border-color); padding-left: 15px; margin-right: 15px; height: 24px;">
+                    <span id="themeLabel" style="margin-right: 10px; font-size: 0.75rem; font-weight: bold; color: var(--text-primary); letter-spacing: 1px;">LIGHT</span>
+                    <label class="theme-switch">
+                        <input type="checkbox" id="themeToggleCheckbox" onchange="toggleTheme()">
+                        <span class="theme-slider"></span>
+                    </label>
+                </div>
+                
                 <a href="index.html" style="color: var(--text-secondary); font-size: 0.8rem; text-decoration: none; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 4px; margin-right: 10px;">&larr; Back to Budgets</a>
                 <button onclick="logout()" style="background: transparent; color: var(--krn-orange); border: 1px solid var(--krn-orange); padding: 5px 10px; border-radius: 4px; cursor: pointer;">Logout</button>
             </div>
