@@ -134,14 +134,15 @@ input:checked + .theme-slider:before {
      <!-- BENTO WIDGETS -->
         <div class="portal-grid">
             
-            <!-- 1. Provident Fund -->
-            <div class="bento-card" onclick="openPFModal()" style="cursor: pointer;">
+           <!-- 1. Provident Fund -->
+            <div class="bento-card" id="pfCard" onclick="openPFModal()" style="cursor: pointer;" title="Click for Monthly Ledger">
                 <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Provident Fund</h3>
-                <div class="val"><span class="val-unit">Total Accumulated (PKR)</span><span class="val-num" id="pfTotal">0</span></div>
-                <div style="display: flex; justify-content: space-between; margin-top: 15px; font-size: 0.8rem;">
-                    <div><span style="color: var(--text-secondary);">Employee:</span> <br><strong id="pfEmployee">0</strong></div>
-                    <div id="pfEmployerBox"><span style="color: var(--text-secondary);">Employer:</span> <br><strong id="pfEmployer">0</strong></div>
-                    <div><span style="color: var(--text-secondary);">Profit:</span> <br><strong id="pfProfit" style="color: var(--krn-green);">0</strong></div>
+                <div class="val" style="margin-bottom: 15px;"><span class="val-unit">Net Closing Balance (PKR)</span><span class="val-num" id="pfTotal">0</span></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.75rem;">
+                    <div><span style="color: var(--text-secondary);">Employee Cont.</span><br><strong id="pfEmployee" style="color: var(--text-primary);">0</strong></div>
+                    <div id="pfEmployerBox"><span style="color: var(--text-secondary);">Employer Cont.</span><br><strong id="pfEmployer" style="color: var(--text-primary);">0</strong></div>
+                    <div><span style="color: var(--text-secondary);">Acc. Profits</span><br><strong id="pfProfit" style="color: var(--krn-green);">0</strong></div>
+                    <div><span style="color: var(--text-secondary);">Total Withdrawals</span><br><strong id="pfWithdrawal" style="color: var(--krn-orange);">0</strong></div>
                 </div>
             </div>
 
@@ -191,16 +192,15 @@ input:checked + .theme-slider:before {
             </div>
 
             <!-- 5. Advances (MOVED HERE) -->
-            <div class="bento-card">
+            <div class="bento-card" id="advancesCard">
                 <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Salary Advances</h3>
                 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 5px; display: flex; align-items: center;">
-                    Max Available Limit
+                    Max Available Limit (PKR)
                     <span style="margin-left:5px; cursor:help; font-size:0.9rem;" title="Calculation: Min(Base Salary × 5, PF Balance × 60%) minus active advances. Maximum 3 active advances allowed.">ℹ️</span>
                 </div>
-                <div class="val" style="margin-bottom: 15px;"><span class="val-num" id="advLimit" style="font-size: 1.4rem;">0</span> <span class="val-unit" style="display:inline;">PKR</span></div>
-                
+                <div class="val-num" id="advLimit" style="margin-bottom: 15px;">0</div>
                 <div id="activeAdvancesContainer">
-                    <!-- Javascript will inject progress bars for active advances here -->
+                    <!-- Progress bars injected by JS -->
                 </div>
             </div>
 
