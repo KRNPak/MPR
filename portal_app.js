@@ -83,7 +83,7 @@ function getSafeNum(val) {
 }
 
 // ========================================================================
-// 3. AUTHENTICATION & DATA LOADING
+// 3. SECURE AUTHENTICATION & DATA LOADING (SERVERLESS API)
 // ========================================================================
 async function authenticateUser() {
     const cnicInput = document.getElementById('cnicInput').value.trim();
@@ -99,43 +99,27 @@ async function authenticateUser() {
     btn.innerText = "Decrypting...";
 
     try {
-        const path = `Data/${CURRENT_YEAR}/HR_Data`;
-        const cb = '?v=' + new Date().getTime(); 
-        
-        const masterRes = await fetch(`${path}/Staff_Master.csv${cb}`);
-        if (!masterRes.ok) throw new Error(`Staff_Master.csv not found.`);
-        const masterData = parseCSV(await masterRes.text());
-        
-        emp = masterData.find(r => {
-            let cnicKey = Object.keys(r).find(k => k.includes('cnic'));
-            if (!cnicKey) return false;
-            return String(r[cnicKey]).replace(/[^0-9]/g, '') === cnicInput;
+        const response = await fetch('/api/get-employee-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cnic: cnicInput })
         });
 
-        if (!emp) throw new Error("CNIC not found in Master File.");
-        
-        const files = ['PF', 'Advances', 'Training', 'Gratuity', 'Tax', 'CPR_Master'];
-        for (let file of files) {
-            try {
-                const res = await fetch(`${path}/${file}.csv${cb}`);
-                db[file] = res.ok ? parseCSV(await res.text()) : [];
-            } catch (e) { db[file] = []; }
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || 'Failed to authenticate.');
         }
 
-        let empCodeKey = Object.keys(emp).find(k => k === 'employeecode' || k === 'empcode');
-        let empCode = empCodeKey ? String(emp[empCodeKey]).trim() : null;
-
-        const matchCode = (r) => {
-            if (!r) return false;
-            let cleanKey = Object.keys(r).find(k => k === 'employeecode' || k === 'empcode' || k === 'code');
-            return cleanKey ? String(r[cleanKey]).trim() === empCode : false;
-        };
-
-        db.myPF = (db.PF || []).find(matchCode) || {};
-        db.myAdvances = (db.Advances || []).filter(matchCode) || [];
-        db.myTraining = (db.Training || []).find(matchCode) || {};
-        db.myGratuity = (db.Gratuity || []).find(matchCode) || {};
-        db.myTax = (db.Tax || []).find(matchCode) || {};
+        const data = await response.json();
+        
+        // Populate state directly from isolated server response
+        emp = data.emp;
+        db.myPF = data.myPF;
+        db.myAdvances = data.myAdvances;
+        db.myTraining = data.myTraining;
+        db.myGratuity = data.myGratuity;
+        db.myTax = data.myTax;
+        db.CPR_Master = data.cprMaster;
 
         renderDashboard();
         
@@ -148,15 +132,6 @@ async function authenticateUser() {
         btn.innerText = "Secure Login →";
     }
 }
-
-function logout() {
-    emp = null; db = {};
-    document.getElementById('cnicInput').value = "";
-    document.getElementById('portalDashboard').style.display = "none";
-    document.getElementById('loginGate').style.display = "flex";
-    document.getElementById('loginGate').querySelector('.login-btn').innerText = "Secure Login →";
-}
-
 // ========================================================================
 // UI ANIMATION ENGINE
 // ========================================================================
