@@ -477,3 +477,22 @@ function generateTaxPDF() {
         template.style.display = "none";
     });
 }
+// ========================================================================
+// 7. THEME MANAGEMENT
+// ========================================================================
+function toggleTheme() {
+    const body = document.body;
+    if (body.classList.contains('light-mode')) {
+        body.classList.replace('light-mode', 'dark-mode');
+        localStorage.setItem('krnTheme', 'dark-mode');
+    } else {
+        body.classList.replace('dark-mode', 'light-mode');
+        localStorage.setItem('krnTheme', 'light-mode');
+    }
+}
+
+// Auto-load the saved theme when the portal opens
+(function initializeTheme() {
+    const savedTheme = localStorage.getItem('krnTheme') || 'light-mode';
+    document.body.className = savedTheme;
+})();
