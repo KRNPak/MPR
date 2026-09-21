@@ -158,6 +158,28 @@ function logout() {
 }
 
 // ========================================================================
+// UI ANIMATION ENGINE
+// ========================================================================
+function animateValue(id, end, duration = 1200) {
+    const obj = document.getElementById(id);
+    if (!obj) return;
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        // easeOutQuart formula for smooth deceleration
+        const easeProgress = 1 - Math.pow(1 - progress, 4);
+        obj.innerHTML = Math.floor(easeProgress * end).toLocaleString('en-PK');
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            obj.innerHTML = Math.round(end).toLocaleString('en-PK');
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
+// ========================================================================
 // 4. DASHBOARD RENDERER & BUSINESS LOGIC
 // ========================================================================
 function renderDashboard() {
@@ -178,7 +200,7 @@ function renderDashboard() {
     document.getElementById('empNameDisplay').innerText = empName;
     document.getElementById('empDesignationDisplay').innerText = emp.designation || "KRN Staff";
     document.getElementById('empGradeDisplay').innerText = empGrade;
-    document.getElementById('empJoinDisplay').innerText = isNaN(joinDate) ? "Unknown" : joinDate.toLocaleDateString();
+    document.getElementById('empJoinDisplay').innerText = isNaN(joinDate) ? "Unknown" : joinDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
     // --- 1. PROVIDENT FUND ---
     let pfEmpCont = getSafeNum(db.myPF.totalaccumulatedcontributons) / 2; 
@@ -192,12 +214,12 @@ function renderDashboard() {
     }
     
     let pfTotal = pfEmpCont + pfEmployerCont + pfProfit;
-    document.getElementById('pfTotal').innerText = pfTotal.toLocaleString('en-PK');
+    animateValue('pfTotal', pfTotal);
     document.getElementById('pfEmployee').innerText = pfEmpCont.toLocaleString('en-PK');
     document.getElementById('pfEmployer').innerText = pfEmployerCont.toLocaleString('en-PK');
     document.getElementById('pfProfit').innerText = pfProfit.toLocaleString('en-PK');
 
-// --- 2. ACCRUED TRAINING BUDGET ---
+    // --- 2. ACCRUED TRAINING BUDGET ---
     let trainingBaseline = getSafeNum(db.myTraining.accrued); 
     let trainingExpenses = getSafeNum(db.myTraining.expense);
     
@@ -214,11 +236,10 @@ function renderDashboard() {
         trainingAvailable = 0;
         document.getElementById('trainAvailable').style.color = "var(--krn-orange)";
     }
-    document.getElementById('trainAvailable').innerText = Math.round(trainingAvailable).toLocaleString('en-PK');
     
-    // Injects right-aligned table-like layout
+    animateValue('trainAvailable', trainingAvailable);
+    
     const trainTextContainer = document.getElementById('trainAccrued').parentElement;
-    trainTextContainer.style.textAlign = 'right';
     trainTextContainer.innerHTML = `
         <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
             <tr><td style="color: var(--text-secondary); padding-right: 10px;">Baseline:</td><td><strong>${Math.round(trainingBaseline).toLocaleString('en-PK')}</strong></td></tr>
@@ -228,17 +249,14 @@ function renderDashboard() {
         </table>
     `;
 
-  // --- 3. GRATUITY PAYABLE ---
+    // --- 3. GRATUITY PAYABLE ---
     let gratuityBaseline = getSafeNum(db.myGratuity.gratuitypayable);
     let gratAccrual = today > baselineDate ? (baseSalary * 0.5) * ((today - baselineDate) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
-
     let gratuityTotal = Math.min(gratuityBaseline + gratAccrual, (baseSalary * 0.5) * 10);
-    document.getElementById('gratuityTotal').innerText = Math.round(gratuityTotal).toLocaleString('en-PK');
     
     const gratuityCard = document.getElementById('gratuityCard');
     const gratBreakdown = document.getElementById('gratuityBreakdown');
     
-    // Reverse-engineer the baseline years from the baseline amount, add new time, and cap at 10 years
     let baselineYears = gratuityBaseline / (baseSalary * 0.5);
     let yearsSince = today > baselineDate ? ((today - baselineDate) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
     let payableYearsTotal = Math.min(baselineYears + yearsSince, 10);
@@ -251,23 +269,18 @@ function renderDashboard() {
         gratuityCard.innerHTML += `<div class="locked-overlay" title="3-Year Vesting Cliff Policy"><span style="font-size: 2rem;">🔒</span><span style="font-weight: bold; margin-top: 5px; color: var(--text-primary);">Vests in ${Math.ceil((3 - tenureYears)*12)} Months</span></div>`;
         gratuityTotal = 0; 
     } else if (gratBreakdown) {
+        animateValue('gratuityTotal', gratuityTotal);
         gratBreakdown.innerHTML = `
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                <span style="color: var(--text-secondary);">Opening Accrued:</span> <strong>${Math.round(gratuityBaseline).toLocaleString('en-PK')}</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                <span style="color: var(--text-secondary);">Accrued Year:</span> <strong>${Math.round(gratAccrual).toLocaleString('en-PK')}</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px; border-top: 1px solid var(--border-color); padding-top: 4px;">
-                <span style="color: var(--text-secondary);">Time Served:</span> <strong>${Math.floor(tenureYears)} Yrs, ${tenureMonths % 12} Mos</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                <span style="color: var(--text-secondary);">Payable Tenure (Capped):</span> <strong>${gratY} Yrs, ${gratM} Mos</strong>
-            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
+                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Opening Accrued:</td><td><strong>${Math.round(gratuityBaseline).toLocaleString('en-PK')}</strong></td></tr>
+                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Accrued Year:</td><td><strong>${Math.round(gratAccrual).toLocaleString('en-PK')}</strong></td></tr>
+                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Time Served:</td><td><strong>${Math.floor(tenureYears)} Yrs, ${tenureMonths % 12} Mos</strong></td></tr>
+                <tr><td style="color: var(--text-secondary); padding-right: 10px;">Payable Tenure:</td><td><strong>${gratY} Yrs, ${gratM} Mos</strong></td></tr>
+            </table>
         `;
     }
 
-  // --- 4. ADVANCES & AMORTIZATION SCHEDULE ---
+    // --- 4. ADVANCES (WITH GRACE PERIOD LOGIC) ---
     let activeAdvancesTotal = 0;
     let advHtml = '';
     window.advancesData = []; 
@@ -280,14 +293,28 @@ function renderDashboard() {
         let remaining = principal - totalSettled;
         
         let tenure = getSafeNum(adv.tenuremonths) || 12; 
-        let emi = principal > 0 ? (principal / tenure) : 0;
+        let grace = getSafeNum(adv.graceperiod) || 0;
+        let repaymentMonths = Math.max(1, tenure - grace); // Deduct grace from tenure
+        
+        let emi = principal > 0 ? (principal / repaymentMonths) : 0;
         let monthsLeft = emi > 0 ? Math.ceil(remaining / emi) : 0;
+
+        // Calculate Deduction Start Date
+        let deductionStart = "Unknown";
+        if (adv.dateofadvance) {
+            let advanceDate = new Date(adv.dateofadvance);
+            if (!isNaN(advanceDate)) {
+                advanceDate.setMonth(advanceDate.getMonth() + grace);
+                deductionStart = advanceDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+        }
 
         activeAdvancesTotal += remaining;
         
         if (remaining > 0) {
             window.advancesData.push({
                 date: adv.dateofadvance || 'Unknown',
+                deductionStart: deductionStart,
                 principal: principal,
                 emi: emi,
                 remaining: remaining,
@@ -300,16 +327,19 @@ function renderDashboard() {
                     <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:4px;">
                         <span>Advance Balance</span> <strong>${remaining.toLocaleString('en-PK')} PKR</strong>
                     </div>
+                    <!-- Animated Progress Bar -->
                     <div style="width:100%; background:var(--border-color); height:6px; border-radius:3px; overflow:hidden;">
-                        <div style="width:${pct}%; background:var(--krn-blue); height:100%;"></div>
+                        <div class="adv-progress" data-width="${pct}%" style="width:0%; background:var(--krn-blue); height:100%; transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);"></div>
                     </div>
-                    <div style="text-align:right; font-size:0.65rem; color:var(--text-secondary); margin-top:2px;">${pct}% Repaid</div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.65rem; color:var(--text-secondary); margin-top:2px;">
+                        <span>Starts: ${deductionStart}</span>
+                        <span>${pct}% Repaid</span>
+                    </div>
                 </div>
             `;
         }
     });
 
-    // Add Total Payable Header if there are active loans
     if (activeAdvancesTotal > 0) {
         advHtml = `
             <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:10px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;">
@@ -330,7 +360,8 @@ function renderDashboard() {
 
     let advAvailable = Math.max(0, Math.min(baseSalary * 5, pfTotal * 0.60) - activeAdvancesTotal);
     if (db.myAdvances.length >= 3) advAvailable = 0; 
-    document.getElementById('advLimit').innerText = Math.round(advAvailable).toLocaleString('en-PK');
+    animateValue('advLimit', advAvailable);
+
     // --- 5. LEASE FINANCE LIMIT ---
     const leaseCard = document.getElementById('leaseCard');
     if (empGrade < 8) {
@@ -338,10 +369,16 @@ function renderDashboard() {
         leaseCard.innerHTML += `<div class="locked-overlay"><span style="font-size: 1.5rem;">🔒</span><span style="font-weight: bold; margin-top: 5px; color: var(--text-primary);">ManCom Benefit</span></div>`;
     } else {
         let leaseLimit = (pfTotal + gratuityTotal) - (activeAdvancesTotal + overUtilizedTraining);
-        document.getElementById('leaseLimit').innerText = Math.round(Math.max(0, leaseLimit)).toLocaleString('en-PK');
+        animateValue('leaseLimit', Math.max(0, leaseLimit));
     }
-}
 
+    // Trigger the CSS transitions for progress bars after the DOM paints
+    setTimeout(() => {
+        document.querySelectorAll('.adv-progress').forEach(el => {
+            el.style.width = el.getAttribute('data-width');
+        });
+    }, 100);
+}
 // ========================================================================
 // 5. MODAL GENERATOR (AMORTIZATION)
 // ========================================================================
@@ -354,9 +391,10 @@ function openAdvancesModal() {
         document.body.appendChild(modal);
     }
     
-    let rows = window.advancesData.map(a => `
+let rows = window.advancesData.map(a => `
         <tr style="border-bottom: 1px solid var(--border-color);">
             <td style="padding:10px;">${a.date}</td>
+            <td style="padding:10px; color:var(--krn-blue);">${a.deductionStart}</td>
             <td style="padding:10px; text-align:right;">${a.principal.toLocaleString('en-PK')}</td>
             <td style="padding:10px; text-align:right; font-weight:bold;">${Math.round(a.emi).toLocaleString('en-PK')}</td>
             <td style="padding:10px; text-align:right;">${a.remaining.toLocaleString('en-PK')}</td>
@@ -365,13 +403,14 @@ function openAdvancesModal() {
     `).join('');
 
     modal.innerHTML = `
-        <div style="background:var(--bg-card); padding:30px; border-radius:12px; width:90%; max-width:700px; color:var(--text-primary); box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <div style="background:var(--bg-card); padding:30px; border-radius:12px; width:90%; max-width:850px; color:var(--text-primary); box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
             <h2 style="margin:0 0 5px 0; color:var(--krn-blue);">Amortization Schedule</h2>
             <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:20px;">Estimated Remaining Equated Monthly Installments (EMIs)</p>
             <table style="width:100%; border-collapse:collapse; font-size:0.95rem;">
                 <thead>
                     <tr style="background:rgba(0,0,0,0.05); color:var(--text-secondary);">
                         <th style="padding:10px; text-align:left;">Advance Date</th>
+                        <th style="padding:10px; text-align:left;">Deduction Start</th>
                         <th style="padding:10px; text-align:right;">Principal (PKR)</th>
                         <th style="padding:10px; text-align:right;">Monthly EMI</th>
                         <th style="padding:10px; text-align:right;">Remaining Balance</th>
