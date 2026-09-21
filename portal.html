@@ -190,7 +190,10 @@ input:checked + .theme-slider:before {
             <!-- 5. Advances (MOVED HERE) -->
             <div class="bento-card">
                 <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Salary Advances</h3>
-                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 5px;">Max Available Limit</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 5px; display: flex; align-items: center;">
+                    Max Available Limit
+                    <span style="margin-left:5px; cursor:help; font-size:0.9rem;" title="Calculation: Min(Base Salary × 5, PF Balance × 60%) minus active advances. Maximum 3 active advances allowed.">ℹ️</span>
+                </div>
                 <div class="val" style="margin-bottom: 15px;"><span class="val-num" id="advLimit" style="font-size: 1.4rem;">0</span> <span class="val-unit" style="display:inline;">PKR</span></div>
                 
                 <div id="activeAdvancesContainer">
