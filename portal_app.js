@@ -379,6 +379,57 @@ function renderDashboard() {
         });
     }, 100);
 }
+function openPFModal() {
+    let modal = document.getElementById('pfModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'pfModal';
+        modal.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:center; justify-content:center; backdrop-filter: blur(4px);";
+        document.body.appendChild(modal);
+    }
+    
+    let pf = db.myPF;
+    if (!pf || Object.keys(pf).length === 0) return;
+
+    let empCont = getSafeNum(pf.totalaccumulatedcontributons) / 2;
+    let erCont = empCont; // Matching employer contribution
+    let profit = getSafeNum(pf.totalaccumulatedprofit);
+    let total = empCont + erCont + profit;
+    let preference = pf.pfpreference || 'Conventional';
+
+    modal.innerHTML = `
+        <div style="background:var(--bg-card); padding:30px; border-radius:12px; width:90%; max-width:500px; color:var(--text-primary); box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <h2 style="margin:0 0 5px 0; color:var(--krn-blue);">Provident Fund Ledger</h2>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:20px;">Fund Preference: <strong>${preference}</strong></p>
+            
+            <table style="width:100%; border-collapse:collapse; font-size:0.95rem;">
+                <tbody>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding:12px 0; color:var(--text-secondary);">Employee Contribution</td>
+                        <td style="padding:12px 0; text-align:right; font-weight:bold;">${Math.round(empCont).toLocaleString('en-PK')}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding:12px 0; color:var(--text-secondary);">Employer Contribution</td>
+                        <td style="padding:12px 0; text-align:right; font-weight:bold;">${Math.round(erCont).toLocaleString('en-PK')}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding:12px 0; color:var(--text-secondary);">Accumulated Profit</td>
+                        <td style="padding:12px 0; text-align:right; font-weight:bold; color:var(--krn-green);">${Math.round(profit).toLocaleString('en-PK')}</td>
+                    </tr>
+                    <tr style="border-bottom: 2px solid var(--krn-blue); background:rgba(0,0,0,0.02);">
+                        <td style="padding:15px 5px; font-weight:bold; color:var(--krn-blue);">Total Accumulated Balance</td>
+                        <td style="padding:15px 5px; text-align:right; font-weight:bold; color:var(--krn-blue); font-size:1.1rem;">${Math.round(total).toLocaleString('en-PK')} PKR</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div style="text-align:right; margin-top:25px;">
+                <button onclick="document.getElementById('pfModal').style.display='none'" style="background:var(--krn-orange); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:bold;">Close</button>
+            </div>
+        </div>
+    `;
+    modal.style.display = 'flex';
+}
 // ========================================================================
 // 5. MODAL GENERATOR (AMORTIZATION)
 // ========================================================================
