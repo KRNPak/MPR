@@ -203,23 +203,23 @@ Staff cost,,Performance pool,SS5H600,Performance payout,GF,"13,269,084",13269083
 Staff cost,,Performance pool,SS5H201,Gratuity expense (Staff Salaries),GF,"3,008,212",3008211.922,3008212,3008211.922
 Staff cost,,Performance pool,H126005,SPOT recognition,GF,"587,128",587127.6085,587127.6,587127.6085
 Staff cost,,Learning and development,H123005,Staff Training,GF,"2,241,892",2241892.123,2241892,2241892.123
-Staff cost,,Staff cost,SS5H100,Staff Salaries,FIP,"4,426,132",4426131.6,4426132,4426131.6
-Staff cost,,Staff cost,SS5H200,Staff Provident Fund,FIP,"442,613",442613.16,442613.2,442613.16
-Staff cost,,Staff cost,SS5H300,Staff Over time,FIP,0,0,0,0
-Staff cost,,Staff cost,SS5H400,Staff Car Monetization,FIP,"732,000",732000,732000,732000
-Staff cost,,Staff cost,SS5H500,Staff Child care assistance,FIP,0,0,0,0
-Staff cost,,Staff cost,SS5H700,Staff Arrears,FIP,0,0,0,0
-Staff cost,,Staff cost,SS5H800,Wellness allowance,FIP,"72,000",72000,72000,72000
-Staff cost,,Staff cost,SS5H900,Leave fare assistance,FIP,368844.3,368844.3,368844.3,368844.3
-Staff cost,,Staff cost,H123006,EOBI Expense,FIP,"11,100",11100,11100,11100
-Staff cost,,Staff cost,H123003,Daily Wages,FIP,0,0,0,0
-Staff cost,,Internships and STTAs,H105001,HR Consultancies & Internships,FIP,0,0,0,0
-Staff cost,,Insurance,H110002,Health Insurance,FIP,"197,412",197411.9,197411.9,197411.9
-Staff cost,,Insurance,H129021,Life Insurance,FIP,"11,875",11875.19388,11875.19,11875.19388
-Staff cost,,Performance pool,SS5H600,Performance payout,FIP,"854,302",854301.5,854301.5,854301.5
-Staff cost,,Staff cost,SS5H201,Gratuity expense (Staff Salaries),FIP,"671,451",671450.8026,671450.8,671450.8026
-Staff cost,,Performance pool,H126005,SPOT recognition,FIP,"37,801",37800.95069,37800.95,37800.95069
-Staff cost,,Learning and development,H123005,Staff Training,FIP,"140,625",140625,140625,140625
+Staff cost,,Staff cost,SS5H100,Staff Salaries,FCDO,"4,426,132",4426131.6,4426132,4426131.6
+Staff cost,,Staff cost,SS5H200,Staff Provident Fund,FCDO,"442,613",442613.16,442613.2,442613.16
+Staff cost,,Staff cost,SS5H300,Staff Over time,FCDO,0,0,0,0
+Staff cost,,Staff cost,SS5H400,Staff Car Monetization,FCDO,"732,000",732000,732000,732000
+Staff cost,,Staff cost,SS5H500,Staff Child care assistance,FCDO,0,0,0,0
+Staff cost,,Staff cost,SS5H700,Staff Arrears,FCDO,0,0,0,0
+Staff cost,,Staff cost,SS5H800,Wellness allowance,FCDO,"72,000",72000,72000,72000
+Staff cost,,Staff cost,SS5H900,Leave fare assistance,FCDO,368844.3,368844.3,368844.3,368844.3
+Staff cost,,Staff cost,H123006,EOBI Expense,FCDO,"11,100",11100,11100,11100
+Staff cost,,Staff cost,H123003,Daily Wages,FCDO,0,0,0,0
+Staff cost,,Internships and STTAs,H105001,HR Consultancies & Internships,FCDO,0,0,0,0
+Staff cost,,Insurance,H110002,Health Insurance,FCDO,"197,412",197411.9,197411.9,197411.9
+Staff cost,,Insurance,H129021,Life Insurance,FCDO,"11,875",11875.19388,11875.19,11875.19388
+Staff cost,,Performance pool,SS5H600,Performance payout,FCDO,"854,302",854301.5,854301.5,854301.5
+Staff cost,,Staff cost,SS5H201,Gratuity expense (Staff Salaries),FCDO,"671,451",671450.8026,671450.8,671450.8026
+Staff cost,,Performance pool,H126005,SPOT recognition,FCDO,"37,801",37800.95069,37800.95,37800.95069
+Staff cost,,Learning and development,H123005,Staff Training,FCDO,"140,625",140625,140625,140625
 Capital cost,,Generator,,Generator,OSR,"3,250,000","3,250,000",0,0
 Capital cost,,Computers and Printers,,Computers and Printers,OSR,"515,000","515,000",0,0
 Capital cost,,Electrical Equipment,,Electrical Equipment,OSR,"450,000","450,000",0,0
