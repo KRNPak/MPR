@@ -1,1498 +1,1258 @@
-// ========================================================================
-// 1. CONFIGURATION & STATE
-// ========================================================================
-const availableYears = ['FY2025', 'FY2026', 'FY2027']; // Add future years here
-let selectedYear = availableYears[availableYears.length - 1]; // Defaults to highest year
+'use strict';
+/* ==========================================================================
+   Karandaaz Pakistan — Budget vs Actual dashboard
+   --------------------------------------------------------------------------
+   1. Configuration        6. Aggregation & status
+   2. Utilities            7. Components (bars, sparklines, donor bars)
+   3. CSV reading          8. Rendering
+   4. Data parsing         9. Modals (drill-down, data checks)
+   5. State & scope       10. Events & initialisation
+   ========================================================================== */
 
-function getFilePaths(year) {
+/* 1. CONFIGURATION ======================================================== */
+
+const APP_VERSION = '2026.09.24';
+const FALLBACK_YEARS = ['FY2026', 'FY2027'];      // used only if Data/years.json is missing
+const DEFAULT_DONOR = 'OSR';
+const ALL_DONORS = 'All Donors';
+const BEHIND_PACE_THRESHOLD = 0.75;               // spend below 75% of plan-to-date = "behind pace"
+/* Donor colours avoid the green / amber / orange used for status. */
+const DONOR_PALETTE = ['#006890', '#4a96d2', '#0f9d9a', '#7c5cc4', '#2f4858', '#93b5d6', '#b5838d', '#6b7f3a'];
+
+const FISCAL_MONTHS = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+const MONTH_INDEX = Object.fromEntries(FISCAL_MONTHS.map((m, i) => [m, i]));
+const MONTH_LONG = { Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October', Nov: 'November', Dec: 'December', Jan: 'January', Feb: 'February', Mar: 'March', Apr: 'April', May: 'May', Jun: 'June' };
+const CALENDAR_MONTH = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'];
+const QUARTER_MONTHS = { Q1: ['Jul', 'Aug', 'Sep'], Q2: ['Oct', 'Nov', 'Dec'], Q3: ['Jan', 'Feb', 'Mar'], Q4: ['Apr', 'May', 'Jun'] };
+const MONTH_QUARTER = {};
+Object.entries(QUARTER_MONTHS).forEach(([q, ms]) => ms.forEach(m => { MONTH_QUARTER[m] = q; }));
+
+function filePaths(year) {
     return {
-        budgetMasterCSV: `Data/${year}/Budget.csv`, 
-        tbDonorCSV: `Data/${year}/ActualDonor.csv`,      
-        iiCSV: `Data/${year}/Innovation.csv`,
-        cicCSV: `Data/${year}/CIC.csv`,
-        eodCSV: `Data/${year}/EOD.csv`,
-        capexCSV: `Data/${year}/CAPEX.csv`
+        budget: `Data/${year}/Budget.csv`,
+        tb: `Data/${year}/ActualDonor.csv`,
+        innovation: `Data/${year}/Innovation.csv`,
+        cic: `Data/${year}/CIC.csv`,
+        capex: `Data/${year}/CAPEX.csv`,
+        eod: `Data/${year}/EOD.csv`
     };
 }
 
-const fiscalMonths = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-const quarterMap = {
-    'Jul': 'Q1', 'Aug': 'Q1', 'Sep': 'Q1',
-    'Oct': 'Q2', 'Nov': 'Q2', 'Dec': 'Q2',
-    'Jan': 'Q3', 'Feb': 'Q3', 'Mar': 'Q3',
-    'Apr': 'Q4', 'May': 'Q4', 'Jun': 'Q4'
+/* Explicit column map. Header names are normalised (lower-case, letters and
+   digits only) before matching, so "Account code" matches "accountcode".
+   To support a renamed column, add its normalised name to the alias list.  */
+const COLUMN_SPECS = {
+    budget: {
+        fields: {
+            department: ['department', 'dept'],
+            program: ['program', 'programme'],
+            stream: ['stream', 'workstream', 'expenseitems'],
+            code: ['accountcode', 'code', 'acct'],
+            name: ['accountname', 'accountdescription', 'description', 'name'],
+            donor: ['donor', 'fund'],
+            q1: ['q1budget', 'q1'], q2: ['q2budget', 'q2'], q3: ['q3budget', 'q3'], q4: ['q4budget', 'q4'],
+            annual: ['annualbudget', 'yearlybudget', 'totalbudget']
+        },
+        required: ['department']
+    },
+    tb: {
+        fields: {
+            code: ['naturalacctsegmentvalue', 'naturalaccount', 'accountcode'],
+            desc: ['naturalacctsegmentdesc', 'accountdescription'],
+            donor: ['additionalsegmentdesc'],
+            donorFallback: ['donor', 'fund'],
+            type: ['accttype'],
+            dr: ['totaldr', 'debit'],
+            cr: ['totalcr', 'credit'],
+            period: ['accountingperiodparam', 'period']
+        },
+        required: ['code', 'dr', 'cr', 'period']
+    },
+    investment: {
+        fields: { party: ['party'], type: ['type'] },
+        required: ['party']
+    },
+    capex: {
+        fields: {
+            description: ['description', 'item', 'particulars'],
+            code: ['accountcode', 'code'],
+            budget: ['budget', 'annualbudget']
+        },
+        required: ['description']
+    },
+    eod: {
+        fields: {
+            month: ['month'],
+            statedPct: ['eod'],
+            available: ['capitalavailablepkrmillion', 'capitalavailablefordeploymentpkrmillion', 'capitalavailable'],
+            deployed: ['capitaldeployedpkrmillion', 'capitaldeployed']
+        },
+        required: ['month', 'available', 'deployed']
+    }
 };
 
-let rawData = [];
-let currentActiveData = []; // The filtered copy of data
-let globalEODData = [];
-let currentGranularity = 'Monthly';
-let viewMode = 'QTD'; 
-let selectedPeriod = 'Jul';
-let selectedDepartment = '';
-let selectedDonor = 'All Donors';
-let isDarkMode = false; 
-let isSummaryView = true;
-let currentModalData = {}; 
+/* 2. UTILITIES ============================================================ */
 
-const getBrandColors = () => ['#006890', '#4a96d2', '#f97316', '#f6a505', '#14532d', '#06969c'];
+const $ = id => document.getElementById(id);
+const sum = arr => arr.reduce((s, v) => s + v, 0);
+const clean = v => (v === undefined || v === null ? '' : String(v).trim());
+const normName = s => clean(s).toLowerCase().replace(/[^a-z0-9]/g, '');
 
-function getDeptSortIndex(deptName) {
-    if (!deptName) return 999;
-    const clean = deptName.trim().toUpperCase();
-    if (clean === 'DFS' || clean.includes('DIGITAL FINANCIAL')) return 0;
-    if (clean === 'CIC' || clean.includes('CHALLENGE INNOVATION') || clean.includes('CORPORATE INVESTMENT')) return 1;
-    if (clean === 'II' || clean.includes('INCLUSIVE INNOVATION') || clean.includes('INNOVATION INVESTMENT')) return 2;
-    if (clean === 'DI' || clean.includes('DIGITAL INCLUSION')) return 3;
-    if (clean === 'RMC' || clean.includes('RESEARCH')) return 4;
-    if (clean === 'STAFF AND ADMIN' || clean.includes('STAFF') || clean.includes('ADMIN')) return 5;
-    if (clean === 'CAPEX' || clean.includes('CAPITAL')) return 6;
-    return 999;
-}
-
-// ========================================================================
-// 2. UTILITY & FORMATTING
-// ========================================================================
-function getFormattedParts(num) {
-    const val = parseFloat(num) || 0;
-    const absVal = Math.abs(val);
-    if (absVal >= 1000000) return { v: (val / 1000000).toFixed(1), u: 'M PKR' };
-    if (absVal >= 1000) return { v: (val / 1000).toFixed(1), u: 'K PKR' };
-    return { v: val.toLocaleString('en-PK', { minimumFractionDigits: 1, maximumFractionDigits: 1 }), u: 'PKR' };
-}
-
-function formatPKRInline(num) {
-    const parts = getFormattedParts(num);
-    return `<span class="val-unit-inline">${parts.u}</span> <span class="val-num-inline">${parts.v}</span>`;
+function escapeHtml(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 function getSafeNum(val) {
-    if (val === undefined || val === null) return 0;
-    let str = String(val).trim();
+    const str = clean(val);
     if (str === '' || str === '-') return 0;
-    let isNegative = (str.includes('(') && str.includes(')')) || str.startsWith('-');
-    let cleaned = str.replace(/[^0-9.-]/g, ''); 
-    let num = parseFloat(cleaned);
-    return isNaN(num) ? 0 : (isNegative && num > 0 ? -num : num);
+    const isNegative = (str.includes('(') && str.includes(')')) || str.startsWith('-');
+    const num = parseFloat(str.replace(/[^0-9.]/g, ''));
+    if (isNaN(num)) return 0;
+    return isNegative ? -num : num;
 }
 
-function animateCounter(elementId, targetValue) {
-    const elem = document.getElementById(elementId);
-    if (!elem) return;
-    const startVal = parseFloat(elem.getAttribute('data-val')) || 0;
-    elem.setAttribute('data-val', targetValue);
+/* All money on screen is in millions of PKR. */
+function fmtM(v, dp = 1) {
+    return (v / 1e6).toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+/* Accounting style: over-budget variance shown in parentheses. */
+function fmtVariance(v, dp = 1) {
+    const s = fmtM(Math.abs(v), dp);
+    return v < 0 ? `(${s})` : s;
+}
+const pctOf = (a, b) => (b > 0 ? (a / b) * 100 : null);
+const fmtPct = p => (p === null || !isFinite(p) ? '—' : `${Math.round(p)}%`);
 
-    const duration = 1400;
-    const startTime = performance.now();
+function moneyHtml(v, dp = 1) {
+    return `<span class="num">${fmtM(v, dp)}</span><span class="unit">M PKR</span>`;
+}
 
-    function update(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const ease = 1 - Math.pow(1 - progress, 3);
-        const currentVal = startVal + (targetValue - startVal) * ease;
-        
-        const parts = getFormattedParts(currentVal);
-        elem.innerHTML = `<span class="val-unit">${parts.u}</span><span class="val-num">${parts.v}</span>`;
+function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
 
-        if (progress < 1) requestAnimationFrame(update);
-        else {
-            const finalParts = getFormattedParts(targetValue);
-            elem.innerHTML = `<span class="val-unit">${finalParts.u}</span><span class="val-num">${finalParts.v}</span>`;
+function parseMonthLabel(raw) {
+    const m = clean(raw).match(/^([A-Za-z]{3,9})\.?[\s\-_']*(\d{2}|\d{4})?$/);
+    if (!m) return null;
+    const month = m[1].charAt(0).toUpperCase() + m[1].slice(1, 3).toLowerCase();
+    if (!(month in MONTH_INDEX)) return null;
+    let year = m[2] ? parseInt(m[2], 10) : null;
+    if (year !== null && year < 100) year += 2000;
+    return { month, year };
+}
+
+/* Calendar year a fiscal month falls in: FY2027 → Jul–Dec 2026, Jan–Jun 2027. */
+const calendarYearOf = (month, fyEnd) => (MONTH_INDEX[month] < 6 ? fyEnd - 1 : fyEnd);
+const inFiscalYear = (p, fyEnd) => p.year === null || p.year === calendarYearOf(p.month, fyEnd);
+
+function downloadCSV(filename, rows) {
+    const esc = v => {
+        const s = String(v ?? '');
+        return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = rows.map(r => r.map(esc).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename.replace(/[^\w.\-]+/g, '_');
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* 3. CSV READING ========================================================== */
+
+function readCSV(text) {
+    if (!text) return null;
+    const res = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: 'greedy',
+        transformHeader: h => h.replace(/\s+/g, ' ').trim()
+    });
+    return { headers: res.meta.fields || [], rows: res.data };
+}
+
+function resolveColumns(headers, spec, fileLabel) {
+    const byNorm = new Map(headers.map(h => [normName(h), h]));
+    const col = {};
+    Object.entries(spec.fields).forEach(([field, aliases]) => {
+        col[field] = null;
+        for (const a of aliases) {
+            if (byNorm.has(a)) { col[field] = byNorm.get(a); break; }
         }
+    });
+    const missing = spec.required.filter(f => !col[f]);
+    if (missing.length) {
+        throw new Error(`${fileLabel} is missing required column(s): ${missing.join(', ')}. Found: ${headers.slice(0, 8).join(', ') || 'none'}.`);
     }
-    requestAnimationFrame(update);
+    return col;
 }
 
-function animateCounterPct(elementId, targetValue) {
-    const elem = document.getElementById(elementId);
-    if (!elem) return;
-    const startVal = parseFloat(elem.getAttribute('data-val')) || 0;
-    elem.setAttribute('data-val', targetValue);
-    const duration = 1400;
-    const startTime = performance.now();
-    function update(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const ease = 1 - Math.pow(1 - progress, 3);
-        const currentVal = startVal + (targetValue - startVal) * ease;
-        elem.innerHTML = `<span class="val-unit">RATE</span><span class="val-num">${Math.round(currentVal)}%</span>`;
-        if (progress < 1) requestAnimationFrame(update);
-        else elem.innerHTML = `<span class="val-unit">RATE</span><span class="val-num">${Math.round(targetValue)}%</span>`;
+/* Returns [{ month, header }] for month columns belonging to this fiscal year. */
+function detectMonthColumns(headers, fileLabel, ctx) {
+    const out = [];
+    const rejected = [];
+    headers.forEach(h => {
+        const p = parseMonthLabel(h);
+        if (!p) return;
+        if (inFiscalYear(p, ctx.fyEnd)) out.push({ month: p.month, header: h });
+        else rejected.push(h);
+    });
+    if (rejected.length) {
+        ctx.flag({
+            severity: 'error', source: fileLabel,
+            reason: `Month columns ${rejected[0]} to ${rejected[rejected.length - 1]} are outside ${ctx.year}, so they were ignored. Check that the right file is in the ${ctx.year} folder.`
+        });
     }
-    requestAnimationFrame(update);
+    return out;
 }
 
-function generateSparkline(data) {
-    if (!data || data.length < 2) return '<div style="width:40px; height:15px;"></div>';
-    const max = Math.max(...data) || 1;
-    const min = Math.min(...data);
-    const range = max - min || 1;
-    const w = 45, h = 18;
-    const step = w / (data.length - 1);
-    
-    let d = `M 0 ${h - ((data[0] - min) / range) * h}`;
-    for (let i = 1; i < data.length; i++) {
-        d += ` L ${i * step} ${h - ((data[i] - min) / range) * h}`;
-    }
-    
-    return `<svg width="${w}" height="${h}" style="overflow:visible;">
-                <path d="${d}" fill="none" stroke="var(--krn-light-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>`;
-}
+/* 4. DATA PARSING ========================================================= */
 
-function generateCardSparkline(data) {
-    if (!data || data.length < 2) return '<div style="width:100px; height:25px;"></div>';
-    const max = Math.max(...data) || 1;
-    const min = Math.min(...data);
-    const range = max - min || 1;
-    const w = 100, h = 25;
-    const step = w / (data.length - 1);
-    
-    let d = `M 0 ${h - ((data[0] - min) / range) * h}`;
-    for (let i = 1; i < data.length; i++) {
-        d += ` L ${i * step} ${h - ((data[i] - min) / range) * h}`;
-    }
-    
-    return `<svg width="${w}" height="${h}" style="overflow:visible;">
-                <path d="${d}" fill="none" stroke="var(--krn-light-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>`;
-}
-
-function generateMiniSparkline(data) {
-    if (!data || data.length < 2) return '<div style="width:70px; height:20px;"></div>';
-    const max = Math.max(...data) || 1;
-    const min = Math.min(...data);
-    const range = max - min || 1;
-    const w = 70, h = 20;
-    const step = w / (data.length - 1);
-    
-    let d = `M 0 ${h - ((data[0] - min) / range) * h}`;
-    for (let i = 1; i < data.length; i++) {
-        d += ` L ${i * step} ${h - ((data[i] - min) / range) * h}`;
-    }
-    
-    return `<svg width="${w}" height="${h}" style="overflow:visible;">
-                <path d="${d}" fill="none" stroke="var(--krn-light-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>`;
-}
-
-const tooltip = document.getElementById('hoverTooltip');
-function showTooltip(e, label, value, pct) {
-    const parts = getFormattedParts(value);
-    tooltip.innerHTML = `<strong>${label}</strong><span class="val-num-inline" style="color:inherit">${parts.v}</span> ${parts.u} (<span class="val-num-inline" style="color:inherit">${pct}</span>%)`;
-    tooltip.classList.add('visible');
-    moveTooltip(e);
-}
-function moveTooltip(e) {
-    tooltip.style.left = (e.clientX + 15) + 'px';
-    tooltip.style.top = (e.clientY + 15) + 'px';
-}
-function hideTooltip() { tooltip.classList.remove('visible'); }
-
-// ========================================================================
-// 3. SVG DONUT ENGINE
-// ========================================================================
-function renderSvgDonut(containerId, items, centerBadge = null, bottomLabel = null, showLegend = true) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    const total = items.reduce((acc, it) => acc + (parseFloat(it.value) || 0), 0);
-    const radius = 42; 
-    const C = 2 * Math.PI * radius;
-
-    let cumulativePercent = 0;
-    let circlesHtml = `<circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--border-color)" />`;
-    let legendHtml = '';
-
-    if (total === 0) {
-        if (showLegend) legendHtml = `<div style="color: var(--text-secondary); text-align: center; width: 100%; margin-top:0px; font-size: 0.6rem;">No data</div>`;
-    } else {
-        items.forEach((it) => {
-            const fraction = it.value / total;
-            const sliceLen = fraction * C;
-            const offset = cumulativePercent * C;
-            cumulativePercent += fraction;
-
-            circlesHtml += `
-                <circle class="donut-slice-${containerId}" 
-                    cx="50" cy="50" r="${radius}" fill="none" stroke="${it.color}" 
-                    stroke-dasharray="0 ${C}" stroke-dashoffset="-${offset}" data-target-len="${sliceLen}"
-                    onmouseenter="showTooltip(event, '${it.label.replace(/'/g, "\\'")}', ${it.value}, '${Math.round(fraction*100)}')"
-                    onmousemove="moveTooltip(event)" onmouseleave="hideTooltip()"
-                    style="transform: rotate(-90deg); transform-origin: 50% 50%; pointer-events: stroke; transition: stroke-dasharray 1.4s cubic-bezier(0.16, 1, 0.3, 1), stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);"
-                />
-            `;
-
-            if (showLegend) {
-                legendHtml += `
-                    <div class="donut-legend-item">
-                        <div class="donut-legend-item-left">
-                            <div class="donut-legend-dot" style="background-color: ${it.color};"></div>
-                            <span style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden; font-family: Calibri, sans-serif !important;">${it.label}</span>
-                        </div>
-                        <strong style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight:400;">${Math.round(fraction * 100)}%</strong>
-                    </div>
-                `;
+function createLedger() {
+    const records = new Map();
+    return {
+        add(month, mapping, donor, { budget = 0, actual = 0 }) {
+            const key = `${month}|${mapping.Code}|${mapping.Program}|${donor}`;
+            let r = records.get(key);
+            if (!r) {
+                r = {
+                    Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program,
+                    Code: mapping.Code, NaturalAccount: mapping.Name, Month: month,
+                    Budget: 0, Actual: 0, BudgetDonors: {}, ActualDonors: {}
+                };
+                records.set(key, r);
             }
+            if (budget) {
+                r.Budget += budget;
+                r.BudgetDonors[donor] = (r.BudgetDonors[donor] || 0) + budget;
+            }
+            if (actual) {
+                r.Actual += actual;
+                r.ActualDonors[donor] = (r.ActualDonors[donor] || 0) + actual;
+            }
+        },
+        values: () => [...records.values()]
+    };
+}
+
+const isTotalLabel = s => {
+    const u = clean(s).toUpperCase();
+    return u === 'TOTAL' || /^SUB-?TOTAL/.test(u) || u.includes('TOTAL EXPENSES');
+};
+
+function parseBudget(table, ctx) {
+    const col = resolveColumns(table.headers, COLUMN_SPECS.budget, 'Budget.csv');
+    const coa = new Map();       // account code → mapping
+    const byName = new Map();    // normalised account name → mapping (only real names)
+    const deptOrder = [];
+
+    table.rows.forEach((row, i) => {
+        const dept = clean(row[col.department]) || 'Uncategorized';
+        const rawName = clean(row[col.name]);
+        /* A cell may hold several codes ("D108006, D103004"); each maps to this line. */
+        const codes = clean(row[col.code]).toUpperCase().split(/[,;\/]+/).map(c => c.trim()).filter(c => c && c !== 'NAN');
+        let code = codes[0] || '';
+        if (isTotalLabel(dept) || isTotalLabel(rawName) || code.includes('SUBTOTAL')) return;
+        if (!code) code = `BUD-${i + 2}`;   // i + 2 = spreadsheet row number
+
+        const stream = clean(row[col.stream]) || 'General';
+        const program = clean(row[col.program]) || 'Unallocated';
+        const donor = clean(row[col.donor]) || DEFAULT_DONOR;
+        const mapping = { Dept: dept, Stream: stream, Name: rawName || stream, Program: program, Donor: donor, Code: code };
+
+        coa.set(code, mapping);
+        codes.slice(1).forEach(c => coa.set(c, mapping));
+        if (rawName) {
+            const k = normName(rawName);
+            if (!byName.has(k)) byName.set(k, mapping);
+        }
+        if (!deptOrder.includes(dept)) deptOrder.push(dept);
+
+        let q = ['q1', 'q2', 'q3', 'q4'].map(f => (col[f] ? getSafeNum(row[col[f]]) : 0));
+        if (q.every(v => v === 0) && col.annual) {
+            const y = getSafeNum(row[col.annual]);
+            q = [y / 4, y / 4, y / 4, y / 4];
+        }
+        q.forEach((qv, qi) => {
+            if (!qv) return;
+            QUARTER_MONTHS[QUARTERS[qi]].forEach(m => ctx.ledger.add(m, mapping, donor, { budget: qv / 3 }));
         });
+    });
+    return { coa, byName, deptOrder };
+}
+
+/* Name matching used when an account code isn't in Budget.csv.
+   Partial (substring) matches need 6+ characters on both sides and are always flagged. */
+function matchByName(desc, chart) {
+    const n = normName(desc);
+    if (!n) return null;
+    if (chart.byName.has(n)) return { mapping: chart.byName.get(n), method: 'Exact name match' };
+    if (n.length < 6) return null;
+    for (const [k, mapping] of chart.byName) {
+        if (k.length >= 6 && (k.includes(n) || n.includes(k))) return { mapping, method: 'Partial name match' };
     }
+    return null;
+}
 
-    let centerBadgeHtml = centerBadge ? `<div class="donut-center-badge"><div class="donut-center-pct">${centerBadge.pct}%</div><div class="donut-center-sub">${centerBadge.label}</div></div>` : '';
-    let bottomBadgeHtml = bottomLabel ? `<div class="donut-bottom-badge">${bottomLabel}</div>` : '';
+function mapTbAccount(code, desc, type, chart) {
+    if (chart.coa.has(code)) {
+        const m = { ...chart.coa.get(code) };
+        if (code.startsWith('D')) m.Dept = 'Digital Financial Services';   // business rule: D-codes are DFS
+        return { mapping: m, method: 'Account code' };
+    }
+    if (['R', 'A', 'L', 'Q'].includes(type)) return null;   // revenue / balance-sheet — not spend
 
-    container.innerHTML = `
-        <div class="svg-donut-wrapper">
-            <div class="donut-chart-box">
-                <svg viewBox="0 0 100 100" class="donut-svg">
-                    ${circlesHtml}
-                </svg>
-                ${centerBadgeHtml}
-            </div>
-            ${bottomBadgeHtml}
-            ${showLegend && legendHtml ? `<div class="donut-legend-list">${legendHtml}</div>` : ''}
-        </div>
-    `;
+    const named = matchByName(desc, chart);
+    if (named) return { mapping: { ...named.mapping }, method: named.method };
 
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            container.querySelectorAll(`.donut-slice-${containerId}`).forEach(slice => {
-                const targetLen = parseFloat(slice.getAttribute('data-target-len')) || 0;
-                slice.style.strokeDasharray = `${targetLen} ${C - targetLen}`;
+    const base = { Stream: desc, Name: desc, Program: 'Unallocated', Donor: DEFAULT_DONOR };
+    if (code.startsWith('D')) return { mapping: { ...base, Dept: 'Digital Financial Services' }, method: 'Code prefix D' };
+    if (code.startsWith('K')) return { mapping: { ...base, Dept: 'Research, Marketing & Communications' }, method: 'Code prefix K' };
+    if (code.startsWith('H') || code.startsWith('S')) return { mapping: { ...base, Dept: 'Administrative Expenses', Stream: 'Unmapped Admin' }, method: `Code prefix ${code[0]}` };
+    return { mapping: { ...base, Dept: 'Unmapped Actuals', Stream: 'Unmapped', Program: 'Unmapped' }, method: 'Not mapped' };
+}
+
+function resolveTbDonor(row, col, mapping) {
+    const blank = s => !s || ['nan', '0', 'undefined'].includes(s.toLowerCase());
+    let d = clean(row[col.donor]);
+    if (blank(d) && col.donorFallback) d = clean(row[col.donorFallback]);
+    if (blank(d)) d = mapping.Donor || DEFAULT_DONOR;
+    if (blank(d)) d = DEFAULT_DONOR;
+
+    const low = d.toLowerCase();
+    if (low.includes(' and ') || low.includes(' & ') || low.includes('+')) return DEFAULT_DONOR;   // mixed funding
+    const isDfs = mapping.Dept === 'Digital Financial Services' || mapping.Dept === 'DFS';
+    if (!isDfs && (low.includes('fcdo') || low.includes('n/a'))) return DEFAULT_DONOR;
+    return d;
+}
+
+function parseTrialBalance(table, chart, ctx) {
+    const col = resolveColumns(table.headers, COLUMN_SPECS.tb, 'ActualDonor.csv');
+    table.rows.forEach(row => {
+        const code = clean(row[col.code]).toUpperCase();
+        const actual = getSafeNum(row[col.dr]) - getSafeNum(row[col.cr]);
+        if (!actual) return;
+        ctx.totals.tbAll += actual;
+        if (!code) { ctx.totals.tbExcluded += actual; return; }
+
+        const desc = clean(row[col.desc]) || code;
+        const period = parseMonthLabel(row[col.period]);
+        if (!period || !inFiscalYear(period, ctx.fyEnd)) {
+            ctx.totals.tbExcluded += actual;
+            ctx.flag({ severity: 'error', source: 'Trial balance', code, description: desc, amount: actual, month: clean(row[col.period]), reason: `Period is outside ${ctx.year}, so the row was ignored` });
+            return;
+        }
+
+        const type = col.type ? clean(row[col.type]).toUpperCase() : '';
+        const hit = mapTbAccount(code, desc, type, chart);
+        if (!hit) { ctx.totals.tbExcluded += actual; return; }
+
+        const mapping = { ...hit.mapping, Code: code };   // keep the real GL code for traceability
+        const donor = resolveTbDonor(row, col, mapping);
+        ctx.ledger.add(period.month, mapping, donor, { actual });
+        ctx.totals.tbIncluded += actual;
+
+        if (hit.method !== 'Account code') {
+            const guessed = hit.method.startsWith('Partial') || hit.method.startsWith('Code prefix') || hit.method === 'Not mapped';
+            ctx.flag({
+                severity: guessed ? 'warn' : 'info', source: 'Trial balance', code, description: desc,
+                month: period.month, amount: actual,
+                mappedTo: `${mapping.Dept} / ${mapping.Stream}`, reason: `Code not in Budget.csv, placed by ${hit.method.charAt(0).toLowerCase()}${hit.method.slice(1)}`
             });
-        });
+        }
     });
 }
 
-// ========================================================================
-// 4. MULTI-LINK DATA PARSING ENGINE 
-// ========================================================================
-function parseCSV(text) {
-    let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    if (lines.length < 2) return [];
-    
-    function parseCSVLine(line) {
-        let result = [];
-        let inQuotes = false;
-        let val = '';
-        for (let c = 0; c < line.length; c++) {
-            let char = line[c];
-            if (char === '"' && inQuotes && line[c+1] === '"') { val += '"'; c++; }
-            else if (char === '"') { inQuotes = !inQuotes; }
-            else if (char === ',' && !inQuotes) { result.push(val); val = ''; }
-            else { val += char; }
-        }
-        result.push(val);
-        return result.map(v => v.trim());
-    }
-
-    const rawHeaders = parseCSVLine(lines[0]);
-    const headers = rawHeaders.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
-    
-    const objects = [];
-    for(let i = 1; i < lines.length; i++) {
-        const currentline = parseCSVLine(lines[i]);
-        if (currentline.join('').trim() === '') continue;
-        
-        const obj = { _raw: {} };
-        for(let j = 0; j < headers.length; j++){
-            obj[headers[j]] = currentline[j] || '';
-            obj._raw[rawHeaders[j]] = currentline[j] || ''; 
-        }
-        objects.push(obj);
-    }
-    return objects;
-}
-
-function parseMultiLinkData(budgetRows, donorTBRows, iiRows, cicRows, capexRows) {
-    const masterRecords = {};
-    function getKey(m, c, p, d) { return `${m}|${c}|${p}|${d}`; }
-
-    const coaMap = {}; 
-    let pseudoCounter = 1;
-
-    budgetRows.forEach(r => {
-        const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === 'accountcode' || k.toLowerCase().includes('natural') || k.toLowerCase() === 'code' || k.toLowerCase() === 'acct');
-        const rawCode = codeKey ? r._raw[codeKey] : '';
-        let code = String(rawCode).trim().toUpperCase();
-        
-        const accName = String(r['accountname'] || r['name'] || r['description'] || r['accountdescription'] || code || 'Unnamed');
-        const dept = String(r['department'] || r['dept'] || 'Uncategorized');
-        
-        let isTotalRow = accName.toUpperCase() === 'TOTAL' || dept.toUpperCase() === 'TOTAL' || code.includes('SUBTOTAL') || accName.toUpperCase().includes('TOTAL EXPENSES');
-        if (isTotalRow) return;
-
-        if (!code || code === 'NAN' || code === '') {
-            code = 'UNMAPPED_BUDGET_' + pseudoCounter++;
-        }
-
-        const stream = r['stream'] || r['expenseitems'] || r['workstream'] || 'General';
-        const program = r['program'] || 'Unallocated';
-        
-        let donorKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('donor') || k.toLowerCase().includes('fund'));
-        let donor = donorKey ? String(r._raw[donorKey] || '').trim() : 'OSR';
-        if (!donor || donor === '') donor = 'OSR';
-
-        coaMap[code] = { Dept: dept, Stream: stream, Name: accName, Program: program, Donor: donor, Code: code };
-
-        let q1 = getSafeNum(r['q1budget']) || getSafeNum(r['q1']);
-        let q2 = getSafeNum(r['q2budget']) || getSafeNum(r['q2']);
-        let q3 = getSafeNum(r['q3budget']) || getSafeNum(r['q3']);
-        let q4 = getSafeNum(r['q4budget']) || getSafeNum(r['q4']);
-        
-        let q4_1_key = Object.keys(r._raw).find(k => k.toLowerCase().replace(/\s/g, '') === 'q4budget1' || k.toLowerCase() === 'q4 budget.1');
-        let q4_key = Object.keys(r._raw).find(k => k.toLowerCase().replace(/\s/g, '') === 'q4budget' || k.toLowerCase() === 'q4 budget');
-        
-        if (q3 === 0 && q4_key && q4_1_key) {
-            q3 = getSafeNum(r._raw[q4_key]);
-            q4 = getSafeNum(r._raw[q4_1_key]);
-        }
-
-        if (q1 === 0 && q2 === 0 && q3 === 0 && q4 === 0) {
-            let yKey = Object.keys(r._raw).find(k => {
-                let clean = k.toLowerCase().replace(/[^a-z]/g, '');
-                return clean === 'yearlybudget' || clean === 'totalbudget' || clean === 'budget' || clean === 'total' || clean === 'annual' || clean === 'annualbudget';
-            });
-            if (yKey) {
-                let yBud = getSafeNum(r._raw[yKey]);
-                q1 = q2 = q3 = q4 = yBud / 4;
-            }
-        }
-
-        const qToMonths = { 
-            'Q1': ['Jul','Aug','Sep'], 
-            'Q2': ['Oct','Nov','Dec'], 
-            'Q3': ['Jan','Feb','Mar'], 
-            'Q4': ['Apr','May','Jun'] 
+function parseInvestments(table, deptName, fileLabel, ctx) {
+    if (!table) return;
+    const col = resolveColumns(table.headers, COLUMN_SPECS.investment, fileLabel);
+    const months = detectMonthColumns(table.headers, fileLabel, ctx);
+    const prefix = deptName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
+    table.rows.forEach((row, i) => {
+        const party = clean(row[col.party]);
+        if (!party || /total/i.test(party)) return;
+        const mapping = {
+            Dept: deptName, Stream: clean(row[col.type]) || 'General', Name: party,
+            Program: 'Unallocated', Donor: DEFAULT_DONOR, Code: `INV-${prefix}-${i + 2}`
         };
-
-        const qs = {'Q1': q1, 'Q2': q2, 'Q3': q3, 'Q4': q4};
-        Object.keys(qs).forEach(q => {
-            if (qs[q] === 0) return;
-            let monthlyBud = qs[q] / 3;
-            qToMonths[q].forEach(m => {
-                const key = getKey(m, code, program, donor);
-                if (!masterRecords[key]) {
-                    masterRecords[key] = {
-                        Department: dept, Stream: stream, Program: program,
-                        Code: code, NaturalAccount: accName, Month: m,
-                        Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
-                    };
-                }
-                masterRecords[key].Budget += monthlyBud;
-                masterRecords[key].BudgetDonors[donor] = (masterRecords[key].BudgetDonors[donor] || 0) + monthlyBud;
-            });
+        months.forEach(({ month, header }) => {
+            const v = getSafeNum(row[header]);
+            if (!v) return;
+            ctx.ledger.add(month, mapping, DEFAULT_DONOR, { actual: v });
+            ctx.totals.investments += v;
         });
     });
+}
 
- donorTBRows.forEach(r => {
-        const codeKey = Object.keys(r._raw).find(k => (k.toLowerCase().includes('natural') && k.toLowerCase().includes('value')) || k.toLowerCase() === 'naturalaccount' || k.toLowerCase() === 'accountcode');
-        const code = String(r._raw[codeKey] || r['acct'] || r['code'] || '').trim().toUpperCase();
-        if (!code) return;
+/* CAPEX actuals are added as ACTUALS ONLY. Budget comes from Budget.csv when the
+   item is found there; otherwise from CAPEX.csv's own Budget column (spread evenly). */
+function parseCapex(table, chart, ctx) {
+    if (!table) return;
+    const col = resolveColumns(table.headers, COLUMN_SPECS.capex, 'CAPEX.csv');
+    const months = detectMonthColumns(table.headers, 'CAPEX.csv', ctx);
+    const capexDept = chart.deptOrder.find(d => /capex|capital/i.test(d)) || 'CAPEX';
+    const seen = new Set();
 
-        const periodKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('period') || k.toLowerCase().includes('month'));
-        const month = String(r._raw[periodKey] || 'Jul').split('-')[0].substring(0, 3);
-        
-        const drKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('dr') || k.toLowerCase().includes('debit') || k.toLowerCase() === 'total_dr');
-        const crKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('cr') || k.toLowerCase().includes('credit') || k.toLowerCase() === 'total_cr');
-        const actual = getSafeNum(r._raw[drKey]) - getSafeNum(r._raw[crKey]);
-        if (actual === 0) return;
+    table.rows.forEach(row => {
+        const desc = clean(row[col.description]);
+        const rawCode = col.code ? clean(row[col.code]).toUpperCase() : '';
+        const key = rawCode || desc.toUpperCase();
+        if (!key || /\b(SUB-?TOTAL|TOTAL|BALANCE|NET)\b/.test(key)) return;
+        if (seen.has(key)) return;
+        seen.add(key);
 
-        let mapping = coaMap[code];
-
-        if (!mapping) {
-            const typeKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'acct_type' || k.toLowerCase() === 'accttype');
-            if (typeKey) {
-                let val = String(r._raw[typeKey]).trim().toUpperCase();
-                if (val === 'R' || val === 'A' || val === 'L' || val === 'Q') return; 
-            }
-            
-            const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') || k.toLowerCase().includes('natural'));
-            const desc = String(r._raw[descKey] || code).trim();
-            
-            let fuzzyKey = Object.keys(coaMap).find(k => {
-                let bName = coaMap[k].Name.toUpperCase();
-                return bName !== 'UNNAMED' && (bName === desc.toUpperCase() || bName.includes(desc.toUpperCase()) || desc.toUpperCase().includes(bName));
-            });
-            
-            if (fuzzyKey) {
-                mapping = coaMap[fuzzyKey];
-            } else if (code.startsWith('D')) {
-                mapping = { Dept: 'Digital Financial Services', Stream: desc, Name: desc, Program: 'Unallocated', Donor: 'OSR' };
-            } else if (code.startsWith('K')) {
-                mapping = { Dept: 'Research, Marketing & Communications', Stream: desc, Name: desc, Program: 'Unallocated', Donor: 'OSR' };
-            } else if (code.startsWith('H') || code.startsWith('S') || code.startsWith('SS')) {
-                mapping = { Dept: 'Administrative Expenses', Stream: 'Unmapped Admin', Name: desc, Program: 'Unallocated', Donor: 'OSR' };
-            } else {
-                mapping = { Dept: 'Unmapped Actuals', Stream: 'Unmapped', Name: desc, Program: 'Unmapped', Donor: 'OSR' };
+        const hit = rawCode && chart.coa.has(rawCode) ? { mapping: chart.coa.get(rawCode), method: 'Account code' } : matchByName(desc, chart);
+        let mapping;
+        if (hit) {
+            mapping = hit.mapping;
+            if (hit.method.startsWith('Partial')) {
+                ctx.flag({ severity: 'warn', source: 'CAPEX', description: desc, mappedTo: `${mapping.Dept} / ${mapping.Name}`, reason: 'Partial name match to Budget.csv' });
             }
         } else {
-            mapping = { ...mapping }; 
-            if (code.startsWith('D')) mapping.Dept = 'Digital Financial Services';
-        }
-
-        // CORRECTED DONOR PARSING LOGIC
-        // We explicitly look for the 'ADDITIONAL_SEGMENT_DESC' column first to get the true donor.
-        const donorKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'additional_segment_desc' || k.toLowerCase() === 'additionalsegmentdesc');
-        let rawDonor = donorKey ? String(r._raw[donorKey]).trim() : '';
-        
-        // Fallbacks if the specific column is missing
-        if (!rawDonor || rawDonor.toLowerCase() === 'nan' || rawDonor === '0') {
-            const backupKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'donor' || k.toLowerCase() === 'fund');
-            rawDonor = backupKey ? String(r._raw[backupKey]).trim() : (mapping.Donor || 'OSR');
-        }
-        if (rawDonor === '' || rawDonor.toLowerCase() === 'nan' || rawDonor === '0' || rawDonor === 'undefined') {
-            rawDonor = 'OSR';
-        }
-        
-        let finalDonor = rawDonor;
-        let dLower = String(rawDonor).toLowerCase();
-        
-        // Consolidate mixed funding or invalid strings down to OSR
-        if (dLower.includes(' and ') || dLower.includes(' & ') || dLower.includes('+')) {
-            finalDonor = 'OSR';
-        } else if (mapping.Dept !== 'Digital Financial Services' && mapping.Dept !== 'DFS') {
-            if (dLower.includes('fcdo') || dLower.includes('n/a') || dLower.includes('nan') || dLower === '0') {
-                finalDonor = 'OSR';
+            mapping = { Dept: capexDept, Stream: desc, Name: desc, Program: 'Unallocated', Donor: DEFAULT_DONOR, Code: `CAPEX-${normName(desc).toUpperCase().slice(0, 24)}` };
+            const annual = col.budget ? getSafeNum(row[col.budget]) : 0;
+            if (annual) {
+                FISCAL_MONTHS.forEach(m => ctx.ledger.add(m, mapping, DEFAULT_DONOR, { budget: annual / 12 }));
+                ctx.flag({ severity: 'info', source: 'CAPEX', description: desc, amount: annual, mappedTo: capexDept, reason: 'Not in Budget.csv. CAPEX.csv budget used, spread evenly over 12 months' });
             }
         }
 
-        const key = getKey(month, code, mapping.Program, finalDonor);
-        if (!masterRecords[key]) {
-            masterRecords[key] = {
-                Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program,
-                Code: code, NaturalAccount: mapping.Name, Month: month,
-                Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
-            };
-        }
-        masterRecords[key].Actual += actual;
-        masterRecords[key].ActualDonors[finalDonor] = (masterRecords[key].ActualDonors[finalDonor] || 0) + actual;
-    });
-
-    function processInvestmentRows(invRows, deptName) {
-        invRows.forEach(r => {
-            let party = String(r['party'] || r._raw['Party'] || '').trim();
-            let stream = String(r['type'] || r._raw['Type'] || '').trim();
-            
-            if (!party || party.toUpperCase().includes('TOTAL')) return;
-            if (!stream) stream = 'General';
-
-            let pseudoCode = 'INV_' + pseudoCounter++;
-            
-            fiscalMonths.forEach(m => {
-                let mKey = Object.keys(r._raw).find(k => k.toLowerCase().startsWith(m.toLowerCase()));
-                if (mKey) {
-                    let actual = getSafeNum(r._raw[mKey]);
-                    if (actual !== 0) {
-                        const key = getKey(m, pseudoCode, 'Unallocated', 'OSR');
-                        if (!masterRecords[key]) {
-                            masterRecords[key] = {
-                                Department: deptName, Stream: stream, Program: 'Unallocated',
-                                Code: pseudoCode, NaturalAccount: party, Month: m,
-                                Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {}
-                            };
-                        }
-                        masterRecords[key].Actual += actual;
-                        masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
-                    }
-                }
-            });
+        months.forEach(({ month, header }) => {
+            const v = getSafeNum(row[header]);
+            if (!v) return;
+            ctx.ledger.add(month, mapping, DEFAULT_DONOR, { actual: v });
+            ctx.totals.capex += v;
         });
+    });
+}
+
+function parseEod(table, ctx) {
+    if (!table) return [];
+    let col;
+    try {
+        col = resolveColumns(table.headers, COLUMN_SPECS.eod, 'EOD.csv');
+    } catch (e) {
+        ctx.flag({ severity: 'warn', source: 'EOD.csv', reason: `File could not be read, so the EOD panel is hidden. ${e.message}` });
+        return [];
     }
-    processInvestmentRows(iiRows, 'Innovation Investment');
-    processInvestmentRows(cicRows, 'Corporate Investment and Credit');
-
-    const processedCapexCodes = new Set();
-    if (capexRows) {
-        capexRows.forEach(r => {
-            const codeKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('account') || k.toLowerCase().includes('code') || k.toLowerCase().includes('natural')) || Object.keys(r._raw)[0];
-            const descKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('desc') || k.toLowerCase().includes('item') || k.toLowerCase().includes('head') || k.toLowerCase().includes('name') || k.toLowerCase().includes('expense') || k.toLowerCase().includes('particular')) || Object.keys(r._raw)[1];
-            
-            let code = r._raw[codeKey];
-            const desc = String(r._raw[descKey] || '').trim();
-
-            if (!code || typeof code !== 'string' || code.trim() === '' || code.toUpperCase() === 'NAN') {
-                if (!desc || desc.toUpperCase().includes('TOTAL') || desc.toUpperCase().includes('SUBTOTAL')) return;
-                code = desc.toUpperCase(); 
-            } else {
-                code = code.trim().toUpperCase();
+    const out = [];
+    table.rows.forEach(row => {
+        const p = parseMonthLabel(row[col.month]);
+        if (!p || p.year === null) return;   // skips summary rows like "Last 3 months avg"
+        const avail = getSafeNum(row[col.available]);
+        const dep = getSafeNum(row[col.deployed]);
+        const pct = avail ? (dep / avail) * 100 : 0;
+        if (col.statedPct) {
+            const stated = getSafeNum(row[col.statedPct]);
+            if (Math.abs(stated - pct) > 0.5) {
+                ctx.flag({ severity: 'info', source: 'EOD.csv', month: clean(row[col.month]), reason: `Stated EOD ${stated.toFixed(2)}% differs from deployed ÷ available (${pct.toFixed(2)}%). The dashboard uses the calculated figure.` });
             }
-            
-            let isTotal = code.includes('TOTAL') || desc.toUpperCase().includes('TOTAL') || code.includes('BALANCE') || code.includes('SUBTOTAL') || code.includes('NET');
-            if (isTotal) return;
-            
-            if (processedCapexCodes.has(code)) return;
-            processedCapexCodes.add(code);
-
-            fiscalMonths.forEach(m => {
-                let mKey = Object.keys(r._raw).find(k => {
-                    let lowerK = k.toLowerCase();
-                    return lowerK.includes(m.toLowerCase());
-                });
-                
-                if (mKey) {
-                    let actual = getSafeNum(r._raw[mKey]);
-                    if (actual !== 0) {
-                         let mapping = coaMap[code];
-                         
-                         if (!mapping) {
-                             let foundKey = Object.keys(coaMap).find(k => {
-                                 let cleanName = coaMap[k].Name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                 let cleanDesc = desc.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                 return cleanName && cleanDesc && (cleanName.includes(cleanDesc) || cleanDesc.includes(cleanName));
-                             });
-                             
-                             if (foundKey) {
-                                 mapping = coaMap[foundKey];
-                             } else {
-                                 let capexDeptName = 'CAPEX';
-                                 let existingCapex = Object.values(coaMap).find(mapObj => mapObj.Dept.toUpperCase().includes('CAPEX') || mapObj.Dept.toUpperCase().includes('CAPITAL'));
-                                 if (existingCapex) capexDeptName = existingCapex.Dept;
-
-                                 mapping = { Dept: capexDeptName, Stream: desc || 'Capital Expenditure', Name: desc || code, Program: 'Unallocated', Donor: 'OSR', Code: code };
-                             }
-                         }
-
-                         const key = getKey(m, mapping.Code || code, mapping.Program, 'OSR');
-                         if (!masterRecords[key]) {
-                             masterRecords[key] = { Department: mapping.Dept, Stream: mapping.Stream, Program: mapping.Program, Code: mapping.Code || code, NaturalAccount: mapping.Name, Month: m, Actual: 0, Budget: 0, ActualDonors: {}, BudgetDonors: {} };
-                         }
-                         
-                         masterRecords[key].Actual += actual;
-                         masterRecords[key].ActualDonors['OSR'] = (masterRecords[key].ActualDonors['OSR'] || 0) + actual;
-                         
-                         masterRecords[key].Budget += actual;
-                         masterRecords[key].BudgetDonors['OSR'] = (masterRecords[key].BudgetDonors['OSR'] || 0) + actual;
-                    }
-                }
-            });
-        });
-    }
-
-    return Object.values(masterRecords);
-}
-
-// ========================================================================
-// 5. CONTROL HANDLERS (Period, QTD, YTD)
-// ========================================================================
-function applyTheme() {
-    const track = document.getElementById('themeTrack');
-    const label = document.getElementById('themeLabel');
-    
-    if (isDarkMode) {
-        document.body.classList.remove('light-mode');
-        if (track) track.classList.add('active-toggle');
-        if (label) label.innerText = 'Dark';
-    } else {
-        document.body.classList.add('light-mode');
-        if (track) track.classList.remove('active-toggle');
-        if (label) label.innerText = 'Light';
-    }
-}
-
-function toggleDarkMode() {
-    isDarkMode = !isDarkMode;
-    applyTheme();
-    updateDashboard();
-}
-
-function toggleViewMode() {
-    isSummaryView = !isSummaryView;
-    if (isSummaryView) {
-        document.body.classList.remove('view-details');
-        document.getElementById('btnBackToSummary').style.display = 'none';
-    } else {
-        document.body.classList.add('view-details');
-        document.getElementById('btnBackToSummary').style.display = 'inline-block';
-    }
-    updateDashboard(); 
-}
-
-function setGranularity(type, btn) {
-    currentGranularity = type;
-    document.getElementById('btnMonthly').classList.remove('active');
-    document.getElementById('btnQuarterly').classList.remove('active');
-    document.getElementById('btnQuarterly').nextElementSibling.classList.remove('active');
-    btn.classList.add('active');
-    populatePeriodDropdown();
-    updateDashboard();
-}
-
-function setViewMode(mode, btn) {
-    viewMode = mode;
-    document.getElementById('btnPeriod').classList.remove('active');
-    document.getElementById('btnQTD').classList.remove('active');
-    document.getElementById('btnYTD').classList.remove('active');
-    btn.classList.add('active');
-    updateDashboard();
-}
-
-function populateYearDropdown() {
-    const yearSelect = document.getElementById('yearDropdown');
-    if (!yearSelect) return;
-    yearSelect.innerHTML = '';
-    const sortedYears = [...availableYears].sort().reverse();
-    sortedYears.forEach(y => {
-        yearSelect.add(new Option(y, y, false, y === selectedYear));
+        }
+        out.push({ label: `${MONTH_LONG[p.month]} ${p.year}`, date: new Date(p.year, CALENDAR_MONTH[p.month], 1), avail, dep, pct });
     });
+    return out.sort((a, b) => a.date - b.date);
 }
 
-function onYearChange() {
-    selectedYear = document.getElementById('yearDropdown').value;
-    init(); 
-}
+function buildDataset(year, texts) {
+    const fyEnd = parseInt((year.match(/\d{4}/) || ['2027'])[0], 10);
+    const audit = [];
+    const ctx = {
+        year, fyEnd, ledger: createLedger(),
+        totals: { tbAll: 0, tbIncluded: 0, tbExcluded: 0, investments: 0, capex: 0 },
+        flag: entry => audit.push(entry)
+    };
 
-// --- NEW GLOBAL DONOR DATA INTERCEPT LOGIC ---
-function populateDonorDropdown() {
-    const dropdown = document.getElementById('donorDropdown');
-    if (!dropdown) return;
-    
-    const donors = new Set();
-    rawData.forEach(r => {
-        Object.keys(r.BudgetDonors).forEach(d => donors.add(d));
-        Object.keys(r.ActualDonors).forEach(d => donors.add(d));
-    });
-    
-    const sortedDonors = Array.from(donors).sort();
-    
-    // Safety check: if the selected donor doesn't exist in the newly loaded year, reset to "All Donors"
-    if (selectedDonor !== 'All Donors' && !sortedDonors.includes(selectedDonor)) {
-        selectedDonor = 'All Donors';
+    const chart = parseBudget(readCSV(texts.budget), ctx);
+    parseTrialBalance(readCSV(texts.tb), chart, ctx);
+    parseInvestments(readCSV(texts.innovation), 'Innovation Investment', 'Innovation.csv', ctx);
+    parseInvestments(readCSV(texts.cic), 'Corporate Investment and Credit', 'CIC.csv', ctx);
+    parseCapex(readCSV(texts.capex), chart, ctx);
+    const eod = parseEod(readCSV(texts.eod), ctx);
+
+    const rows = ctx.ledger.values();
+    const t = ctx.totals;
+    const ledgerActual = sum(rows.map(r => r.Actual));
+    const sourceActual = t.tbIncluded + t.investments + t.capex;
+    const reconciled = Math.abs(ledgerActual - sourceActual) < 1;
+    if (!reconciled) {
+        audit.unshift({ severity: 'error', source: 'Reconciliation', amount: ledgerActual - sourceActual, reason: 'Dashboard actuals do not equal the sum of the source files' });
     }
-    
-    dropdown.innerHTML = '';
-    dropdown.add(new Option('All Donors', 'All Donors', false, selectedDonor === 'All Donors'));
-    sortedDonors.forEach(d => {
-        dropdown.add(new Option(d, d, false, d === selectedDonor));
-    });
+
+    /* Departments that only appear in actuals go after the Budget.csv order. */
+    const deptOrder = [...chart.deptOrder];
+    [...new Set(rows.map(r => r.Department))].sort().forEach(d => { if (!deptOrder.includes(d)) deptOrder.push(d); });
+
+    if (typeof console !== 'undefined' && audit.length) console.table(audit);
+
+    return { rows, eod, audit, deptOrder, fyEnd, totals: { ...t, ledgerActual, sourceActual, reconciled } };
 }
 
-function onDonorChange() {
-    selectedDonor = document.getElementById('donorDropdown').value;
-    updateDashboard(); // Instantly apply intercept without needing to reload files
+/* 5. STATE & SCOPE ======================================================== */
+
+const state = {
+    years: [],
+    year: null,
+    data: null,               // result of buildDataset
+    active: [],               // donor-filtered rows
+    donor: ALL_DONORS,
+    granularity: 'Monthly',   // Monthly | Quarterly | Yearly
+    viewMode: 'QTD',          // Period | QTD | YTD
+    period: 'Jul',
+    department: '',
+    isSummaryView: true,
+    asOfIdx: -1,              // last fiscal month with actuals
+    scope: new Set(),
+    modal: null
+};
+const donorColors = new Map();
+
+function donorColor(d) {
+    if (!donorColors.has(d)) donorColors.set(d, DONOR_PALETTE[donorColors.size % DONOR_PALETTE.length]);
+    return donorColors.get(d);
 }
 
 function getFilteredData() {
-    // If 'All Donors', pass through standard data
-    if (selectedDonor === 'All Donors') return rawData;
-    
-    // If a specific donor is selected, instantly zero out all other money across the entire ledger
-    return rawData.map(r => {
-        const b = r.BudgetDonors[selectedDonor] || 0;
-        const a = r.ActualDonors[selectedDonor] || 0;
-        return {
-            ...r,
-            Budget: b,
-            Actual: a,
-            BudgetDonors: b > 0 ? { [selectedDonor]: b } : {},
-            ActualDonors: a > 0 ? { [selectedDonor]: a } : {}
-        };
+    const rows = state.data ? state.data.rows : [];
+    if (state.donor === ALL_DONORS) return rows;
+    const d = state.donor;
+    return rows.map(r => {
+        const b = r.BudgetDonors[d] || 0;
+        const a = r.ActualDonors[d] || 0;
+        return { ...r, Budget: b, Actual: a, BudgetDonors: b !== 0 ? { [d]: b } : {}, ActualDonors: a !== 0 ? { [d]: a } : {} };
     });
 }
-// ---------------------------------------------
 
-function populatePeriodDropdown() {
-    const dropdown = document.getElementById('periodDropdown');
-    dropdown.innerHTML = '';
-    if (currentGranularity === 'Monthly') {
-        fiscalMonths.forEach(m => dropdown.add(new Option(m, m, false, m === selectedPeriod)));
-        if (!fiscalMonths.includes(selectedPeriod)) selectedPeriod = 'Jul';
-    } else if (currentGranularity === 'Quarterly') {
-        const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
-        quarters.forEach(q => dropdown.add(new Option(q, q, false, q === selectedPeriod)));
-        if (!quarters.includes(selectedPeriod)) selectedPeriod = 'Q1';
+function scopeMonths() {
+    const { granularity: g, viewMode: v, period: p } = state;
+    if (g === 'Yearly') return FISCAL_MONTHS;
+    if (g === 'Monthly') {
+        const idx = MONTH_INDEX[p];
+        if (v === 'Period') return [p];
+        if (v === 'QTD') return QUARTER_MONTHS[MONTH_QUARTER[p]].filter(m => MONTH_INDEX[m] <= idx);
+        return FISCAL_MONTHS.slice(0, idx + 1);
+    }
+    const qIdx = QUARTERS.indexOf(p);
+    if (v === 'YTD') return QUARTERS.slice(0, qIdx + 1).flatMap(q => QUARTER_MONTHS[q]);
+    return QUARTER_MONTHS[p];
+}
+
+const scopeEndIdx = () => Math.max(...[...state.scope].map(m => MONTH_INDEX[m]));
+
+function monthYearLabel(month) {
+    return `${MONTH_LONG[month]} ${calendarYearOf(month, state.data.fyEnd)}`;
+}
+
+function periodLabel() {
+    const { granularity: g, viewMode: v, period: p } = state;
+    if (g === 'Yearly') return `Full year ${state.year}`;
+    if (g === 'Quarterly') {
+        if (v === 'YTD') return `Year to date through ${p} ${state.year}`;
+        return `${p} ${state.year}`;
+    }
+    if (v === 'Period') return monthYearLabel(p);
+    if (v === 'QTD') return `${MONTH_QUARTER[p]} to date, through ${monthYearLabel(p)}`;
+    return `Year to date, through ${monthYearLabel(p)}`;
+}
+
+/* 6. AGGREGATION & STATUS ================================================= */
+
+function blankAgg() {
+    return { b: 0, a: 0, pace: 0, trendA: Array(12).fill(0), trendB: Array(12).fill(0), budgetDonors: {}, actualDonors: {} };
+}
+
+/* scopeRows drive totals; allRows (same filter, every month) drive trends.
+   pace = budget for months that have closed (≤ last month with actuals). */
+function aggregateBy(keyFn, scopeRows, allRows) {
+    const groups = new Map();
+    scopeRows.forEach(r => {
+        const k = keyFn(r);
+        if (!groups.has(k)) groups.set(k, blankAgg());
+        const g = groups.get(k);
+        g.b += r.Budget;
+        g.a += r.Actual;
+        if (MONTH_INDEX[r.Month] <= state.asOfIdx) g.pace += r.Budget;
+        Object.entries(r.BudgetDonors).forEach(([d, v]) => { g.budgetDonors[d] = (g.budgetDonors[d] || 0) + v; });
+        Object.entries(r.ActualDonors).forEach(([d, v]) => { g.actualDonors[d] = (g.actualDonors[d] || 0) + v; });
+    });
+    allRows.forEach(r => {
+        const g = groups.get(keyFn(r));
+        if (!g) return;
+        const i = MONTH_INDEX[r.Month];
+        g.trendA[i] += r.Actual;
+        g.trendB[i] += r.Budget;
+    });
+    return groups;
+}
+
+function totalAgg(scopeRows, allRows) {
+    return aggregateBy(() => 'all', scopeRows, allRows).get('all') || blankAgg();
+}
+
+const STATUS_LABEL = { ontrack: 'On track', behind: 'Behind pace', over: 'Over budget', neutral: 'Not started' };
+
+function statusOf(g) {
+    if (g.b <= 0) return g.a > 0 ? 'over' : 'neutral';
+    if (g.a > g.b) return 'over';
+    if (g.pace <= 0) return 'neutral';
+    if (g.a < g.pace * BEHIND_PACE_THRESHOLD) return 'behind';
+    return 'ontrack';
+}
+
+function statusTip(g) {
+    const planPct = g.b > 0 ? (g.pace / g.b) * 100 : 0;
+    return `${STATUS_LABEL[statusOf(g)]}: ${fmtPct(pctOf(g.a, g.b))} of budget spent, plan to date ${fmtPct(planPct)}`;
+}
+
+/* 7. COMPONENTS =========================================================== */
+
+function sparkline(actual, budget, w = 72, h = 22) {
+    if (!actual || actual.length < 2) return `<svg class="spark" width="${w}" height="${h}" aria-hidden="true"></svg>`;
+    const max = Math.max(...actual, ...budget, 1);
+    const min = Math.min(0, ...actual);
+    const range = max - min || 1;
+    const step = w / (actual.length - 1);
+    const y = v => (h - 2 - ((v - min) / range) * (h - 4)).toFixed(1);
+    const path = arr => arr.map((v, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)} ${y(v)}`).join(' ');
+    const last = actual.length - 1;
+    return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+        <path class="spark-budget" d="${path(budget)}"/>
+        <path class="spark-actual" d="${path(actual)}"/>
+        <circle class="spark-dot" cx="${(last * step).toFixed(1)}" cy="${y(actual[last])}" r="2"/>
+    </svg>`;
+}
+
+function trendFor(g) {
+    const end = scopeEndIdx() + 1;
+    return sparkline(g.trendA.slice(0, end), g.trendB.slice(0, end));
+}
+
+/* Thin utilisation bar with a plan-to-date marker. */
+function utilBar(g) {
+    const s = statusOf(g);
+    const pct = g.b > 0 ? Math.min(100, (g.a / g.b) * 100) : (g.a > 0 ? 100 : 0);
+    const plan = g.b > 0 ? (g.pace / g.b) * 100 : 0;
+    const marker = plan > 0 && plan < 100 ? `<span class="pace-marker" style="--x:${plan.toFixed(1)}%"></span>` : '';
+    return `<div class="util-bar status-${s}" data-tip="${escapeHtml(statusTip(g))}">
+        <div class="util-track"><div class="util-fill" style="--w:${Math.max(0, pct).toFixed(1)}%"></div>${marker}</div>
+    </div>`;
+}
+
+/* Larger bullet chart used in the period and department overview cards. */
+function bulletChart(g) {
+    const s = statusOf(g);
+    const spent = pctOf(g.a, g.b);
+    const plan = g.b > 0 ? (g.pace / g.b) * 100 : 0;
+    const fill = g.b > 0 ? Math.min(100, Math.max(0, spent)) : (g.a > 0 ? 100 : 0);
+    const marker = plan > 0 && plan < 100
+        ? `<span class="pace-marker" style="--x:${plan.toFixed(1)}%"><span class="pace-label">Plan ${Math.round(plan)}%</span></span>` : '';
+    return `<div class="bullet status-${s}">
+        <div class="bullet-head">
+            <span class="bullet-pct">${fmtPct(spent)}</span>
+            <span class="bullet-caption">of budget spent</span>
+            <span class="status-chip status-${s}">${STATUS_LABEL[s]}</span>
+        </div>
+        <div class="bullet-track"><div class="bullet-fill" style="--w:${fill.toFixed(1)}%"></div>${marker}</div>
+    </div>`;
+}
+
+/* Budget and Spent as two stacked bars on one scale, one colour per donor. */
+function donorBars(budgetByDonor, actualByDonor) {
+    const donors = [...new Set([...Object.keys(budgetByDonor), ...Object.keys(actualByDonor)])]
+        .filter(d => (budgetByDonor[d] || 0) !== 0 || (actualByDonor[d] || 0) !== 0)
+        .sort((x, y) => (budgetByDonor[y] || 0) - (budgetByDonor[x] || 0));
+    if (!donors.length) return '<p class="empty-note">No donor-tagged budget or spend in this period.</p>';
+
+    const pos = v => Math.max(0, v || 0);
+    const scale = Math.max(sum(donors.map(d => pos(budgetByDonor[d]))), sum(donors.map(d => pos(actualByDonor[d]))), 1);
+    const bar = (label, src) => `<div class="donor-bar-row">
+        <span class="donor-bar-label">${label}</span>
+        <div class="donor-bar-track">${donors.map(d => {
+            const v = pos(src[d]);
+            if (!v) return '';
+            return `<span class="donor-seg" style="--w:${((v / scale) * 100).toFixed(2)}%; --c:${donorColor(d)}" data-tip="${escapeHtml(`${d}: ${fmtM(v)} M PKR`)}"></span>`;
+        }).join('')}</div>
+    </div>`;
+
+    const legend = donors.map(d => {
+        const b = budgetByDonor[d] || 0;
+        const a = actualByDonor[d] || 0;
+        return `<tr>
+            <td><span class="swatch" style="--c:${donorColor(d)}"></span>${escapeHtml(d)}</td>
+            <td class="n">${fmtM(b)}</td>
+            <td class="n">${fmtM(a)}</td>
+            <td class="n">${fmtPct(pctOf(a, b))}</td>
+        </tr>`;
+    }).join('');
+
+    return `<div class="donor-bars">
+        ${bar('Budget', budgetByDonor)}
+        ${bar('Spent', actualByDonor)}
+        <table class="donor-legend">
+            <thead><tr><th>Donor</th><th class="n">Budget</th><th class="n">Spent</th><th class="n">Spent %</th></tr></thead>
+            <tbody>${legend}</tbody>
+        </table>
+    </div>`;
+}
+
+/* Counts a number up to its new value. Formatter receives the in-between value. */
+function animateNumber(el, target, format) {
+    if (!el) return;
+    const start = el._val ?? 0;
+    el._val = target;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || start === target) { el.innerHTML = format(target); return; }
+    const t0 = performance.now();
+    const dur = 900;
+    const tick = now => {
+        const p = Math.min((now - t0) / dur, 1);
+        const e = 1 - Math.pow(1 - p, 3);
+        el.innerHTML = format(start + (target - start) * e);
+        if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+}
+
+/* 8. RENDERING ============================================================ */
+
+function render() {
+    if (!state.data) return;
+    state.active = getFilteredData();
+    state.scope = new Set(scopeMonths());
+    const scopeRows = state.active.filter(r => state.scope.has(r.Month));
+
+    renderHeader();
+    renderPeriodCard(scopeRows);
+    renderEod();
+    if (state.isSummaryView) {
+        renderSummaryTable(scopeRows);
     } else {
-        dropdown.add(new Option('Full Fiscal Year (Jul-Jun)', 'FY Total', false, true));
-        selectedPeriod = 'FY Total';
-        viewMode = 'Period'; 
-        document.getElementById('btnPeriod').classList.add('active');
-        document.getElementById('btnQTD').classList.remove('active');
-        document.getElementById('btnYTD').classList.remove('active');
+        ensureDepartment(scopeRows);
+        renderDeptCards(scopeRows);
+        renderOverview(scopeRows);
     }
 }
 
-function onPeriodChange() {
-    selectedPeriod = document.getElementById('periodDropdown').value;
-    updateDashboard();
+function renderHeader() {
+    const rows = state.active;
+    const fyB = sum(rows.map(r => r.Budget));
+    const fyA = sum(rows.map(r => r.Actual));
+    const planToDate = sum(rows.filter(r => MONTH_INDEX[r.Month] <= state.asOfIdx).map(r => r.Budget));
+    const variance = fyB - fyA;
+
+    animateNumber($('kpiBudget'), fyB, v => moneyHtml(v));
+    animateNumber($('kpiActual'), fyA, v => moneyHtml(v));
+    animateNumber($('kpiVariance'), variance, v => `<span class="num">${fmtVariance(v)}</span><span class="unit">M PKR</span>`);
+    $('kpiVariance').classList.toggle('is-over', variance < 0);
+    $('kpiVarianceSub').textContent = variance < 0 ? 'Over full-year budget' : 'Under full-year budget';
+
+    animateNumber($('kpiUtil'), pctOf(fyA, fyB) ?? 0, v => `<span class="num">${Math.round(v)}%</span>`);
+    $('kpiUtilSub').textContent = `Plan to date ${fmtPct(pctOf(planToDate, fyB))}`;
+
+    $('asOfStamp').textContent = state.asOfIdx >= 0
+        ? `Actuals through ${monthYearLabel(FISCAL_MONTHS[state.asOfIdx])}`
+        : 'No actuals recorded yet';
 }
 
-function openDepartmentDetails(deptName) {
-    if (isSummaryView) toggleViewMode();
-    selectDepartment(deptName);
+function renderDataCheckChip() {
+    const chip = $('dataCheckChip');
+    const issues = state.data.audit.filter(a => a.severity !== 'info').length;
+    chip.hidden = false;
+    chip.classList.toggle('has-issues', issues > 0);
+    chip.textContent = issues ? `${issues} data ${issues === 1 ? 'item' : 'items'} to review` : 'Data checks passed';
 }
 
-function selectDepartment(deptName) {
-    selectedDepartment = deptName;
-    const cards = document.getElementById('deptListContainer').getElementsByClassName('dept-grid-card');
-    for (let i = 0; i < cards.length; i++) {
-        if (cards[i].getAttribute('data-dept') === deptName) cards[i].classList.add('active');
-        else cards[i].classList.remove('active');
+function renderPeriodCard(scopeRows) {
+    const g = totalAgg(scopeRows, []);
+    $('periodCaption').textContent = periodLabel();
+    animateNumber($('periodBudget'), g.b, v => moneyHtml(v));
+    animateNumber($('periodActual'), g.a, v => moneyHtml(v));
+    const varEl = $('periodVariance');
+    animateNumber(varEl, g.b - g.a, v => `<span class="num">${fmtVariance(v)}</span><span class="unit">M PKR</span>`);
+    varEl.classList.toggle('is-over', g.b - g.a < 0);
+    $('periodBullet').innerHTML = bulletChart(g);
+    $('periodDonorBars').innerHTML = donorBars(g.budgetDonors, g.actualDonors);
+}
+
+function renderEod() {
+    const card = $('eodCard');
+    const eod = state.data.eod;
+    const endMonth = FISCAL_MONTHS[scopeEndIdx()];
+    const target = new Date(calendarYearOf(endMonth, state.data.fyEnd), CALENDAR_MONTH[endMonth], 1);
+    let idx = -1;
+    eod.forEach((e, i) => { if (e.date <= target) idx = i; });
+
+    if (idx < 0) {
+        card.innerHTML = `<h2 class="card-title">Capital deployment (EOD)</h2><p class="empty-note">No EOD data for this period.</p>`;
+        return;
     }
-    renderCard3Details();
-}
+    const windowAvg = n => {
+        const slice = eod.slice(Math.max(0, idx - n + 1), idx + 1);
+        const dep = sum(slice.map(e => e.dep));
+        const avail = sum(slice.map(e => e.avail));
+        return { pct: avail ? (dep / avail) * 100 : 0, avail: avail / slice.length, dep: dep / slice.length };
+    };
+    const cur = eod[idx];
+    const a3 = windowAvg(3);
+    const a12 = windowAvg(12);
+    const trend = eod.slice(Math.max(0, idx - 11), idx + 1).map(e => e.pct);
+    const fmtPkrM = v => v.toLocaleString('en-US', { maximumFractionDigits: 0 });
 
-function isRowInViewScope(r) {
-    const monthStr = r.Month || r.Month;
-    if (currentGranularity === 'Yearly' || selectedPeriod === 'FY Total') return true;
-    const rMonthIdx = fiscalMonths.indexOf(monthStr);
-    if (rMonthIdx === -1) return false;
-
-    const selMonthIdx = fiscalMonths.indexOf(selectedPeriod);
-    const rQtr = quarterMap[monthStr];
-    const selQtr = quarterMap[selectedPeriod];
-
-    if (viewMode === 'YTD') {
-        if (currentGranularity === 'Monthly') return rMonthIdx <= selMonthIdx;
-        if (currentGranularity === 'Quarterly') {
-            const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
-            return quarters.indexOf(rQtr) <= quarters.indexOf(selectedPeriod);
-        }
-    } else if (viewMode === 'QTD') {
-        if (currentGranularity === 'Monthly') return rQtr === selQtr && rMonthIdx <= selMonthIdx;
-        if (currentGranularity === 'Quarterly') return rQtr === selectedPeriod; 
-    } else { 
-        if (currentGranularity === 'Monthly') return monthStr === selectedPeriod;
-        if (currentGranularity === 'Quarterly') return rQtr === selectedPeriod;
-    }
-    return false;
-}
-
-// ========================================================================
-// 6. DASHBOARD RENDERING 
-// ========================================================================
-function updateDashboard() {
-    if (!rawData || rawData.length === 0) return;
-
-    // INTERCEPT: Overwrite standard data array with Donor-filtered virtual copy
-    currentActiveData = getFilteredData();
-
-    const depts = [...new Set(currentActiveData.map(r => r.Department))];
-    if (!selectedDepartment || !depts.includes(selectedDepartment)) {
-        if (depts.length > 0) selectedDepartment = depts[0];
-    }
-
-    let topBudget = 0, topActual = 0;
-    currentActiveData.forEach(r => { 
-        topBudget += r.Budget; 
-        topActual += r.Actual; 
-    });
-
-    document.getElementById('lblTopActual').innerText = 'FY Total Actual';
-    document.getElementById('lblTopVariance').innerText = 'FY Variance';
-
-    animateCounter('topKpiBudget', topBudget);
-    animateCounter('topKpiActual', topActual);
-    animateCounter('topKpiVariance', Math.abs(topBudget - topActual));
-    
-    const burnRate = topBudget > 0 ? (topActual / topBudget) * 100 : 0;
-    animateCounterPct('topKpiBurn', burnRate);
-
-    document.getElementById('lblPeriodBudget').innerText = `${viewMode} Budget`;
-    document.getElementById('lblPeriodActual').innerText = `${viewMode} Actual`;
-
-    const filteredRows = currentActiveData.filter(r => isRowInViewScope(r));
-
-    let card1Budget = 0, card1Actual = 0;
-    const periodActualDonors = {};
-    const periodBudgetDonors = {};
-
-    filteredRows.forEach(r => {
-        card1Budget += r.Budget; 
-        card1Actual += r.Actual;
-        
-        Object.keys(r.ActualDonors).forEach(k => periodActualDonors[k] = (periodActualDonors[k] || 0) + r.ActualDonors[k]);
-        Object.keys(r.BudgetDonors).forEach(k => periodBudgetDonors[k] = (periodBudgetDonors[k] || 0) + r.BudgetDonors[k]);
-    });
-
-    animateCounter('card1Budget', card1Budget);
-    animateCounter('card1Actual', card1Actual);
-
-    const bvaData = [];
-    let bvaPct = card1Budget > 0 ? Math.round((card1Actual / card1Budget) * 100) : 0;
-
-    bvaData.push({ label: 'Spent', value: card1Actual, color: 'var(--krn-blue)' });
-    bvaData.push({ label: 'Remaining', value: Math.max(0, card1Budget - card1Actual), color: 'var(--border-color)' });
-    
-    const currentBrandColors = getBrandColors();
-    const pActDonItems = Object.keys(periodActualDonors).filter(d => periodActualDonors[d] > 0).map((d, i) => ({ label: d, value: periodActualDonors[d], color: currentBrandColors[i % currentBrandColors.length] }));
-    const pBudDonItems = Object.keys(periodBudgetDonors).filter(d => periodBudgetDonors[d] > 0).map((d, i) => ({ label: d, value: periodBudgetDonors[d], color: currentBrandColors[i % currentBrandColors.length] }));
-
-    const summaryDonutContainer = document.getElementById('summaryDonutContainer');
-    if (summaryDonutContainer) {
-        
-        let targetMonthStr = '';
-        if (currentGranularity === 'Monthly') targetMonthStr = selectedPeriod;
-        else if (currentGranularity === 'Quarterly') {
-            if (selectedPeriod === 'Q1') targetMonthStr = 'Sep';
-            if (selectedPeriod === 'Q2') targetMonthStr = 'Dec';
-            if (selectedPeriod === 'Q3') targetMonthStr = 'Mar';
-            if (selectedPeriod === 'Q4') targetMonthStr = 'Jun';
-        } else {
-            targetMonthStr = 'Jun';
-        }
-        
-        // Year logic for EOD placeholder
-        let endYearMatch = selectedYear.match(/\d+$/);
-        let endYear = endYearMatch ? parseInt(endYearMatch[0]) : 27;
-        let targetYearStr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].includes(targetMonthStr) ? String(endYear) : String(endYear - 1);
-        let targetDate = new Date(targetMonthStr + ' 1, 20' + targetYearStr.slice(-2));
-        
-        let targetIdx = -1;
-        for(let i=0; i<globalEODData.length; i++) {
-            if (globalEODData[i].date <= targetDate) targetIdx = i;
-        }
-        
-        let eodHtml = '';
-        if (targetIdx >= 0) {
-            let lastMonthObj = globalEODData[targetIdx];
-            
-            let sumDep3 = 0, sumAvail3 = 0, count3 = 0;
-            for(let i = targetIdx; i >= 0 && count3 < 3; i--) { sumDep3 += globalEODData[i].dep; sumAvail3 += globalEODData[i].avail; count3++; }
-            let avg3 = sumAvail3 !== 0 ? (sumDep3/sumAvail3)*100 : 0;
-            
-            let sumDep12 = 0, sumAvail12 = 0, count12 = 0;
-            for(let i = targetIdx; i >= 0 && count12 < 12; i--) { sumDep12 += globalEODData[i].dep; sumAvail12 += globalEODData[i].avail; count12++; }
-            let avg12 = sumAvail12 !== 0 ? (sumDep12/sumAvail12)*100 : 0;
-            
-            if (isSummaryView) {
-                eodHtml = `
-                <div style="margin-top: 20px; width: 100%;">
-                    <div style="font-size: 0.8rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">EOD Tracking</div>
-                    <div class="table-wrapper">
-                        <table class="detail-table" style="font-size:0.75rem;">
-                            <thead>
-                                <tr>
-                                    <th>Period</th>
-                                    <th>EOD %</th>
-                                    <th>Capital Available</th>
-                                    <th>Capital Deployed</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td style="color: var(--text-primary);">This month</td>
-                                    <td style="color: var(--krn-blue);"><b>${lastMonthObj.pct.toFixed(2)}%</b></td>
-                                    <td style="font-variant-numeric:tabular-nums">${lastMonthObj.avail.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
-                                    <td style="font-variant-numeric:tabular-nums">${lastMonthObj.dep.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
-                                </tr>
-                                <tr>
-                                    <td style="color: var(--text-primary);">3 month avg</td>
-                                    <td style="color: var(--krn-blue);"><b>${avg3.toFixed(2)}%</b></td>
-                                    <td style="font-variant-numeric:tabular-nums">${(sumAvail3/count3).toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
-                                    <td style="font-variant-numeric:tabular-nums">${(sumDep3/count3).toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
-                                </tr>
-                                <tr>
-                                    <td style="color: var(--text-primary);">12 month avg</td>
-                                    <td style="color: var(--krn-blue);"><b>${avg12.toFixed(2)}%</b></td>
-                                    <td style="font-variant-numeric:tabular-nums">${(sumAvail12/count12).toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
-                                    <td style="font-variant-numeric:tabular-nums">${(sumDep12/count12).toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>`;
-                
-            } else {
-                eodHtml = `
-                <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid var(--border-color); width: 100%; text-align: center;">
-                    <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">EOD</div>
-                    <div style="font-size: 1.6rem; font-weight: bold; color: var(--krn-blue); font-family: 'Oswald', 'Chivo', sans-serif; line-height: 1;">${lastMonthObj.pct.toFixed(2)}%</div>
-                </div>`;
-            }
-        } else {
-            eodHtml = '<div style="margin-top:20px; font-size:0.7rem; color:var(--text-secondary); text-align:center;">No EOD tracking data available.</div>';
-        }
-
-        if (isSummaryView) {
-            summaryDonutContainer.style.display = 'grid';
-            summaryDonutContainer.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
-                    <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">BvA</div>
-                    <div id="periodBvaDonut" style="width: 100%;"></div>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
-                    <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Spent (Donor)</div>
-                    <div id="periodActualDonorDonut" style="width: 100%;"></div>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
-                    <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Budget (Donor)</div>
-                    <div id="periodBudgetDonorDonut" style="width: 100%;"></div>
-                </div>
-            `;
-            renderSvgDonut('periodBvaDonut', bvaData, { pct: bvaPct, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPct)}%</strong>`, false);
-            renderSvgDonut('periodActualDonorDonut', pActDonItems, null, null, true);
-            renderSvgDonut('periodBudgetDonorDonut', pBudDonItems, null, null, true);
-            
-            let placeholder = document.getElementById('eodPlaceholder');
-            if (!placeholder) {
-                placeholder = document.createElement('div');
-                placeholder.id = 'eodPlaceholder';
-                summaryDonutContainer.parentNode.appendChild(placeholder);
-            }
-            placeholder.innerHTML = eodHtml;
-            
-        } else {
-            summaryDonutContainer.style.display = 'flex';
-            summaryDonutContainer.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
-                    <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Spent (Donor)</div>
-                    <div id="periodActualDonorDonut" style="width: 100%;"></div>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: center; flex:1;">
-                    <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 0px;">Budget (Donor)</div>
-                    <div id="periodBudgetDonorDonut" style="width: 100%;"></div>
-                </div>
-            `;
-            renderSvgDonut('periodActualDonorDonut', pActDonItems, { pct: bvaPct, label: 'SPENT' }, null, true);
-            renderSvgDonut('periodBudgetDonorDonut', pBudDonItems, { pct: Math.max(0, 100 - bvaPct), label: 'REMAINING' }, null, true);
-            
-            let placeholder = document.getElementById('eodPlaceholder');
-            if (!placeholder) {
-                placeholder = document.createElement('div');
-                placeholder.id = 'eodPlaceholder';
-                summaryDonutContainer.parentNode.appendChild(placeholder);
-            }
-            placeholder.innerHTML = eodHtml;
-        }
-    }
-
-    renderSummaryTable(filteredRows);
-    renderCard2Departments(filteredRows);
-    renderCard3Details(filteredRows);
-}
-
-function renderSummaryTable(displayRows) {
-    const tbody = document.getElementById('summaryTableBody');
-    tbody.innerHTML = '';
-    const deptAgg = {};
-    
-    displayRows.forEach(r => {
-        if (!deptAgg[r.Department]) deptAgg[r.Department] = { b: 0, a: 0, monthlyTrend: {} };
-        deptAgg[r.Department].b += r.Budget;
-        deptAgg[r.Department].a += r.Actual;
-    });
-
-    currentActiveData.forEach(r => {
-        if (!deptAgg[r.Department]) return; 
-        if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
-        deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
-    });
-
-    const sortedDepts = Object.keys(deptAgg).sort((a, b) => getDeptSortIndex(a) - getDeptSortIndex(b));
-
-    sortedDepts.forEach(d => {
-        const item = deptAgg[d];
-        if (item.b === 0 && item.a === 0) return; 
-
-        const pctDisplay = item.b > 0 ? `${Math.round((item.a / item.b) * 100)}%` : (item.a > 0 ? 'N/A' : '0%');
-        const badgeClass = item.a > item.b ? 'badge-orange' : 'badge-primary';
-        
-        const trendData = fiscalMonths.map(m => item.monthlyTrend[m] || 0);
-        const endIdx = fiscalMonths.indexOf(selectedPeriod === 'FY Total' ? 'Jun' : selectedPeriod.replace(/Q[1-4]/, function(match) { return {Q1:'Sep',Q2:'Dec',Q3:'Mar',Q4:'Jun'}[match]; }));
-        const relevantTrendData = endIdx >= 0 ? trendData.slice(0, endIdx + 1) : trendData;
-        
-        tbody.innerHTML += `
-            <tr class="clickable-tr summary-table-row" onclick="openDepartmentDetails('${d.replace(/'/g, "\\'")}')">
-                <td style="color: var(--text-primary); vertical-align: middle;">${d}</td>
-                <td style="vertical-align: middle;">${generateSparkline(relevantTrendData)}</td>
-                <td style="font-variant-numeric: tabular-nums; vertical-align: middle;">${formatPKRInline(item.b)}</td>
-                <td style="font-variant-numeric: tabular-nums; color: var(--krn-blue); font-weight: 500; vertical-align: middle;">${formatPKRInline(item.a)}</td>
-                <td style="vertical-align: middle;"><span class="badge-pill ${badgeClass}">${pctDisplay}</span></td>
-            </tr>
-        `;
-    });
-}
-
-function renderCard2Departments(displayRows) {
-    const container = document.getElementById('deptListContainer');
-    const sortMode = document.getElementById('sortDept').value;
-    container.innerHTML = '';
-
-    const deptAgg = {};
-    displayRows.forEach(r => {
-        if (!deptAgg[r.Department]) deptAgg[r.Department] = { b: 0, a: 0, monthlyTrend: {} };
-        deptAgg[r.Department].b += r.Budget;
-        deptAgg[r.Department].a += r.Actual;
-    });
-
-    currentActiveData.forEach(r => {
-        if (!deptAgg[r.Department]) return; 
-        if (!deptAgg[r.Department].monthlyTrend[r.Month]) deptAgg[r.Department].monthlyTrend[r.Month] = 0;
-        deptAgg[r.Department].monthlyTrend[r.Month] += r.Actual; 
-    });
-
-    let sortedDepts = Object.keys(deptAgg).filter(d => deptAgg[d].b !== 0 || deptAgg[d].a !== 0);
-
-    if (sortMode === 'Spend') sortedDepts.sort((a, b) => deptAgg[b].a - deptAgg[a].a);
-    else if (sortMode === 'Variance') sortedDepts.sort((a, b) => (deptAgg[b].a - deptAgg[b].b) - (deptAgg[a].a - deptAgg[a].b));
-
-    const progressElements = [];
-
-    sortedDepts.forEach((deptName, idx) => {
-        const item = deptAgg[deptName];
-        
-        const pctNum = item.b > 0 ? Math.round((item.a / item.b) * 100) : (item.a > 0 ? 100 : 0);
-        const pctDisplay = item.b > 0 ? `${pctNum}%` : (item.a > 0 ? 'N/A' : '0%');
-        
-        const badgeColor = item.a > item.b ? 'var(--krn-orange)' : 'var(--krn-blue)';
-        const isActive = deptName === selectedDepartment ? 'active' : '';
-
-        const actualParts = getFormattedParts(item.a);
-        const budgetParts = getFormattedParts(item.b);
-        
-        const variance = item.b - item.a;
-        
-        const trendData = fiscalMonths.map(m => item.monthlyTrend[m] || 0);
-        const endIdx = fiscalMonths.indexOf(selectedPeriod === 'FY Total' ? 'Jun' : selectedPeriod.replace(/Q[1-4]/, function(match) { return {Q1:'Sep',Q2:'Dec',Q3:'Mar',Q4:'Jun'}[match]; }));
-        const relevantTrendData = endIdx >= 0 ? trendData.slice(0, endIdx + 1) : trendData;
-
-        const card = document.createElement('div');
-        card.className = `dept-grid-card ${isActive}`;
-        card.style.animationDelay = `${idx * 0.05}s`;
-        card.setAttribute('data-dept', deptName); 
-        card.onclick = () => selectDepartment(deptName);
-        
-        card.innerHTML = `
-            <div class="dept-card-title">${deptName}</div>
-            
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 8px;">
-                <div style="font-size: 0.8rem; font-weight: 500; color: ${variance >= 0 ? 'var(--text-secondary)' : 'var(--krn-orange)'}; font-family: Calibri, sans-serif !important;">
-                    ${variance >= 0 ? 'Remaining:' : 'Over:'} ${formatPKRInline(Math.abs(variance))}
-                </div>
-                <div style="opacity: 0.8;">
-                    ${generateCardSparkline(relevantTrendData)}
-                </div>
+    card.innerHTML = `
+        <h2 class="card-title">Capital deployment (EOD)</h2>
+        <div class="eod-headline">
+            <div>
+                <div class="eod-pct">${cur.pct.toFixed(1)}%</div>
+                <div class="eod-sub">${escapeHtml(cur.label)}</div>
             </div>
-
-            <div class="dept-card-metrics">
-                <div class="dept-card-metric-col">
-                    <span class="dept-card-metric-val">${actualParts.v}</span>
-                    <span class="dept-card-metric-unit">${actualParts.u}</span>
-                    <span class="dept-card-metric-lbl">Actual</span>
-                </div>
-                <div class="dept-card-metric-col">
-                    <span class="dept-card-metric-pct" style="color: ${badgeColor};">${pctDisplay}</span>
-                    <span class="dept-card-metric-lbl">Spent</span>
-                </div>
-                <div class="dept-card-metric-col">
-                    <span class="dept-card-metric-val">${budgetParts.v}</span>
-                    <span class="dept-card-metric-unit">${budgetParts.u}</span>
-                    <span class="dept-card-metric-lbl">Budget</span>
-                </div>
-            </div>
-            <div class="progress-bg"><div class="progress-fill" id="deptProg-${idx}" style="background-color: ${badgeColor};"></div></div>
-        `;
-        container.appendChild(card);
-        progressElements.push({ id: `deptProg-${idx}`, width: Math.min(100, pctNum) });
-    });
-
-    requestAnimationFrame(() => setTimeout(() => progressElements.forEach(p => { const el = document.getElementById(p.id); if(el) el.style.width = p.width+'%'; }), 50));
+            <div class="eod-trend" data-tip="EOD % over the last ${trend.length} months; dashed line is the 12-month average">${sparkline(trend, trend.map(() => a12.pct), 120, 34)}</div>
+        </div>
+        <table class="mini-table eod-table">
+            <thead><tr><th></th><th class="n">EOD</th><th class="n">Available</th><th class="n">Deployed</th></tr></thead>
+            <tbody>
+                <tr><td>This month</td><td class="n">${cur.pct.toFixed(1)}%</td><td class="n">${fmtPkrM(cur.avail)}</td><td class="n">${fmtPkrM(cur.dep)}</td></tr>
+                <tr><td>3-month avg</td><td class="n">${a3.pct.toFixed(1)}%</td><td class="n">${fmtPkrM(a3.avail)}</td><td class="n">${fmtPkrM(a3.dep)}</td></tr>
+                <tr><td>12-month avg</td><td class="n">${a12.pct.toFixed(1)}%</td><td class="n">${fmtPkrM(a12.avail)}</td><td class="n">${fmtPkrM(a12.dep)}</td></tr>
+            </tbody>
+        </table>
+        <p class="table-note">Available and deployed capital in PKR million.</p>`;
 }
 
-function renderCard3Details(displayRows = null) {
-    if (!displayRows) displayRows = currentActiveData.filter(r => isRowInViewScope(r));
+function deptRank(d) {
+    const i = state.data.deptOrder.indexOf(d);
+    return i < 0 ? 999 : i;
+}
 
-    document.getElementById('card3Title').innerText = `Overview`;
-    const sortMode = document.getElementById('sortStream').value;
-    const viewGroup = 'Stream'; 
+function summaryRowCells(g) {
+    const v = g.b - g.a;
+    return `<td>${trendFor(g)}</td>
+        <td class="n">${fmtM(g.b)}</td>
+        <td class="n actual">${fmtM(g.a)}</td>
+        <td class="n ${v < 0 ? 'is-over' : ''}">${fmtVariance(v)}</td>
+        <td class="util-cell"><div class="util-wrap">${utilBar(g)}<span class="util-pct status-text-${statusOf(g)}">${fmtPct(pctOf(g.a, g.b))}</span></div></td>`;
+}
 
-    const rows = displayRows.filter(r => r.Department === selectedDepartment);
+function renderSummaryTable(scopeRows) {
+    const groups = aggregateBy(r => r.Department, scopeRows, state.active);
+    const depts = [...groups.keys()]
+        .filter(d => groups.get(d).b !== 0 || groups.get(d).a !== 0)
+        .sort((x, y) => deptRank(x) - deptRank(y));
 
-    let dB = 0, dA = 0;
-    const groupAgg = {};
-    const dActDon = {};
-    const dBudDon = {};
+    $('summaryTableBody').innerHTML = depts.map(d => `<tr class="clickable-tr" tabindex="0" data-dept="${escapeHtml(d)}">
+            <td class="dept-name">${escapeHtml(d)}</td>${summaryRowCells(groups.get(d))}
+        </tr>`).join('')
+        || `<tr><td colspan="6" class="empty-note">No budget or spend for this selection.</td></tr>`;
 
+    $('summaryTableFoot').innerHTML = `<tr><td>Total</td>${summaryRowCells(totalAgg(scopeRows, state.active))}</tr>`;
+}
+
+function ensureDepartment(scopeRows) {
+    const depts = new Set(scopeRows.filter(r => r.Budget || r.Actual).map(r => r.Department));
+    if (!depts.has(state.department)) {
+        state.department = [...depts].sort((x, y) => deptRank(x) - deptRank(y))[0] || '';
+    }
+}
+
+function sortGroups(names, groups, mode) {
+    if (mode === 'Variance') return names.sort((x, y) => (groups.get(y).a - groups.get(y).b) - (groups.get(x).a - groups.get(x).b));
+    return names.sort((x, y) => groups.get(y).a - groups.get(x).a);
+}
+
+function metricCard(name, g, { active = false, disabled = false, kind = 'dept' } = {}) {
+    const v = g.b - g.a;
+    const s = statusOf(g);
+    const cls = kind === 'dept' ? 'dept-grid-card' : 'stream-grid-card';
+    const attrs = kind === 'dept' ? `data-dept="${escapeHtml(name)}"` : `data-stream="${escapeHtml(name)}"`;
+    return `<div class="metric-card ${cls} ${active ? 'active' : ''} ${disabled ? 'disabled-row' : ''}" ${attrs} tabindex="${disabled ? -1 : 0}" role="button" aria-disabled="${disabled}">
+        <div class="mc-head">
+            <div class="mc-title" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+            <span class="status-dot status-${s}" data-tip="${escapeHtml(statusTip(g))}"></span>
+        </div>
+        <div class="mc-middle">
+            <div class="mc-remaining ${v < 0 ? 'is-over' : ''}"><span>${v < 0 ? 'Over by' : 'Remaining'}</span><strong>${fmtM(Math.abs(v))}</strong> M PKR</div>
+            ${trendFor(g)}
+        </div>
+        <div class="mc-metrics">
+            <div><span class="mc-val">${fmtM(g.a)}</span><span class="mc-lbl">Actual</span></div>
+            <div><span class="mc-val status-text-${s}">${fmtPct(pctOf(g.a, g.b))}</span><span class="mc-lbl">Spent</span></div>
+            <div><span class="mc-val">${fmtM(g.b)}</span><span class="mc-lbl">Budget</span></div>
+        </div>
+        ${utilBar(g)}
+    </div>`;
+}
+
+function renderDeptCards(scopeRows) {
+    const groups = aggregateBy(r => r.Department, scopeRows, state.active);
+    const names = sortGroups([...groups.keys()].filter(d => groups.get(d).b !== 0 || groups.get(d).a !== 0), groups, $('sortDept').value);
+    $('deptListContainer').innerHTML = names.map(d => metricCard(d, groups.get(d), { active: d === state.department })).join('')
+        || '<p class="empty-note">No departments for this selection.</p>';
+}
+
+function renderOverview(scopeRows) {
+    const dept = state.department;
+    $('card3Title').textContent = dept || 'Department';
+    const deptScope = scopeRows.filter(r => r.Department === dept);
+    const deptAll = state.active.filter(r => r.Department === dept);
+    const total = totalAgg(deptScope, deptAll);
+
+    $('deptBullet').innerHTML = bulletChart(total);
+    $('deptDonorBars').innerHTML = donorBars(total.budgetDonors, total.actualDonors);
+
+    const groups = aggregateBy(r => r.Stream, deptScope, deptAll);
+    const names = sortGroups([...groups.keys()].filter(s => groups.get(s).b !== 0 || groups.get(s).a !== 0), groups, $('sortStream').value);
+    $('streamListContainer').innerHTML = names.map(s => metricCard(s, groups.get(s), { kind: 'stream', disabled: groups.get(s).a === 0 })).join('')
+        || '<p class="empty-note">No streams for this department.</p>';
+}
+
+/* 9. MODALS =============================================================== */
+
+let lastFocus = null;
+
+function openModal(id) {
+    lastFocus = document.activeElement;
+    const m = $(id);
+    m.classList.add('open');
+    m.setAttribute('aria-hidden', 'false');
+    const focusable = m.querySelector('input, button');
+    if (focusable) focusable.focus();
+}
+
+function closeModals() {
+    const open = document.querySelectorAll('.modal.open');
+    if (!open.length) return;
+    open.forEach(m => {
+        m.classList.remove('open');
+        m.setAttribute('aria-hidden', 'true');
+    });
+    hideTooltip();
+    if (lastFocus) lastFocus.focus();
+}
+
+function openStreamModal(stream) {
+    const dept = state.department;
+    const months = FISCAL_MONTHS.filter(m => state.scope.has(m));
+    const rows = state.active.filter(r => r.Department === dept && r.Stream === stream && state.scope.has(r.Month));
+
+    const accounts = new Map();
     rows.forEach(r => {
-        dB += r.Budget; dA += r.Actual;
-        
-        let gKey = r.Stream;
-        
-        if (!groupAgg[gKey]) groupAgg[gKey] = { b: 0, a: 0, monthlyTrend: {} };
-        groupAgg[gKey].b += r.Budget; groupAgg[gKey].a += r.Actual;
-        
-        if (r.Month !== 'ALL_MONTHS') {
-            groupAgg[gKey].monthlyTrend[r.Month] = (groupAgg[gKey].monthlyTrend[r.Month] || 0) + r.Actual;
-        }
-        
-        Object.keys(r.ActualDonors).forEach(k => dActDon[k] = (dActDon[k] || 0) + r.ActualDonors[k]);
-        Object.keys(r.BudgetDonors).forEach(k => dBudDon[k] = (dBudDon[k] || 0) + r.BudgetDonors[k]);
+        if (!accounts.has(r.Code)) accounts.set(r.Code, { code: r.Code, name: r.NaturalAccount, budget: 0, actual: 0, byMonth: {} });
+        const acc = accounts.get(r.Code);
+        acc.budget += r.Budget;
+        acc.actual += r.Actual;
+        acc.byMonth[r.Month] = (acc.byMonth[r.Month] || 0) + r.Actual;
     });
 
-    const bvaPctNum = dB > 0 ? Math.round((dA / dB) * 100) : (dA > 0 ? 100 : 0);
-    const bvaPctDisplay = dB > 0 ? `${bvaPctNum}` : (dA > 0 ? 'N/A' : '0'); 
-    
-    const card3DonutContainer = document.getElementById('card3DonutContainer');
+    state.modal = { dept, stream, months, accounts: [...accounts.values()].sort((x, y) => y.actual - x.actual) };
+    const tB = sum(state.modal.accounts.map(a => a.budget));
+    const tA = sum(state.modal.accounts.map(a => a.actual));
 
-    card3DonutContainer.innerHTML = `
-        <div style="display: flex; flex-direction: column; align-items: center; min-width: 100px;">
-            <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 5px;">Dept BvA</div>
-            <div id="deptBvaDonut" style="width: 85px; height: 85px; display: flex; justify-content: center;"></div>
-        </div>
-        <div style="display: flex; flex-direction: column; align-items: center; min-width: 100px;">
-            <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 5px;">Spent (Donor)</div>
-            <div id="deptActualDonorDonut" style="width: 85px; height: 85px; display: flex; justify-content: center;"></div>
-        </div>
-        <div style="display: flex; flex-direction: column; align-items: center; min-width: 100px;">
-            <div style="font-size: 0.65rem; text-align: center; font-weight: 500; color: var(--text-primary); margin-bottom: 5px;">Budget (Donor)</div>
-            <div id="deptBudgetDonorDonut" style="width: 85px; height: 85px; display: flex; justify-content: center;"></div>
-        </div>
-    `;
-
-    renderSvgDonut('deptBvaDonut', [
-        { label: 'Spent', value: dA, color: 'var(--krn-blue)' },
-        { label: 'Remaining', value: Math.max(0, dB - dA), color: 'var(--border-color)' }
-    ], { pct: bvaPctDisplay, label: 'SPENT' }, `Remaining: <strong>${Math.max(0, 100 - bvaPctNum)}%</strong>`, false);
-
-    const currentBrandColors = getBrandColors();
-    const aDonItems = Object.keys(dActDon).filter(d => dActDon[d] > 0).map((d, i) => ({ label: d, value: dActDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
-    renderSvgDonut('deptActualDonorDonut', aDonItems, null, null, true);
-
-    const bDonItems = Object.keys(dBudDon).filter(d => dBudDon[d] > 0).map((d, i) => ({ label: d, value: dBudDon[d], color: currentBrandColors[i % currentBrandColors.length] }));
-    renderSvgDonut('deptBudgetDonorDonut', bDonItems, null, null, true);
-
-    const streamContainer = document.getElementById('streamListContainer');
-    streamContainer.innerHTML = '';
-    
-    let sortedGroups = Object.keys(groupAgg).filter(g => groupAgg[g].b !== 0 || groupAgg[g].a !== 0);
-    if (sortMode === 'Spend') sortedGroups.sort((a, b) => groupAgg[b].a - groupAgg[a].a);
-    else if (sortMode === 'Variance') sortedGroups.sort((a, b) => (groupAgg[b].a - groupAgg[b].b) - (groupAgg[a].a - groupAgg[a].b));
-
-    const progs = [];
-    sortedGroups.forEach((gName, idx) => {
-        const st = groupAgg[gName];
-        
-        const pctNum = st.b > 0 ? Math.round((st.a / st.b) * 100) : (st.a > 0 ? 100 : 0);
-        const pctDisplay = st.b > 0 ? `${pctNum}%` : (st.a > 0 ? 'N/A' : '0%');
-        
-        const badgeColor = st.a > st.b ? 'var(--krn-orange)' : 'var(--krn-blue)';
-        const clickAttr = st.a > 0 ? `onclick="openGroupModal('${gName.replace(/'/g, "\\'")}', '${viewGroup}')"` : '';
-
-        const actualParts = getFormattedParts(st.a);
-        const budgetParts = getFormattedParts(st.b);
-        const variance = st.b - st.a;
-        
-        const trendData = fiscalMonths.map(m => st.monthlyTrend[m] || 0);
-        const endIdx = fiscalMonths.indexOf(selectedPeriod === 'FY Total' ? 'Jun' : selectedPeriod.replace(/Q[1-4]/, function(match) { return {Q1:'Sep',Q2:'Dec',Q3:'Mar',Q4:'Jun'}[match]; }));
-        const relevantTrendData = endIdx >= 0 ? trendData.slice(0, endIdx + 1) : trendData;
-
-        const card = document.createElement('div');
-        card.className = `stream-grid-card ${st.a > 0 ? '' : 'disabled-row'}`;
-        card.style.animationDelay = `${idx * 0.05}s`;
-        if(clickAttr) card.setAttribute('onclick', `openGroupModal('${gName.replace(/'/g, "\\'")}', '${viewGroup}')`);
-        
-        card.innerHTML = `
-            <div class="stream-card-title" title="${gName}">${gName}</div>
-            
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 4px; margin: 8px 0;">
-                <div style="font-size: 0.7rem; font-weight: 500; color: ${variance >= 0 ? 'var(--text-secondary)' : 'var(--krn-orange)'}; font-family: Calibri, sans-serif !important;">
-                    ${variance >= 0 ? 'Remaining:' : 'Over:'} ${formatPKRInline(Math.abs(variance))}
-                </div>
-                <div style="opacity: 0.8;">
-                    ${generateMiniSparkline(relevantTrendData)}
-                </div>
-            </div>
-
-            <div class="stream-card-metrics">
-                <div class="stream-card-metric-col">
-                    <span class="stream-card-metric-val">${actualParts.v}</span>
-                    <span class="stream-card-metric-unit">${actualParts.u}</span>
-                    <span class="stream-card-metric-lbl">Actual</span>
-                </div>
-                <div class="stream-card-metric-col">
-                    <span class="stream-card-metric-pct" style="color: ${badgeColor};">${pctDisplay}</span>
-                    <span class="stream-card-metric-lbl">Spent</span>
-                </div>
-                <div class="stream-card-metric-col">
-                    <span class="stream-card-metric-val">${budgetParts.v}</span>
-                    <span class="stream-card-metric-unit">${budgetParts.u}</span>
-                    <span class="stream-card-metric-lbl">Budget</span>
-                </div>
-            </div>
-            <div class="progress-bg"><div class="progress-fill" id="groupProg-${idx}" style="background-color: ${badgeColor};"></div></div>
-        `;
-        streamContainer.appendChild(card);
-        progs.push({ id: `groupProg-${idx}`, width: Math.min(100, pctNum) });
-    });
-
-    requestAnimationFrame(() => setTimeout(() => progs.forEach(p => { const el = document.getElementById(p.id); if(el) el.style.width = p.width+'%'; }), 50));
-}
-
-// ========================================================================
-// 7. POPUP MODAL DRILL-DOWN & EXPORT
-// ========================================================================
-function openGroupModal(groupName, groupType) {
-    document.getElementById('modalSearch').value = ''; 
-    document.getElementById('streamModal').style.display = 'block';
-    document.getElementById('modalStreamTitle').innerText = `Account Details: ${groupName}`;
-    document.getElementById('modalStreamSubtitle').innerText = `${viewMode}: ${selectedPeriod}`;
-    document.getElementById('modalStreamTitle').innerText = `Account Details: ${groupName}`;
-    document.getElementById('modalStreamSubtitle').innerText = `${viewMode}: ${selectedPeriod}`;
-
-    // NEW: Only show the HR Portal button if we are in the Staff department
-    const btnStaff = document.getElementById('btnStaffLink');
-    if (btnStaff) {
-        if (selectedDepartment.toUpperCase().includes('STAFF') || selectedDepartment.toUpperCase().includes('ADMIN')) {
-            btnStaff.style.display = 'inline-block';
-        } else {
-            btnStaff.style.display = 'none';
-        }
-    }
-    const rows = currentActiveData.filter(r => r.Department === selectedDepartment && r[groupType] === groupName && isRowInViewScope(r));
-
-    currentModalData = {};
-    let tB = 0, tA = 0;
-    
-    window.activeModalMonths = fiscalMonths.filter(m => isRowInViewScope({Month: m}));
-
-    rows.forEach(r => {
-        const code = r.Code; 
-        if (!currentModalData[code]) { 
-            currentModalData[code] = { na: r.NaturalAccount, code: r.Code, budget: 0, actuals: {} };
-            window.activeModalMonths.forEach(m => currentModalData[code].actuals[m] = 0);
-        }
-        currentModalData[code].budget += r.Budget;
-        if(r.Month !== 'ALL_MONTHS') {
-            currentModalData[code].actuals[r.Month] = (currentModalData[code].actuals[r.Month] || 0) + r.Actual;
-        }
-        tB += r.Budget; 
-        tA += r.Actual;
-    });
-
-    const pct = tB > 0 ? Math.round((tA / tB) * 100) : 0;
-
-    document.getElementById('modalSummaryStats').innerHTML = `
-        <div style="background-color: transparent; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;">
-            <div class="val" id="mStatB" data-val="0"><span class="val-unit">M PKR</span><span class="val-num">0</span></div>
-            <div style="font-size: 0.6rem; color: var(--text-secondary); font-weight: 400; text-transform: uppercase; font-family: Calibri, sans-serif !important; margin-top:4px;">Total Budget</div>
-        </div>
-        <div style="background-color: transparent; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;">
-            <div class="val" style="color:var(--krn-blue)" id="mStatA" data-val="0"><span class="val-unit">M PKR</span><span class="val-num">0</span></div>
-            <div style="font-size: 0.6rem; color: var(--text-secondary); font-weight: 400; text-transform: uppercase; font-family: Calibri, sans-serif !important; margin-top:4px;">Total Spend (Actual)</div>
-        </div>
-        <div style="background-color: transparent; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;">
-            <div class="val" style="color:var(--krn-orange)" id="mStatPct" data-val="0"><span class="val-num">0%</span></div>
-            <div style="font-size: 0.6rem; color: var(--text-secondary); font-weight: 400; text-transform: uppercase; font-family: Calibri, sans-serif !important; margin-top:4px;">Percentage Spent</div>
-        </div>
-        <div style="background-color: transparent; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;">
-            <div class="val" style="color: ${tB >= tA ? 'var(--krn-green)' : 'var(--krn-orange)'};" id="mStatV" data-val="0"><span class="val-unit">M PKR</span><span class="val-num">0</span></div>
-            <div style="font-size: 0.6rem; color: var(--text-secondary); font-weight: 400; text-transform: uppercase; font-family: Calibri, sans-serif !important; margin-top:4px;">Variance</div>
-        </div>
-    `;
-    animateCounter('mStatB', tB); 
-    animateCounter('mStatA', tA); 
-    animateCounter('mStatV', Math.abs(tB - tA));
-    document.getElementById('mStatPct').innerHTML = `<span class="val-num">${pct}%</span>`;
-
+    $('modalStreamTitle').textContent = stream;
+    $('modalStreamSubtitle').textContent = `${dept}, ${periodLabel()}${state.donor !== ALL_DONORS ? `, ${state.donor} only` : ''}`;
+    $('btnStaffLink').hidden = !/staff|admin/i.test(dept);
+    $('modalSearch').value = '';
+    $('modalSummaryStats').innerHTML = `
+        <div class="stat"><div class="stat-val">${moneyHtml(tB)}</div><div class="stat-lbl">Budget</div></div>
+        <div class="stat"><div class="stat-val actual">${moneyHtml(tA)}</div><div class="stat-lbl">Actual</div></div>
+        <div class="stat"><div class="stat-val"><span class="num">${fmtPct(pctOf(tA, tB))}</span></div><div class="stat-lbl">Spent</div></div>
+        <div class="stat"><div class="stat-val ${tB - tA < 0 ? 'is-over' : ''}"><span class="num">${fmtVariance(tB - tA)}</span><span class="unit">M PKR</span></div><div class="stat-lbl">Variance</div></div>`;
     renderModalTable();
+    openModal('streamModal');
 }
 
-function renderModalTable(searchTerm = '') {
-    const tbody = document.getElementById('modalTableBody');
-    const thead = document.querySelector('#streamModal .detail-table thead');
-    
-    let activeMonths = window.activeModalMonths || [];
-    
-    let thHtml = `<tr><th>Account Name</th>`;
-    activeMonths.forEach(m => thHtml += `<th>${m} (M PKR)</th>`);
-    thHtml += `<th>Period Budget (M PKR)</th></tr>`;
-    if (thead) thead.innerHTML = thHtml;
+function renderModalTable() {
+    if (!state.modal) return;
+    const { months, accounts } = state.modal;
+    const term = $('modalSearch').value.trim().toLowerCase();
+    const items = accounts.filter(a => !term || a.name.toLowerCase().includes(term) || a.code.toLowerCase().includes(term));
 
-    tbody.innerHTML = '';
-    const term = searchTerm.toLowerCase();
-
-    const items = Object.values(currentModalData).filter(item => item.na.toLowerCase().includes(term) || item.code.toLowerCase().includes(term));
-
-    if (items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${activeMonths.length + 2}" style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.75rem;">No relevant spend records found.</td></tr>`;
-    } else {
-        items.forEach(item => {
-            let tr = `<tr>`;
-            tr += `<td><strong style="color: var(--krn-blue); font-weight: 400;">${item.na}</strong><br><span style="font-size: 0.62rem; color: var(--text-secondary);">Code: ${item.code}</span></td>`;
-            
-            activeMonths.forEach(m => {
-                let val = item.actuals[m] || 0;
-                let valInMillions = val / 1000000;
-                tr += `<td style="font-variant-numeric: tabular-nums;">${val === 0 ? '-' : valInMillions.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>`;
-            });
-            
-            let budgetInMillions = item.budget / 1000000;
-            tr += `<td style="font-variant-numeric: tabular-nums; font-weight: 500;">${budgetInMillions.toLocaleString('en-PK', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>`;
-            tr += `</tr>`;
-            tbody.innerHTML += tr;
-        });
-    }
-}
-
-function filterModalTable() {
-    renderModalTable(document.getElementById('modalSearch').value);
+    $('modalTableHead').innerHTML = `<tr><th>Account</th>${months.map(m => `<th class="n">${m}</th>`).join('')}<th class="n">Actual</th><th class="n">Budget</th><th class="n">Variance</th></tr>`;
+    $('modalTableBody').innerHTML = items.length
+        ? items.map(a => `<tr>
+            <td><div class="acc-name">${escapeHtml(a.name)}</div><div class="acc-code">${escapeHtml(a.code)}</div></td>
+            ${months.map(m => `<td class="n">${a.byMonth[m] ? fmtM(a.byMonth[m], 2) : '–'}</td>`).join('')}
+            <td class="n actual">${fmtM(a.actual, 2)}</td>
+            <td class="n">${fmtM(a.budget, 2)}</td>
+            <td class="n ${a.budget - a.actual < 0 ? 'is-over' : ''}">${fmtVariance(a.budget - a.actual, 2)}</td>
+        </tr>`).join('')
+        : `<tr><td colspan="${months.length + 4}" class="empty-note">No accounts match “${escapeHtml(term)}”.</td></tr>`;
 }
 
 function exportModalCSV() {
-    if (!currentModalData || Object.keys(currentModalData).length === 0) return alert("No data to export.");
-    let activeMonths = window.activeModalMonths || [];
-    let csv = "Code,Account Name," + activeMonths.join(",") + ",Budget\n";
-    
-    Object.values(currentModalData).forEach(i => {
-        let row = `"${i.code}","${i.na}",`;
-        activeMonths.forEach(m => {
-            row += `${i.actuals[m] || 0},`;
-        });
-        row += `${i.budget}\n`;
-        csv += row;
+    if (!state.modal) return;
+    const { dept, stream, months, accounts } = state.modal;
+    const rows = [['Code', 'Account', ...months.map(m => `${m} actual (PKR)`), 'Actual (PKR)', 'Budget (PKR)', 'Variance (PKR)']];
+    accounts.forEach(a => rows.push([a.code, a.name, ...months.map(m => (a.byMonth[m] || 0).toFixed(2)), a.actual.toFixed(2), a.budget.toFixed(2), (a.budget - a.actual).toFixed(2)]));
+    downloadCSV(`BvA_${state.year}_${dept}_${stream}_${state.viewMode}_${state.period}.csv`, rows);
+}
+
+function openAuditModal() {
+    const { audit, totals } = state.data;
+    const order = { error: 0, warn: 1, info: 2 };
+    const items = [...audit].sort((x, y) => order[x.severity] - order[y.severity]);
+    const sevLabel = { error: 'Error', warn: 'Review', info: 'Note' };
+
+    $('auditSummary').innerHTML = `
+        <div class="stat"><div class="stat-val">${moneyHtml(totals.tbAll)}</div><div class="stat-lbl">Trial balance, all rows</div></div>
+        <div class="stat"><div class="stat-val">${moneyHtml(totals.tbExcluded)}</div><div class="stat-lbl">Excluded: non-spend or wrong period</div></div>
+        <div class="stat"><div class="stat-val">${moneyHtml(totals.investments + totals.capex)}</div><div class="stat-lbl">Added from investments and CAPEX</div></div>
+        <div class="stat"><div class="stat-val ${totals.reconciled ? '' : 'is-over'}">${moneyHtml(totals.ledgerActual)}</div><div class="stat-lbl">${totals.reconciled ? 'Dashboard actual, reconciled' : 'Dashboard actual, does not reconcile'}</div></div>`;
+
+    $('auditTableBody').innerHTML = items.length
+        ? items.map(a => `<tr>
+            <td><span class="sev sev-${a.severity}">${sevLabel[a.severity]}</span></td>
+            <td>${escapeHtml(a.source || '')}</td>
+            <td><div class="acc-name">${escapeHtml(a.description || '—')}</div><div class="acc-code">${escapeHtml([a.code, a.month].filter(Boolean).join(', '))}</div></td>
+            <td class="n">${a.amount && Math.abs(a.amount) >= 5000 ? fmtM(a.amount, 2) : (a.amount ? '<0.01' : '')}</td>
+            <td>${escapeHtml(a.mappedTo || '')}</td>
+            <td>${escapeHtml(a.reason || '')}</td>
+        </tr>`).join('')
+        : `<tr><td colspan="6" class="empty-note">Every actual matched a budget line by account code.</td></tr>`;
+    openModal('auditModal');
+}
+
+function exportAuditCSV() {
+    const rows = [['Severity', 'Source', 'Code', 'Description', 'Month', 'Amount (PKR)', 'Mapped to', 'Reason']];
+    state.data.audit.forEach(a => rows.push([a.severity, a.source, a.code, a.description, a.month, a.amount ? a.amount.toFixed(2) : '', a.mappedTo, a.reason]));
+    downloadCSV(`BvA_${state.year}_data_checks.csv`, rows);
+}
+
+/* Tooltip: any element with a data-tip attribute. */
+const tooltip = () => $('hoverTooltip');
+function showTooltip(target, e) {
+    const t = tooltip();
+    t.textContent = target.getAttribute('data-tip');
+    t.classList.add('visible');
+    moveTooltip(e);
+}
+function moveTooltip(e) {
+    const t = tooltip();
+    const x = Math.min(e.clientX + 14, window.innerWidth - t.offsetWidth - 8);
+    t.style.left = `${x}px`;
+    t.style.top = `${e.clientY + 14}px`;
+}
+function hideTooltip() { const t = tooltip(); if (t) t.classList.remove('visible'); }
+
+/* 10. EVENTS & INITIALISATION ============================================= */
+
+function setSummaryView(isSummary) {
+    state.isSummaryView = isSummary;
+    document.body.classList.toggle('view-details', !isSummary);
+    document.body.classList.toggle('view-summary', isSummary);
+    $('btnBackToSummary').hidden = isSummary;
+    render();
+}
+
+function openDepartment(dept) {
+    state.department = dept;
+    setSummaryView(false);
+}
+
+function syncToggleButtons() {
+    document.querySelectorAll('[data-granularity]').forEach(b => {
+        const on = b.dataset.granularity === state.granularity;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
     });
-    
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-        link.setAttribute("href", URL.createObjectURL(blob));
-        link.setAttribute("download", `LineItems_${selectedDepartment}_${selectedPeriod}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
+    document.querySelectorAll('[data-viewmode]').forEach(b => {
+        const on = b.dataset.viewmode === state.viewMode;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
+        b.disabled = state.granularity === 'Yearly' && b.dataset.viewmode !== 'Period';
+    });
 }
 
-function closeModal() { document.getElementById('streamModal').style.display = 'none'; hideTooltip(); }
-window.onclick = function(e) { if (e.target == document.getElementById('streamModal')) closeModal(); }
-
-// ========================================================================
-// 8. DASHBOARD INITIALIZATION 
-// ========================================================================
-async function init() {
-    console.log("1. Init function triggered. Setting up loading screen...");
-    const loader = document.getElementById('loadingOverlay');
-    if (loader) {
-        loader.style.opacity = '1';
-        loader.style.visibility = 'visible';
-        loader.classList.remove('hidden');
+function setGranularity(g) {
+    const prev = state.period;
+    const asOfMonth = FISCAL_MONTHS[Math.max(0, state.asOfIdx)];
+    state.granularity = g;
+    if (g === 'Quarterly') {
+        state.period = MONTH_QUARTER[prev] || (QUARTERS.includes(prev) ? prev : MONTH_QUARTER[asOfMonth]);
+        if (state.viewMode === 'Period' && prev === 'FY') state.viewMode = 'QTD';
+    } else if (g === 'Monthly') {
+        if (QUARTERS.includes(prev)) {
+            const ms = QUARTER_MONTHS[prev];
+            state.period = ms.includes(asOfMonth) ? asOfMonth : ms[2];
+        } else if (!(prev in MONTH_INDEX)) {
+            state.period = asOfMonth;
+            state.viewMode = 'QTD';
+        }
+    } else {
+        state.period = 'FY';
+        state.viewMode = 'Period';
     }
+    populatePeriodDropdown();
+    syncToggleButtons();
+    render();
+}
 
+function populatePeriodDropdown() {
+    const sel = $('periodDropdown');
+    let options;
+    if (state.granularity === 'Monthly') options = FISCAL_MONTHS.map(m => [m, monthYearLabel(m)]);
+    else if (state.granularity === 'Quarterly') options = QUARTERS.map(q => [q, `${q} (${MONTH_LONG[QUARTER_MONTHS[q][0]]} to ${MONTH_LONG[QUARTER_MONTHS[q][2]]})`]);
+    else options = [['FY', 'Full year (July to June)']];
+    sel.innerHTML = options.map(([v, l]) => `<option value="${v}">${escapeHtml(l)}</option>`).join('');
+    sel.value = state.period;
+    sel.disabled = state.granularity === 'Yearly';
+}
+
+function populateYearDropdown() {
+    $('yearDropdown').innerHTML = [...state.years].sort().reverse()
+        .map(y => `<option value="${escapeHtml(y)}" ${y === state.year ? 'selected' : ''}>${escapeHtml(y)}</option>`).join('');
+}
+
+function populateDonorDropdown() {
+    const donors = new Set();
+    state.data.rows.forEach(r => {
+        Object.keys(r.BudgetDonors).forEach(d => donors.add(d));
+        Object.keys(r.ActualDonors).forEach(d => donors.add(d));
+    });
+    const sorted = [...donors].sort();
+    sorted.forEach(donorColor);   // fixes each donor's colour for the session
+    if (state.donor !== ALL_DONORS && !donors.has(state.donor)) state.donor = ALL_DONORS;
+    $('donorDropdown').innerHTML = [ALL_DONORS, ...sorted]
+        .map(d => `<option value="${escapeHtml(d)}" ${d === state.donor ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('');
+}
+
+/* Theme: remembered per browser; first visit follows the OS setting. */
+function initTheme() {
+    let dark = false;
     try {
-        const errElem = document.getElementById('loaderStatusText');
-        const paths = getFilePaths(selectedYear); 
-        console.log(`2. File paths generated for ${selectedYear}:`, paths);
-        
-        rawData = []; 
-        globalEODData = [];
-        
-        console.log("3. Fetching Budget Master...");
-        if (errElem) errElem.innerText = `FETCHING BUDGET (${selectedYear}) 1/6...`;
-        const bRes = await fetch(paths.budgetMasterCSV);
-        if (!bRes.ok) throw new Error(`Budget Master fetch failed (HTTP ${bRes.status})`);
-        
-        console.log("4. Fetching Trial Balance...");
-        if (errElem) errElem.innerText = `FETCHING DONOR TB (${selectedYear}) 2/6...`;
-        const tdRes = await fetch(paths.tbDonorCSV);
-        if (!tdRes.ok) throw new Error(`Donor TB fetch failed (HTTP ${tdRes.status})`);
-        
-        console.log("5. Fetching Innovation...");
-        if (errElem) errElem.innerText = `FETCHING INNOVATION (${selectedYear}) 3/6...`;
-        const iiRes = await fetch(paths.iiCSV);
-        if (!iiRes.ok) throw new Error(`Innovation fetch failed (HTTP ${iiRes.status})`);
-        
-        console.log("6. Fetching CIC...");
-        if (errElem) errElem.innerText = `FETCHING CIC (${selectedYear}) 4/6...`;
-        const cicRes = await fetch(paths.cicCSV);
-        if (!cicRes.ok) throw new Error(`CIC fetch failed (HTTP ${cicRes.status})`);
+        const saved = localStorage.getItem('bva-theme');
+        dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch (e) { /* storage unavailable */ }
+    applyTheme(dark);
+}
+function applyTheme(dark) {
+    document.body.classList.toggle('light-mode', !dark);
+    $('themeToggle').setAttribute('aria-pressed', String(dark));
+    $('themeLabel').textContent = dark ? 'Dark' : 'Light';
+}
+function toggleTheme() {
+    const dark = document.body.classList.contains('light-mode');
+    applyTheme(dark);
+    try { localStorage.setItem('bva-theme', dark ? 'dark' : 'light'); } catch (e) { /* ignore */ }
+}
 
-        console.log("7. Fetching CAPEX...");
-        if (errElem) errElem.innerText = `FETCHING CAPEX (${selectedYear}) 5/6...`;
-        let capexRows = [];
-        try {
-            const capexRes = await fetch(paths.capexCSV);
-            if (capexRes.ok) capexRows = parseCSV(await capexRes.text());
-        } catch (e) {
-            console.warn("CAPEX file skipped or missing.");
+function bindEvents() {
+    $('yearDropdown').addEventListener('change', e => loadYear(e.target.value));
+    $('donorDropdown').addEventListener('change', e => { state.donor = e.target.value; render(); });
+    $('periodDropdown').addEventListener('change', e => { state.period = e.target.value; render(); });
+    $('themeToggle').addEventListener('click', toggleTheme);
+    $('btnBackToSummary').addEventListener('click', () => setSummaryView(true));
+    $('sortDept').addEventListener('change', render);
+    $('sortStream').addEventListener('change', render);
+    $('dataCheckChip').addEventListener('click', openAuditModal);
+    $('btnRetry').addEventListener('click', () => loadYear(state.year));
+    $('modalSearch').addEventListener('input', debounce(renderModalTable, 120));
+    $('btnExportModal').addEventListener('click', exportModalCSV);
+    $('btnExportAudit').addEventListener('click', exportAuditCSV);
+
+    document.querySelectorAll('[data-granularity]').forEach(b => b.addEventListener('click', () => setGranularity(b.dataset.granularity)));
+    document.querySelectorAll('[data-viewmode]').forEach(b => b.addEventListener('click', () => {
+        state.viewMode = b.dataset.viewmode;
+        syncToggleButtons();
+        render();
+    }));
+
+    /* Delegated clicks and keyboard activation — no inline onclick strings built from data. */
+    const activate = (container, selector, fn) => {
+        const handler = e => {
+            if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+            const el = e.target.closest(selector);
+            if (!el || !container.contains(el) || el.classList.contains('disabled-row')) return;
+            if (e.type === 'keydown') e.preventDefault();
+            fn(el);
+        };
+        container.addEventListener('click', handler);
+        container.addEventListener('keydown', handler);
+    };
+    activate($('summaryTableBody'), 'tr[data-dept]', el => openDepartment(el.dataset.dept));
+    activate($('deptListContainer'), '[data-dept]', el => { state.department = el.dataset.dept; render(); });
+    activate($('streamListContainer'), '[data-stream]', el => openStreamModal(el.dataset.stream));
+
+    document.querySelectorAll('[data-close-modal]').forEach(b => b.addEventListener('click', closeModals));
+    document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModals(); }));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
+
+    document.addEventListener('mouseover', e => {
+        const t = e.target.closest('[data-tip]');
+        if (t) showTooltip(t, e); else hideTooltip();
+    });
+    document.addEventListener('mousemove', e => { if (tooltip().classList.contains('visible')) moveTooltip(e); });
+}
+
+function setLoader(visible, message, isError = false) {
+    const l = $('loadingOverlay');
+    l.classList.toggle('hidden', !visible);
+    l.classList.toggle('is-error', isError);
+    $('loaderStatusText').textContent = message || '';
+    $('btnRetry').hidden = !isError;
+}
+
+async function fetchText(path, required) {
+    const res = await fetch(path, { cache: 'no-cache' });   // always revalidate monthly data drops
+    if (!res.ok) {
+        if (required) throw new Error(`Could not load ${path} (HTTP ${res.status}).`);
+        return '';
+    }
+    return res.text();
+}
+
+async function loadYears() {
+    try {
+        const res = await fetch(`Data/years.json?v=${APP_VERSION}`, { cache: 'no-cache' });
+        if (res.ok) {
+            const years = await res.json();
+            if (Array.isArray(years) && years.length) return years.map(String);
         }
+    } catch (e) { /* fall through to the fallback list */ }
+    return FALLBACK_YEARS;
+}
 
-        console.log("8. Fetching EOD...");
-        if (errElem) errElem.innerText = `FETCHING EOD (${selectedYear}) 6/6...`;
-        let eodRows = [];
-        try {
-            const eodRes = await fetch(paths.eodCSV);
-            if (eodRes.ok) eodRows = parseCSV(await eodRes.text());
-        } catch (e) {
-            console.warn("EOD file skipped or missing.");
-        }
-        
-        console.log("9. Parsing Data...");
-        if (errElem) errElem.innerText = "PROCESSING DATA...";
-        
-        const bData = parseCSV(await bRes.text());
-        const tdData = parseCSV(await tdRes.text());
-        const iiData = parseCSV(await iiRes.text());
-        const cicData = parseCSV(await cicRes.text());
-        
-        let parsedEOD = [];
-        eodRows.forEach(r => {
-            const mKey = Object.keys(r._raw).find(k => k.toLowerCase() === 'month');
-            const availKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('available'));
-            const depKey = Object.keys(r._raw).find(k => k.toLowerCase().includes('deployed'));
-            if (mKey && r._raw[mKey]) {
-                let monthStr = String(r._raw[mKey]).trim();
-                let parts = monthStr.split('-');
-                if(parts.length >= 2) {
-                    let m = parts[0].substring(0,3);
-                    let y = parts[1];
-                    let d = new Date(m + ' 1, 20' + y);
-                    let avail = getSafeNum(r._raw[availKey]);
-                    let dep = getSafeNum(r._raw[depKey]);
-                    let pct = avail !== 0 ? (dep/avail)*100 : 0;
-                    parsedEOD.push({ rawMonth: monthStr, date: d, avail: avail, dep: dep, pct: pct });
-                }
-            }
-        });
-        parsedEOD.sort((a,b) => a.date - b.date);
-        globalEODData = parsedEOD;
+async function loadYear(year) {
+    state.year = year;
+    setLoader(true, `Loading ${year}…`);
+    try {
+        const p = filePaths(year);
+        const [budget, tb, innovation, cic, capex, eod] = await Promise.all([
+            fetchText(p.budget, true), fetchText(p.tb, true),
+            fetchText(p.innovation, false), fetchText(p.cic, false),
+            fetchText(p.capex, false), fetchText(p.eod, false)
+        ]);
+        const data = buildDataset(year, { budget, tb, innovation, cic, capex, eod });
+        if (!data.rows.length) throw new Error(`No budget or actuals found for ${year}.`);
 
-        console.log("10. Assembling Master Ledger...");
-        rawData = parseMultiLinkData(bData, tdData, iiData, cicData, capexRows);
-        
-        if (rawData.length === 0) throw new Error("No data parsed. Are the CSVs empty?");
-        
-        let maxMonthIdx = -1;
-        rawData.forEach(r => {
-            if (Math.abs(r.Actual) > 0 && r.Month !== 'ALL_MONTHS') {
-                let idx = fiscalMonths.indexOf(r.Month);
-                if (idx > maxMonthIdx) maxMonthIdx = idx;
-            }
-        });
-        selectedPeriod = maxMonthIdx >= 0 ? fiscalMonths[maxMonthIdx] : 'Jul';
+        state.data = data;
+        state.asOfIdx = Math.max(-1, ...data.rows.filter(r => r.Actual !== 0).map(r => MONTH_INDEX[r.Month]));
+        const asOfMonth = FISCAL_MONTHS[Math.max(0, state.asOfIdx)];
+        if (state.granularity === 'Monthly') state.period = asOfMonth;
+        else if (state.granularity === 'Quarterly') state.period = MONTH_QUARTER[asOfMonth];
 
-        if (errElem) errElem.innerHTML = `<span style="color:var(--krn-green); font-weight:bold;">Success!</span> Ready.`;
-        
-        console.log("11. Updating Dashboard UI...");
         populateYearDropdown();
+        populateDonorDropdown();
         populatePeriodDropdown();
-        populateDonorDropdown(); // Build the master dropdown
-        applyTheme(); 
-        updateDashboard();
-
-        console.log("12. Initialization Complete!");
-
+        syncToggleButtons();
+        renderDataCheckChip();
+        render();
+        setLoader(false);
     } catch (err) {
-        console.error("CRITICAL Initialization Error:", err);
-        const errElem = document.getElementById('loaderStatusText');
-        if (errElem) errElem.innerHTML = `<span style="color:var(--krn-orange); font-weight:bold;">ERROR:</span> ${err.message}`;
-    } finally {
-        setTimeout(() => {
-            const l = document.getElementById('loadingOverlay');
-            if (l) {
-                l.style.opacity = '0';
-                l.style.visibility = 'hidden';
-                l.style.pointerEvents = 'none';
-                l.classList.add('hidden');
-                setTimeout(() => {
-                    const txt = document.getElementById('loaderStatusText');
-                    if (txt) txt.innerText = "INITIALIZING SYSTEM...";
-                }, 800);
-            }
-        }, 1200); 
+        console.error(err);
+        setLoader(true, err.message, true);
     }
 }
 
-// FORCE EXECUTION ON LOAD
-console.log("Script loaded. Booting up dashboard...");
-setTimeout(init, 500);
-window.onresize = updateDashboard;
+async function init() {
+    initTheme();
+    bindEvents();
+    state.years = await loadYears();
+    await loadYear(state.years[state.years.length - 1]);
+}
+
+if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.__BVA_TEST__) {
+    if (document.readyState !== 'loading') init();
+    else document.addEventListener('DOMContentLoaded', init);
+}

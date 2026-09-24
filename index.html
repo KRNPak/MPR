@@ -3,253 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karandaaz Pakistan - Budget vs Actual</title>
-    
+    <title>Karandaaz Pakistan — Budget vs Actual</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chivo:ital,wght@0,100..900;1,100..900&family=Oswald:wght@200..700&display=swap" rel="stylesheet">
-    
-    <!-- Aggressive cache buster forces GitHub to load new colors -->
-    <link rel="stylesheet" href="styles.css?v=FINAL">
+    <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@300..700&family=Oswald:wght@400..700&display=swap" rel="stylesheet">
+
+    <!-- Bump ?v= on every deploy so browsers pick up the new files -->
+    <link rel="stylesheet" href="bva.css?v=2026.09.24">
 </head>
-<body class="view-summary light-mode"> 
+<body class="view-summary light-mode">
 
-<div id="hoverTooltip" class="hover-tooltip"></div>
+<div id="hoverTooltip" class="hover-tooltip" role="tooltip"></div>
 
-<!-- LOADING SCREEN -->
-<div id="loadingOverlay" class="loading-overlay">
+<!-- Loading / error screen -->
+<!-- Logo: save the SVG to assets/karandaaz-logo.svg. The onerror fallback uses the website copy until then. -->
+<div id="loadingOverlay" class="loading-overlay" aria-live="polite">
     <div class="loader-content">
         <div class="logo-container">
             <div class="app-spinner"></div>
-            <div class="app-spinner-inner"></div>
-            <img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz" class="loader-logo">
+            <img src="assets/karandaaz-logo.svg" alt="Karandaaz" class="loader-logo brand-logo" onerror="this.onerror=null;this.src='https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg'">
         </div>
-        <h2 class="loader-title">Karandaaz</h2>
-        <div class="loader-progress-container">
-            <div class="loader-progress-bar"></div>
-        </div>
-        <div id="loaderStatusText" class="loader-status-text">INITIALIZING SYSTEM...</div>
+        <p id="loaderStatusText" class="loader-status-text">Loading…</p>
+        <button id="btnRetry" class="btn btn-outline" type="button" hidden>Try again</button>
     </div>
 </div>
 
 <div class="dashboard-container">
-    
+
     <!-- HEADER -->
-    <div class="header-banner">
+    <header class="header-banner">
         <div class="header-left">
             <div class="header-logo">
-                <img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz Pakistan Logo">
+                <img src="assets/karandaaz-logo.svg" alt="Karandaaz Pakistan" class="brand-logo" onerror="this.onerror=null;this.src='https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg'">
             </div>
             <div class="header-title-group">
-                <h1 style="font-size: 2.2rem; font-weight: bold; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; margin: 0; color: var(--krn-blue); line-height: 1.1;">Budget vs Actual</h1>
-                <div class="sub-title" style="margin-top: 2px; display: flex; gap: 8px; align-items: center;">
-                    <select id="yearDropdown" class="select-mini" style="font-size: 0.95rem; padding: 2px 6px; border-color: transparent; color: var(--text-secondary); background: transparent; font-weight: bold; cursor: pointer; outline: none;" onchange="onYearChange()"></select>
-                    <span style="color: var(--border-color); font-size: 0.9rem;">|</span>
-                    <select id="donorDropdown" class="select-mini" style="font-size: 0.95rem; padding: 2px 6px; border-color: transparent; color: var(--text-secondary); background: transparent; font-weight: bold; cursor: pointer; outline: none;" onchange="onDonorChange()">
-                        <option value="All Donors">All Donors</option>
-                    </select>
+                <h1>Budget vs Actual</h1>
+                <div class="header-selectors">
+                    <label class="visually-hidden" for="yearDropdown">Fiscal year</label>
+                    <select id="yearDropdown" class="select-bare"></select>
+                    <span class="divider" aria-hidden="true">|</span>
+                    <label class="visually-hidden" for="donorDropdown">Donor</label>
+                    <select id="donorDropdown" class="select-bare"></select>
+                </div>
+                <div class="as-of-row">
+                    <span id="asOfStamp" class="as-of-stamp"></span>
+                    <button id="dataCheckChip" class="data-check-chip" type="button" hidden></button>
                 </div>
             </div>
         </div>
 
-        <div class="header-kpi-summary">
-            <!-- Completely un-jammed toggle switch -->
-            <div class="toggles-container">
-                <div class="theme-toggle" onclick="toggleDarkMode()">
-                    <span id="themeLabel">Light</span>
-                    <div class="switch-track" id="themeTrack">
-                        <div class="switch-thumb"></div>
-                    </div>
+        <div class="header-right">
+            <div class="header-kpis">
+                <div class="kpi">
+                    <div class="kpi-label">FY budget</div>
+                    <div class="kpi-value" id="kpiBudget"></div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-label">FY actual</div>
+                    <div class="kpi-value actual" id="kpiActual"></div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-label">FY variance</div>
+                    <div class="kpi-value" id="kpiVariance"></div>
+                    <div class="kpi-sub" id="kpiVarianceSub"></div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-label">FY utilisation</div>
+                    <div class="kpi-value" id="kpiUtil"></div>
+                    <div class="kpi-sub" id="kpiUtilSub"></div>
                 </div>
             </div>
-        
-            <div class="kpi-item">
-                <div class="val" id="topKpiBudget" data-val="0">
-                    <span class="val-unit">M PKR</span>
-                    <span class="val-num">0</span>
-                </div>
-                <span class="lbl">FY Total Budget</span>
-            </div>
-            <div class="kpi-item">
-                <div class="val" id="topKpiActual" data-val="0">
-                    <span class="val-unit">M PKR</span>
-                    <span class="val-num">0</span>
-                </div>
-                <span class="lbl" id="lblTopActual">FY Total Actual</span>
-            </div>
-            <div class="kpi-item">
-                <div class="val" id="topKpiVariance" data-val="0">
-                    <span class="val-unit">M PKR</span>
-                    <span class="val-num">0</span>
-                </div>
-                <span class="lbl" id="lblTopVariance">FY Variance</span>
-            </div>
-            <div class="kpi-item">
-                <div class="val" id="topKpiBurn" data-val="0">
-                    <span class="val-unit">RATE</span>
-                    <span class="val-num">0%</span>
-                </div>
-                <span class="lbl">FY Burn Rate</span>
-            </div>
+            <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Dark mode">
+                <span id="themeLabel">Light</span>
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+            </button>
         </div>
-    </div>
+    </header>
 
-<!-- MAIN DYNAMIC LAYOUT -->
-    <div class="main-layout-wrapper">
-        
-        <!-- CARD 1: OVERALL SUMMARY AREA -->
-        <div id="summaryPanel" style="height: 100%; display: flex; flex-direction: column; min-height: 0;">
-            
-            <div class="summary-split-layout" style="flex: 1; min-height: 0;">
-                
-                <!-- LEFT SIDEBAR -->
-                <div style="flex: 1.1; display: flex; flex-direction: column; gap: 12px; min-height: 0;">
-                    
-                    <!-- Filters -->
-                    <div class="controls-block">
-                        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <span style="font-size: 0.8rem; color: var(--text-primary);">View & Granularity</span>
-                            <button id="btnBackToSummary" class="back-btn" style="display:none; width: auto;" onclick="toggleViewMode()">&#8592; Back</button>
+    <!-- MAIN LAYOUT -->
+    <main class="main-layout-wrapper">
+
+        <!-- Summary panel (full width in summary view, narrow sidebar in details view) -->
+        <section id="summaryPanel" aria-label="Summary">
+            <div class="summary-split-layout">
+
+                <div class="summary-left-col">
+                    <div class="card controls-block">
+                        <div class="controls-head">
+                            <span class="controls-title">View</span>
+                            <button id="btnBackToSummary" class="btn btn-outline btn-small" type="button" hidden>Back to summary</button>
                         </div>
                         <div class="control-group-row">
-                            <div class="granularity-btn-group">
-                                <button class="gran-btn active" id="btnMonthly" onclick="setGranularity('Monthly', this)">Monthly</button>
-                                <button class="gran-btn" id="btnQuarterly" onclick="setGranularity('Quarterly', this)">Quarterly</button>
-                                <button class="gran-btn" onclick="setGranularity('Yearly', this)">Yearly</button>
+                            <div class="segmented" role="group" aria-label="Granularity">
+                                <button type="button" class="seg-btn" data-granularity="Monthly">Monthly</button>
+                                <button type="button" class="seg-btn" data-granularity="Quarterly">Quarterly</button>
+                                <button type="button" class="seg-btn" data-granularity="Yearly">Yearly</button>
                             </div>
-                            <div class="granularity-btn-group" style="flex: 0.6;">
-                                <button class="gran-btn" id="btnPeriod" onclick="setViewMode('Period', this)">Period</button>
-                                <button class="gran-btn active" id="btnQTD" onclick="setViewMode('QTD', this)">QTD</button>
-                                <button class="gran-btn" id="btnYTD" onclick="setViewMode('YTD', this)">YTD</button>
+                            <div class="segmented" role="group" aria-label="Period type">
+                                <button type="button" class="seg-btn" data-viewmode="Period">Period</button>
+                                <button type="button" class="seg-btn" data-viewmode="QTD">QTD</button>
+                                <button type="button" class="seg-btn" data-viewmode="YTD">YTD</button>
                             </div>
                         </div>
-                        <select id="periodDropdown" class="select-input" onchange="onPeriodChange()"></select>
+                        <label class="visually-hidden" for="periodDropdown">Period</label>
+                        <select id="periodDropdown" class="select-input"></select>
                     </div>
 
-                    <!-- Left KPI Card -->
-                    <div class="summary-left-card" style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; min-height: 0;">
-                        <div class="period-metrics-horizontal">
-                            <div class="kpi-item" style="align-items: center;">
-                                <div class="val" id="card1Budget" data-val="0" style="align-items: center;">
-                                    <span class="val-unit">M PKR</span>
-                                    <span class="val-num">0</span>
-                                </div>
-                                <span class="lbl" id="lblPeriodBudget">Period Budget</span>
+                    <div class="card period-card">
+                        <h2 class="card-title" id="periodCaption"></h2>
+                        <div class="period-kpis">
+                            <div class="kpi">
+                                <div class="kpi-label">Budget</div>
+                                <div class="kpi-value" id="periodBudget"></div>
                             </div>
-                            <div class="kpi-item" style="align-items: center;">
-                                <div class="val" id="card1Actual" data-val="0" style="align-items: center;">
-                                    <span class="val-unit">M PKR</span>
-                                    <span class="val-num">0</span>
-                                </div>
-                                <span class="lbl" id="lblPeriodActual">Period Actual</span>
+                            <div class="kpi">
+                                <div class="kpi-label">Actual</div>
+                                <div class="kpi-value actual" id="periodActual"></div>
+                            </div>
+                            <div class="kpi">
+                                <div class="kpi-label">Variance</div>
+                                <div class="kpi-value" id="periodVariance"></div>
                             </div>
                         </div>
-                        
-                        <div class="donuts-triplet-container" id="summaryDonutContainer" style="grid-template-columns: repeat(3, 1fr);">
-                            <!-- Managed dynamically via JS -->
-                        </div>
+                        <div id="periodBullet"></div>
+                        <h3 class="section-label">By donor</h3>
+                        <div id="periodDonorBars"></div>
                     </div>
+
+                    <div class="card eod-card" id="eodCard"></div>
                 </div>
 
-                <!-- RIGHT CARD (Table) -->
-                <div class="summary-right-card summary-table-container" style="flex: 2.2; overflow-y: auto; min-height: 0;">
-                    <div style="font-size: 0.6rem; font-weight: 400; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; flex-shrink: 0;">Departmental Spend (Click to view)</div>
-                    
-                    <div class="table-wrapper" style="flex: 1; overflow-y: auto; min-height: 0;">
-                        <table class="detail-table" style="margin-top: 0;">
+                <div class="card summary-right-card">
+                    <div class="card-header-row">
+                        <h2 class="card-title">Departmental spend</h2>
+                        <div class="status-legend" aria-label="Status key">
+                            <span><i class="status-dot status-ontrack"></i>On track</span>
+                            <span><i class="status-dot status-behind"></i>Behind pace</span>
+                            <span><i class="status-dot status-over"></i>Over budget</span>
+                            <span><i class="pace-key"></i>Plan to date</span>
+                        </div>
+                    </div>
+                    <p class="table-note">M PKR. Variance is budget minus actual; figures in brackets are over budget. Select a department to drill in.</p>
+                    <div class="table-wrapper">
+                        <table class="detail-table summary-table">
                             <thead>
                                 <tr>
                                     <th>Department</th>
                                     <th>Trend</th>
-                                    <th>Budget</th>
-                                    <th id="thActualCol">Actual</th>
-                                    <th>%</th>
+                                    <th class="n">Budget</th>
+                                    <th class="n">Actual</th>
+                                    <th class="n">Variance</th>
+                                    <th>Utilisation</th>
                                 </tr>
                             </thead>
                             <tbody id="summaryTableBody"></tbody>
+                            <tfoot id="summaryTableFoot"></tfoot>
                         </table>
                     </div>
                 </div>
-                
-            </div>
-        </div>
 
-<!-- DETAILS PANEL -->
-        <div id="detailsPanel" style="height: 100%; min-height: 0;">
-            
-            <!-- CARD 2: Department Split -->
-            <div class="details-dept-card" style="min-height: 0; height: 100%;">
-                <h2 class="card-title">
-                    <span>Departments</span>
-                    <select class="select-mini" id="sortDept" onchange="updateDashboard()">
-                        <option value="Spend">High Spend</option>
-                        <option value="Variance">Over Budget</option>
+            </div>
+        </section>
+
+        <!-- Details panel -->
+        <section id="detailsPanel" aria-label="Department details">
+            <div class="card details-dept-card">
+                <div class="card-header-row">
+                    <h2 class="card-title">Departments</h2>
+                    <label class="visually-hidden" for="sortDept">Sort departments</label>
+                    <select class="select-mini" id="sortDept">
+                        <option value="Spend">Highest spend</option>
+                        <option value="Variance">Most over budget</option>
                     </select>
-                </h2>
-                <!-- overflow-y and grid-auto-rows added here to enforce scrolling -->
-                <div class="dept-grid-container" id="deptListContainer" style="flex: 1; min-height: 0; overflow-y: auto; grid-auto-rows: max-content;"></div>
-            </div>
-
-            <!-- CARD 3: Department Details -->
-            <div class="details-overview-card" style="min-height: 0; height: 100%;">
-                <h2 class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-                    <span id="card3Title" style="color: var(--text-primary)">Overview</span>
-                    
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <select class="select-mini" id="sortStream" onchange="renderCard3Details()">
-                            <option value="Spend">High Spend</option>
-                            <option value="Variance">Over Budget</option>
-                        </select>
-                    </div>
-                </h2>
-
-                <div style="display: flex; gap: 20px; align-items: flex-start; justify-content: space-around; margin-top: 10px; margin-bottom: 15px; flex-wrap: wrap;" id="card3DonutContainer">
-                    <!-- Javascript generates donuts here dynamically -->
                 </div>
-
-                <div style="font-size: 0.6rem; font-weight: 400; color: var(--text-secondary); margin-top: 15px; margin-bottom: 5px; text-transform: uppercase;" id="listLabel">Streams & Workstreams (Click to drill)</div>
-                <!-- overflow-y and grid-auto-rows added here to enforce scrolling -->
-                <div class="stream-grid-container" id="streamListContainer" style="flex: 1; min-height: 0; overflow-y: auto; grid-auto-rows: max-content;"></div>
+                <div class="dept-grid-container" id="deptListContainer"></div>
             </div>
-            
-        </div>
-        
-<!-- LEVEL 3 POPUP MODAL -->
-<div id="streamModal" class="modal">
+
+            <div class="card details-overview-card">
+                <div class="card-header-row">
+                    <h2 class="card-title" id="card3Title">Department</h2>
+                    <label class="visually-hidden" for="sortStream">Sort streams</label>
+                    <select class="select-mini" id="sortStream">
+                        <option value="Spend">Highest spend</option>
+                        <option value="Variance">Most over budget</option>
+                    </select>
+                </div>
+                <div class="overview-top">
+                    <div id="deptBullet"></div>
+                    <div id="deptDonorBars"></div>
+                </div>
+                <h3 class="section-label">Streams — select one to see its accounts</h3>
+                <div class="stream-grid-container" id="streamListContainer"></div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- Account drill-down -->
+<div id="streamModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalStreamTitle" aria-hidden="true">
     <div class="modal-content">
         <div class="modal-header">
             <div>
-                <h2 id="modalStreamTitle" style="margin: 0; color: var(--text-primary); font-size: 0.95rem; font-weight: 400;">Account Details</h2>
-                <span id="modalStreamSubtitle" style="font-size: 0.62rem; color: var(--text-secondary);"></span>
+                <h2 id="modalStreamTitle" class="modal-title"></h2>
+                <p id="modalStreamSubtitle" class="modal-subtitle"></p>
             </div>
-            <div class="modal-controls" style="display: flex; gap: 10px; align-items: center;">
-                <input type="text" id="modalSearch" class="search-box" placeholder="Search..." onkeyup="filterModalTable()">
-    
-                <!-- New dynamic link to Staff Dashboard -->
-                <a href="staff.html" id="btnStaffLink" style="display: none; background-color: var(--krn-light-blue); color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-decoration: none; text-transform: uppercase; transition: 0.2s;">Secure HR Portal &rarr;</a>
-    
-                <button onclick="exportModalCSV()" style="background-color: transparent; color: var(--krn-blue); border: 1px solid var(--krn-blue); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">Export CSV</button>
-                <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div class="modal-controls">
+                <label class="visually-hidden" for="modalSearch">Search accounts</label>
+                <input type="search" id="modalSearch" class="search-box" placeholder="Search accounts or codes">
+                <a href="staff.html" id="btnStaffLink" class="btn btn-solid" hidden>Open HR portal</a>
+                <button id="btnExportModal" class="btn btn-outline" type="button">Export CSV</button>
+                <button class="close-btn" type="button" data-close-modal aria-label="Close">&times;</button>
             </div>
         </div>
-
-        <div id="modalSummaryStats" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; flex-shrink: 0;">
-            <!-- Summary metrics injected here dynamically -->
-        </div>
-
+        <div id="modalSummaryStats" class="stat-grid"></div>
+        <p class="table-note">Monthly actuals, totals and budget in M PKR.</p>
         <div class="table-wrapper">
             <table class="detail-table">
-                <thead>
-                    <!-- Headers managed by JS for cross-tab mode -->
-                </thead>
+                <thead id="modalTableHead"></thead>
                 <tbody id="modalTableBody"></tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- Standard Script Tag -->
-<script src="app.js?v=FINAL"></script>
+<!-- Data checks -->
+<div id="auditModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="auditTitle" aria-hidden="true">
+    <div class="modal-content modal-wide">
+        <div class="modal-header">
+            <div>
+                <h2 id="auditTitle" class="modal-title">Data checks</h2>
+                <p class="modal-subtitle">Actuals placed without an exact account-code match, files that don't belong to this year, and the reconciliation to source.</p>
+            </div>
+            <div class="modal-controls">
+                <button id="btnExportAudit" class="btn btn-outline" type="button">Export CSV</button>
+                <button class="close-btn" type="button" data-close-modal aria-label="Close">&times;</button>
+            </div>
+        </div>
+        <div id="auditSummary" class="stat-grid"></div>
+        <div class="table-wrapper">
+            <table class="detail-table audit-table">
+                <thead>
+                    <tr><th>Level</th><th>Source</th><th>Item</th><th class="n">M PKR</th><th>Placed in</th><th>Why</th></tr>
+                </thead>
+                <tbody id="auditTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="app.js?v=2026.09.24"></script>
 </body>
 </html>

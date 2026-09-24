@@ -81,8 +81,6 @@ body.light-mode {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 
-/* FULLSCREEN RESPONSIVE CONTAINER */
-.dashboard-container { width: 100%; max-width: 100%; margin: 0 auto; padding: 0 5px; }
 
 /* ---------------- LOADING SCREEN ---------------- */
 .loading-overlay {
@@ -168,7 +166,6 @@ body.light-mode .header-logo img { filter: none; }
 .active-toggle .switch-thumb { transform: translateX(16px); background-color: #ffffff; }
 
 /* ---------------- MAIN LAYOUT ---------------- */
-.main-layout-wrapper { display: flex; width: 100%; gap: 12px; align-items: stretch; transition: all 0.4s ease; flex-wrap: wrap; }
 
 #summaryPanel, .details-dept-card, .details-overview-card {
     height: auto;
