@@ -1,767 +1,1133 @@
-// ========================================================================
-// 1. STATE & SECURITY PROTOCOL
-// ========================================================================
-let isDarkMode = false;
-let availableYears = ['FY2026', 'FY2027'];
-let selectedYear = availableYears[availableYears.length - 1];
-let selectedDepartment = 'All Departments';
-let selectedDonor = 'All Donors';
+'use strict';
+/* ==========================================================================
+   Karandaaz Pakistan — Staff cost dashboard (staff.html)
+   Needs common.js and bva-data.js loaded first.
+   --------------------------------------------------------------------------
+   1. Configuration     5. View model (totals, forecast, bridge, headcount)
+   2. Decryption        6. Rendering
+   3. Dates & columns   7. Modals & data checks
+   4. Parsing           8. Events & loading
+   ========================================================================== */
+(() => {
 
-const fiscalMonths = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-let selectedMonth = 'Jul'; 
+/* 1. CONFIGURATION ======================================================== */
 
-let granularity = 'Monthly'; 
-let periodView = 'QTD'; 
-let timeLabel = 'QTD'; 
+const STAFF_FILES = { master: 'Staff_Master.enc', budget: 'Staff_Budget.enc', actuals: 'Staff_Actuals.enc' };
+const LEGACY_CRYPTOJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';
+const ENC_PREFIX = 'KRNENC1';
 
-let tableView = 'Component'; 
+/* Departments in Budget.csv whose trial-balance actuals should match payroll. */
+const GL_STAFF_DEPARTMENTS = ['Staff cost'];
+const RECON_TOLERANCE = 0.02;                // flag months where payroll and ledger differ by > 2%
 
-let positionMaster = {}; 
-let unifiedLedger = []; 
-let activeMonths = [];
+const BASE = 'Base Salary (Inc. Encashments)';
+/* Paid once or twice a year: judged against the full-year budget, not the monthly phasing. */
+const LUMP_SUM = new Set(['LFA', 'Gratuity', 'Insurances (Health & Life)', 'Learning & Development', 'Performance']);
 
-let activeModalType = 'Component'; 
-let activeModalTarget = ''; 
-let activeModalTargetName = '';
+/* Staff amounts are smaller than programme lines, so tables show two decimals of M PKR. */
+const DP = 2;
 
-const annualComponents = ['LFA', 'Gratuity', 'Insurances (Health & Life)', 'Learning & Development', 'Performance'];
+const SPIKE_MIN_PCT = 0.10;                  // a component "spikes" if it rises ≥ 10% on the month…
+const SPIKE_MIN_PKR = 100000;                // …and by at least PKR 100k (or 1% of the month's payroll)
 
-async function unlockDashboard() {
-    const pwdInput = document.getElementById('authPassword').value;
-    const errObj = document.getElementById('authError');
-    if (!pwdInput) { errObj.innerText = "Please enter the decryption key."; errObj.style.display = 'block'; return; }
+/* Set to e.g. ['OSR', 'GF', 'FIP'] to fix the donor columns in Staff_Master.
+   Left as null, any column whose values are all percentages is treated as a donor split. */
+const DONOR_COLUMNS = null;
 
-    document.getElementById('authOverlay').style.display = 'none';
-    const loader = document.getElementById('loadingOverlay');
-    loader.classList.remove('hidden'); loader.style.opacity = '1'; loader.style.visibility = 'visible';
+/* Identifier columns, matched on normalised header names. */
+const ID_FIELDS = {
+    position: ['positioncode', 'positionid', 'position'],
+    employeeCode: ['employeecode', 'empcode', 'employeeid'],
+    name: ['employeename', 'name', 'employee'],
+    department: ['department', 'dept'],
+    designation: ['designation', 'jobtitle', 'title'],
+    grade: ['positiongrade', 'grade'],
+    gender: ['gender'],
+    joining: ['joiningdate', 'joiningdatenewagreementstartdate', 'dateofjoining', 'doj'],
+    agreement: ['newagreementstartdate', 'agreementstartdate'],
+    budgetedMonths: ['budgetedmonths'],
+    month: ['month', 'payrollmonth', 'period'],
+    cnic: ['cnic'],
+    serial: ['sno', 'srno', 'serialno']
+};
+
+/* Pay-component columns. Checked in order against the lower-cased header text.
+   Base salary is handled separately so only one base column is ever used. */
+const EXCLUDE_RE = /\b(gross|net|payable|tax|taxes|advance|advances|deduction|deductions|total|other|others)\b/;
+const COMPONENT_RULES = [
+    [/\bchild care\b/, 'Child Care'],
+    [/\bcar monet|\bcma\b/, 'Car Monetization'],
+    [/\bcola\b/, 'COLA'],
+    [/\bprovident\b|^pf$/, 'Provident Fund'],
+    [/\beobi\b/, 'EOBI'],
+    [/\bgratuity\b/, 'Gratuity'],
+    [/\blfa\b|leave fare/, 'LFA'],
+    [/\bwellness\b/, 'Wellness Allowance'],
+    [/health ins|life ins/, 'Insurances (Health & Life)'],
+    [/\blearning\b/, 'Learning & Development'],
+    [/\bperformance\b|one-off|one off/, 'Performance'],
+    [/\barrears?\b|\bovertime\b|leave encashment/, BASE]
+];
+/* When several base-salary columns exist, the first pattern that matches wins. */
+const BASE_PREFERENCE = [/base salary after inflation/, /updated base/, /^base salary$/, /\bbase\b/];
+
+/* 2. DECRYPTION =========================================================== */
+
+class WrongKeyError extends Error {}
+const keyCache = new Map();
+
+const b64ToBytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+
+async function deriveKey(passphrase, salt, iterations) {
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+}
+
+let cryptoJsPromise = null;
+function loadCryptoJS() {
+    if (window.CryptoJS) return Promise.resolve();
+    if (!cryptoJsPromise) {
+        cryptoJsPromise = new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = LEGACY_CRYPTOJS_URL;
+            s.onload = resolve;
+            s.onerror = () => reject(new Error('Could not load the decryption library for older files.'));
+            document.head.appendChild(s);
+        });
+    }
+    return cryptoJsPromise;
+}
+
+/* Files made with tools/encrypt.html:  KRNENC1$<iterations>$<salt>$<iv>$<ciphertext>  (AES-256-GCM, PBKDF2-SHA256).
+   Older files from CryptoJS ("U2FsdGVkX1…") still open, and are flagged for re-encryption. */
+async function decryptText(text, passphrase) {
+    const t = text.trim();
+    if (t.startsWith(`${ENC_PREFIX}$`)) {
+        const [, iterStr, saltB64, ivB64, ctB64] = t.split('$');
+        const cacheKey = `${iterStr}$${saltB64}`;
+        if (!keyCache.has(cacheKey)) keyCache.set(cacheKey, deriveKey(passphrase, b64ToBytes(saltB64), parseInt(iterStr, 10)));
+        try {
+            const key = await keyCache.get(cacheKey);
+            const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBytes(ivB64) }, key, b64ToBytes(ctB64));
+            return { text: new TextDecoder().decode(plain), legacy: false };
+        } catch (e) {
+            throw new WrongKeyError();
+        }
+    }
+    if (t.startsWith('U2FsdGVkX1')) {
+        await loadCryptoJS();
+        let out = '';
+        try { out = window.CryptoJS.AES.decrypt(t, passphrase).toString(window.CryptoJS.enc.Utf8); } catch (e) { out = ''; }
+        if (!out || !/position/i.test(out.split(/\r?\n/, 1)[0])) throw new WrongKeyError();
+        return { text: out, legacy: true };
+    }
+    throw new Error('A staff file is in an unrecognised format. Re-create it with tools/encrypt.html.');
+}
+
+/* 3. DATES & COLUMNS ====================================================== */
+
+const MONTH_NUM = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+const monthNum = s => MONTH_NUM[String(s).slice(0, 3).toLowerCase()];
+const fullYear = y => (y < 100 ? 2000 + y : y);
+const excelDate = n => new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86400000);
+/* Builds a date only if day and month are real (rejects 31/31/2020 instead of rolling it over). */
+function makeDate(y, m, d) {
+    const dt = new Date(y, m, d);
+    return dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d ? dt : null;
+}
+
+/* Accepts Excel serials, 05-Sept-22, 5 Sep 2022, Sep 5, 2022, 2022-09-05 and 05/09/2022 (day first). */
+function parseDateLoose(raw) {
+    const s = clean(raw);
+    if (!s) return null;
+    let m;
+    if (/^\d{5}(\.\d+)?$/.test(s)) {
+        const d = excelDate(parseFloat(s));
+        return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    }
+    if ((m = s.match(/^(\d{1,2})[-\/\s.]([A-Za-z]{3,9})[-\/\s.,]*(\d{2,4})$/)) && monthNum(m[2]) !== undefined) {
+        return makeDate(fullYear(+m[3]), monthNum(m[2]), +m[1]);
+    }
+    if ((m = s.match(/^([A-Za-z]{3,9})[-\s.]+(\d{1,2}),?[-\s]+(\d{4})$/)) && monthNum(m[1]) !== undefined) {
+        return makeDate(+m[3], monthNum(m[1]), +m[2]);
+    }
+    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return makeDate(+m[1], +m[2] - 1, +m[3]);
+    if ((m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/))) return makeDate(fullYear(+m[3]), +m[2] - 1, +m[1]);
+    return null;
+}
+
+const FISCAL_OF_CAL = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];   // calendar month → fiscal index
+const fiscalIdxOfDate = d => FISCAL_OF_CAL[d.getMonth()];
+
+/* Payroll month: "Jul-26", "July 2026", "Sept-26", an Excel serial or a full date. */
+function parsePayrollMonth(raw) {
+    const s = clean(raw);
+    if (!s) return null;
+    const label = parseMonthLabel(s);
+    if (label) return label;
+    const d = parseDateLoose(s);
+    if (!d) return null;
+    return { month: FISCAL_MONTHS[fiscalIdxOfDate(d)], year: d.getFullYear() };
+}
+
+function resolveIds(headers) {
+    const byNorm = new Map(headers.map(h => [normName(h), h]));
+    const out = {};
+    Object.entries(ID_FIELDS).forEach(([field, aliases]) => {
+        out[field] = null;
+        for (const a of aliases) if (byNorm.has(a)) { out[field] = byNorm.get(a); break; }
+    });
+    return out;
+}
+
+/* Maps pay-component columns and records what happened to every column. */
+function mapComponents(table, ids, fileLabel, ctx, { detectSign = false } = {}) {
+    const idHeaders = new Set(Object.values(ids).filter(Boolean));
+    const map = {};
+    const baseCandidates = [];
+    const columnSum = h => sum(table.rows.map(r => Math.abs(getSafeNum(r[h]))));
+
+    table.headers.forEach(h => {
+        if (!h) return;
+        const low = h.toLowerCase().replace(/\s+/g, ' ').trim();
+        if (idHeaders.has(h)) return ctx.column(fileLabel, h, 'Identifier');
+        if (EXCLUDE_RE.test(low)) return ctx.column(fileLabel, h, 'Not used (total, tax, net or deduction)');
+        const rule = COMPONENT_RULES.find(([re]) => re.test(low));
+        if (rule) { map[h] = rule[1]; return ctx.column(fileLabel, h, rule[1]); }
+        if (/\bbase\b/.test(low)) { baseCandidates.push(h); return; }
+        const total = columnSum(h);
+        ctx.column(fileLabel, h, 'Not used (not recognised)');
+        if (total > 0) {
+            ctx.flag({ severity: 'warn', source: fileLabel, description: h, amount: total, reason: 'Column has amounts but is not a recognised pay component, so it is left out. Add a rule in staff_app.js if it should count.' });
+        }
+    });
+
+    if (baseCandidates.length) {
+        const rank = h => BASE_PREFERENCE.findIndex(re => re.test(h.toLowerCase().replace(/\s+/g, ' ').trim()));
+        const chosen = [...baseCandidates].sort((x, y) => rank(x) - rank(y))[0];
+        map[chosen] = BASE;
+        baseCandidates.forEach(h => {
+            if (h === chosen) return ctx.column(fileLabel, h, BASE);
+            ctx.column(fileLabel, h, `Not used (second base-salary column; "${chosen}" is used)`);
+            ctx.flag({ severity: 'info', source: fileLabel, description: h, reason: `Several base-salary columns found. Only "${chosen}" is counted, to avoid double counting.` });
+        });
+    }
+
+    /* Some payroll exports store cost columns as negatives. If nearly every value in a
+       column is negative, flip it; otherwise keep signs so reversals net off. */
+    const invert = new Set();
+    if (detectSign) {
+        Object.keys(map).forEach(h => {
+            const vals = table.rows.map(r => getSafeNum(r[h])).filter(v => v !== 0);
+            const neg = vals.filter(v => v < 0).length;
+            if (vals.length >= 3 && neg / vals.length > 0.8) {
+                invert.add(h);
+                ctx.flag({ severity: 'info', source: fileLabel, description: h, reason: 'Values are stored as negatives, so the sign was flipped.' });
+            } else if (neg > 0) {
+                ctx.flag({ severity: 'info', source: fileLabel, description: h, amount: sum(vals.filter(v => v < 0)), reason: `${neg} negative ${neg === 1 ? 'entry' : 'entries'} (reversals or recoveries) netted against spend.` });
+            }
+        });
+    }
+    return { map, invert };
+}
+
+/* 4. PARSING ============================================================== */
+
+function isPercentLike(values) {
+    const nonEmpty = values.map(clean).filter(Boolean);
+    if (!nonEmpty.length) return false;
+    let anyPositive = false;
+    for (const v of nonEmpty) {
+        if (!/^-?\d+(\.\d+)?\s*%?$/.test(v)) return false;
+        const n = parseFloat(v);
+        if (n < 0 || n > 100) return false;
+        if (n > 0) anyPositive = true;
+    }
+    return anyPositive;
+}
+
+function parsePct(raw) {
+    const s = clean(raw);
+    if (!s) return 0;
+    let n = parseFloat(s.replace('%', ''));
+    if (isNaN(n)) return 0;
+    if (s.includes('%') || n > 1) n /= 100;
+    return n;
+}
+
+function parseMaster(table, ctx) {
+    const ids = resolveIds(table.headers);
+    if (!ids.position) throw new Error('Staff_Master has no "Position code" column.');
+    const idHeaders = new Set(Object.values(ids).filter(Boolean));
+
+    const donorCols = DONOR_COLUMNS
+        ? table.headers.filter(h => DONOR_COLUMNS.map(normName).includes(normName(h)))
+        : table.headers.filter(h => h && !idHeaders.has(h) && !/salary|amount|pkr|cnic|phone|email/i.test(h) && isPercentLike(table.rows.map(r => r[h])));
+    table.headers.forEach(h => {
+        if (!h) return;
+        ctx.column('Staff_Master', h, idHeaders.has(h) ? 'Identifier' : donorCols.includes(h) ? `Donor split (${h})` : 'Not used');
+    });
+
+    const positions = new Map();
+    const badSplits = [];
+    let defaulted = 0;
+    table.rows.forEach(r => {
+        const code = clean(r[ids.position]).toUpperCase();
+        if (!code) return;
+        if (positions.has(code)) {
+            ctx.flag({ severity: 'warn', source: 'Staff_Master', code, reason: 'Position code appears more than once; the last row is used.' });
+        }
+        const alloc = {};
+        donorCols.forEach(h => { const p = parsePct(r[h]); if (p > 0) alloc[h.trim()] = p; });
+        const total = sum(Object.values(alloc));
+        if (!Object.keys(alloc).length) { alloc[DEFAULT_DONOR] = 1; defaulted++; }
+        else if (Math.abs(total - 1) > 0.01) badSplits.push(`${code} (${Math.round(total * 100)}%)`);
+
+        const name = clean(r[ids.name]);
+        positions.set(code, {
+            code,
+            name: name || 'Vacant',
+            isVacantName: !name || /^vacant/i.test(name),
+            employeeCode: clean(r[ids.employeeCode]),
+            dept: clean(r[ids.department]) || 'Uncategorized',
+            designation: clean(r[ids.designation]),
+            alloc
+        });
+    });
+    if (badSplits.length) ctx.flag({ severity: 'warn', source: 'Staff_Master', description: badSplits.join(', '), reason: 'Donor split does not add up to 100%.' });
+    if (defaulted) ctx.flag({ severity: 'info', source: 'Staff_Master', reason: `${defaulted} position(s) have no donor split and are treated as 100% ${DEFAULT_DONOR}.` });
+    if (!donorCols.length) ctx.flag({ severity: 'info', source: 'Staff_Master', reason: `No donor split columns found; all positions treated as ${DEFAULT_DONOR}.` });
+    return { positions, donors: donorCols.map(h => h.trim()) };
+}
+
+function createStaffLedger() {
+    const rows = new Map();
+    return {
+        add(code, month, comp, { b = 0, a = 0 }) {
+            const key = `${code}|${month}`;
+            if (!rows.has(key)) rows.set(key, { code, month, comps: {} });
+            const r = rows.get(key);
+            if (!r.comps[comp]) r.comps[comp] = { b: 0, a: 0 };
+            r.comps[comp].b += b;
+            r.comps[comp].a += a;
+        },
+        values: () => [...rows.values()]
+    };
+}
+
+function parseStaffBudget(table, master, ctx) {
+    if (!table) return;
+    const ids = resolveIds(table.headers);
+    if (!ids.position) throw new Error('Staff_Budget has no "Position code" column.');
+    const { map } = mapComponents(table, ids, 'Staff_Budget', ctx);
+    const fyStart = new Date(ctx.fyEnd - 1, 6, 1);
+    const fyEndDate = new Date(ctx.fyEnd, 5, 30);
+    const unknown = new Set();
+    const badDates = [];
+
+    table.rows.forEach(r => {
+        const code = clean(r[ids.position]).toUpperCase();
+        if (!code) return;
+        if (!master.positions.has(code)) { unknown.add(code); return; }
+
+        const joinRaw = clean(r[ids.joining]) || clean(r[ids.agreement]);
+        const join = parseDateLoose(joinRaw);
+        if (joinRaw && !join) badDates.push(`${code} ("${joinRaw}")`);
+        if (join && join > fyEndDate) {
+            ctx.flag({ severity: 'info', source: 'Staff_Budget', code, reason: `Starts ${join.toDateString().slice(4)}, after ${ctx.year} ends; no budget placed this year.` });
+            return;
+        }
+        const startIdx = join && join > fyStart ? fiscalIdxOfDate(join) : 0;
+        let bMonths = parseInt(clean(r[ids.budgetedMonths]), 10) || 12;
+        if (bMonths <= 0) bMonths = 12;
+
+        const monthly = {};
+        Object.entries(map).forEach(([h, comp]) => {
+            let v = getSafeNum(r[h]);
+            if (LUMP_SUM.has(comp)) v /= bMonths;   // annual amount spread over the budgeted months
+            monthly[comp] = (monthly[comp] || 0) + v;
+        });
+        for (let i = startIdx; i < Math.min(12, startIdx + bMonths); i++) {
+            Object.entries(monthly).forEach(([comp, v]) => { if (v) ctx.ledger.add(code, FISCAL_MONTHS[i], comp, { b: v }); });
+        }
+    });
+    if (unknown.size) ctx.flag({ severity: 'warn', source: 'Staff_Budget', description: [...unknown].join(', '), reason: 'Position code not in Staff_Master; budget left out.' });
+    if (badDates.length) ctx.flag({ severity: 'warn', source: 'Staff_Budget', description: badDates.join(', '), reason: 'Joining date could not be read; budget starts in July.' });
+}
+
+function parseStaffActuals(table, master, ctx) {
+    if (!table) return;
+    const ids = resolveIds(table.headers);
+    if (!ids.position || !ids.month) throw new Error('Staff_Actuals needs "Position code" and "Month" columns.');
+    const { map, invert } = mapComponents(table, ids, 'Staff_Actuals', ctx, { detectSign: true });
+    const unknown = new Map();
+    const outside = new Map();
+
+    table.rows.forEach(r => {
+        const code = clean(r[ids.position]).toUpperCase();
+        if (!code) return;
+        const rowTotal = () => sum(Object.keys(map).map(h => getSafeNum(r[h]) * (invert.has(h) ? -1 : 1)));
+        if (!master.positions.has(code)) { unknown.set(code, (unknown.get(code) || 0) + rowTotal()); return; }
+        const p = parsePayrollMonth(r[ids.month]);
+        if (!p || !inFiscalYear(p, ctx.fyEnd)) {
+            const label = clean(r[ids.month]) || '(blank)';
+            outside.set(label, (outside.get(label) || 0) + rowTotal());
+            return;
+        }
+        Object.entries(map).forEach(([h, comp]) => {
+            const v = getSafeNum(r[h]) * (invert.has(h) ? -1 : 1);
+            if (v) ctx.ledger.add(code, p.month, comp, { a: v });
+        });
+    });
+    unknown.forEach((amt, code) => ctx.flag({ severity: 'warn', source: 'Staff_Actuals', code, amount: amt, reason: 'Position code not in Staff_Master; pay left out.' }));
+    outside.forEach((amt, label) => ctx.flag({ severity: 'error', source: 'Staff_Actuals', description: `Month "${label}"`, amount: amt, reason: `Month is outside ${ctx.year} or unreadable; rows ignored.` }));
+}
+
+function buildStaffDataset(year, texts) {
+    const fyEnd = parseInt((year.match(/\d{4}/) || ['2027'])[0], 10);
+    const audit = [];
+    const columns = [];
+    const ctx = {
+        year, fyEnd, ledger: createStaffLedger(),
+        flag: e => audit.push(e),
+        column: (file, column, use) => { columns.push({ file, column, use }); }
+    };
+    const master = parseMaster(readCSV(texts.master), ctx);
+    parseStaffBudget(readCSV(texts.budget), master, ctx);
+    parseStaffActuals(readCSV(texts.actuals), master, ctx);
+
+    const ledger = ctx.ledger.values();
+    const asOfIdx = Math.max(-1, ...ledger.filter(r => Object.values(r.comps).some(c => c.a !== 0)).map(r => MONTH_INDEX[r.month]));
+    const components = [...new Set(ledger.flatMap(r => Object.keys(r.comps)))];
+    const payrollByMonth = Array(12).fill(0);
+    ledger.forEach(r => { payrollByMonth[MONTH_INDEX[r.month]] += sum(Object.values(r.comps).map(c => c.a)); });
+
+    return { year, fyEnd, positions: master.positions, donors: master.donors, ledger, components, asOfIdx, payrollByMonth, audit, columns, legacy: false, recon: null };
+}
+
+/* Compares payroll to the trial-balance departments in GL_STAFF_DEPARTMENTS, month by month. */
+function reconcileToLedger(staff, bva) {
+    const gl = Array(12).fill(0);
+    bva.rows.forEach(r => { if (GL_STAFF_DEPARTMENTS.includes(r.Department)) gl[MONTH_INDEX[r.Month]] += r.Actual; });
+    const months = FISCAL_MONTHS.filter((m, i) => i <= staff.asOfIdx);
+    const byMonth = months.map(m => {
+        const i = MONTH_INDEX[m];
+        const payroll = staff.payrollByMonth[i];
+        const ledger = gl[i];
+        return { month: m, payroll, ledger, diff: payroll - ledger, ok: ledger ? Math.abs(payroll - ledger) / Math.abs(ledger) <= RECON_TOLERANCE : payroll === 0 };
+    });
+    byMonth.forEach(x => {
+        staff.audit.push({
+            severity: x.ok ? 'info' : 'warn', source: 'Ledger reconciliation', description: MONTH_LONG[x.month], amount: x.diff,
+            reason: `Payroll ${fmtM(x.payroll)} vs ledger "${GL_STAFF_DEPARTMENTS.join(', ')}" ${fmtM(x.ledger)} M PKR${x.ok ? ', within tolerance' : ''}.`
+        });
+    });
+    return { gl, byMonth };
+}
+
+/* 5. VIEW MODEL =========================================================== */
+
+const S = {
+    passphrase: null,
+    years: [],
+    year: null,
+    data: null,
+    dept: 'All Departments',
+    donor: ALL_DONORS,
+    granularity: 'Monthly',
+    viewMode: 'QTD',
+    period: 'Jul',
+    tab: 'component',
+    empSort: { key: 'fyVar', dir: 1 },
+    modal: null,
+    view: null
+};
+const ALL_DEPTS = 'All Departments';
+
+function blank() { return { b: 0, a: 0, pace: 0 }; }
+
+function computeView() {
+    const d = S.data;
+    const asOf = d.asOfIdx;
+    const scope = new Set(scopeMonthsFor(S.granularity, S.viewMode, S.period));
+    const scopeIdx = [...scope].map(m => MONTH_INDEX[m]);
+    const scopeEnd = Math.max(...scopeIdx);
+    const focusIdx = Math.min(scopeEnd, asOf);   // month used for headcount and month-on-month
+
+    const total = blank();
+    const comps = new Map();
+    const emps = new Map();
+    const donorB = {};
+    const donorA = {};
+    const monthA = Array(12).fill(0);
+    const compMonthA = new Map();
+    const paid = Array.from({ length: 12 }, () => new Set());
+    const budgeted = Array.from({ length: 12 }, () => new Set());
+
+    d.ledger.forEach(row => {
+        const pos = d.positions.get(row.code);
+        if (S.dept !== ALL_DEPTS && pos.dept !== S.dept) return;
+        const share = S.donor === ALL_DONORS ? 1 : (pos.alloc[S.donor] || 0);
+        if (!share) return;
+
+        const mi = MONTH_INDEX[row.month];
+        const inScope = scope.has(row.month);
+        const closed = mi <= asOf;
+        if (!emps.has(row.code)) {
+            emps.set(row.code, { code: row.code, pos, pA: 0, pB: 0, pRegA: 0, pRegB: 0, ytdA: 0, fyB: 0, byComp: {}, vacantMonths: 0 });
+        }
+        const e = emps.get(row.code);
+        let rowRegB = 0;
+        let rowA = 0;
+        let rowScopeB = 0;
+        let rowScopeA = 0;
+
+        Object.entries(row.comps).forEach(([name, v]) => {
+            const b = v.b * share;
+            const a = v.a * share;
+            const lump = LUMP_SUM.has(name);
+            if (!comps.has(name)) comps.set(name, { name, lump, ...blank(), fyB: 0, ytdA: 0 });
+            const c = comps.get(name);
+            if (!e.byComp[name]) e.byComp[name] = { tdA: 0, tdB: 0, restB: 0, fyB: 0 };
+            const ec = e.byComp[name];
+
+            c.fyB += b; ec.fyB += b; e.fyB += b;
+            if (closed) { c.ytdA += a; ec.tdA += a; ec.tdB += b; e.ytdA += a; } else { ec.restB += b; }
+            if (!lump) rowRegB += b;
+            rowA += a;
+            monthA[mi] += a;
+            if (!compMonthA.has(name)) compMonthA.set(name, Array(12).fill(0));
+            compMonthA.get(name)[mi] += a;
+
+            if (inScope) {
+                c.b += b; c.a += a; if (closed) c.pace += b;
+                total.b += b; total.a += a; if (closed) total.pace += b;
+                e.pB += b; e.pA += a;
+                if (!lump) { e.pRegB += b; e.pRegA += a; }
+                rowScopeB += b; rowScopeA += a;
+            }
+        });
+
+        if (rowRegB > 0) budgeted[mi].add(row.code);
+        if (rowA > 0) paid[mi].add(row.code);
+        if (closed && rowRegB > 0 && rowA === 0) e.vacantMonths++;
+        if (inScope) {
+            const split = S.donor === ALL_DONORS ? pos.alloc : { [S.donor]: 1 };
+            Object.entries(split).forEach(([don, p]) => {
+                donorB[don] = (donorB[don] || 0) + rowScopeB * p;
+                donorA[don] = (donorA[don] || 0) + rowScopeA * p;
+            });
+        }
+    });
+
+    /* Forecast = actual to date + budget for the months still to come.
+       Lump-sum items: whichever is higher of paid so far and the full-year budget. */
+    const bridge = { vacant: 0, filled: 0, unbudgeted: 0, lump: 0 };
+    let fyB = 0;
+    let forecast = 0;
+    emps.forEach(e => {
+        let regVar = 0;
+        let regTdA = 0;
+        let regTdB = 0;
+        e.forecast = 0;
+        Object.entries(e.byComp).forEach(([name, c]) => {
+            if (LUMP_SUM.has(name)) {
+                const f = Math.max(c.tdA, c.fyB);
+                e.forecast += f;
+                bridge.lump += c.fyB - f;
+            } else {
+                e.forecast += c.tdA + c.restB;
+                regVar += c.tdB - c.tdA;
+                regTdA += c.tdA;
+                regTdB += c.tdB;
+            }
+        });
+        e.fyVar = e.fyB - e.forecast;
+        if (e.fyB === 0 && regTdA !== 0) bridge.unbudgeted += regVar;
+        else if (regTdB > 0 && Math.abs(regTdA) < 1) bridge.vacant += regVar;
+        else bridge.filled += regVar;
+        fyB += e.fyB;
+        forecast += e.forecast;
+    });
+
+    /* Headcount and cost per head, both for the same month. */
+    const filled = paid[focusIdx] ? paid[focusIdx].size : 0;
+    const budgetedHeads = budgeted[focusIdx] ? budgeted[focusIdx].size : 0;
+    const unbudgetedPaid = focusIdx >= 0 ? [...paid[focusIdx]].filter(c => !budgeted[focusIdx].has(c)).length : 0;
+    const costMonths = scopeIdx.filter(i => i <= asOf);
+    const headMonths = sum(costMonths.map(i => paid[i].size));
+    const avgCostPerHead = headMonths ? sum(costMonths.map(i => monthA[i])) / headMonths : null;
+
+    /* Month on month: the focus month against the one before it. */
+    let mom = null;
+    const spikes = [];
+    if (focusIdx >= 1) {
+        const last = monthA[focusIdx];
+        const prev = monthA[focusIdx - 1];
+        mom = { last, prev, lastM: FISCAL_MONTHS[focusIdx], prevM: FISCAL_MONTHS[focusIdx - 1] };
+        const minRise = Math.max(SPIKE_MIN_PKR, 0.01 * last);
+        compMonthA.forEach((arr, name) => {
+            if (LUMP_SUM.has(name)) return;
+            const p = arr[focusIdx - 1];
+            const l = arr[focusIdx];
+            if (p > 0 && (l - p) / p >= SPIKE_MIN_PCT && l - p >= minRise) spikes.push({ name, pct: (l - p) / p, rise: l - p });
+        });
+        spikes.sort((x, y) => y.rise - x.rise);
+    }
+
+    return {
+        scope, scopeEnd, focusIdx, total, comps, emps, donorB, donorA,
+        fyB, forecast, bridge,
+        filled, budgetedHeads, unbudgetedPaid, avgCostPerHead, mom, spikes: spikes.slice(0, 3)
+    };
+}
+
+/* Status for a component. Lump-sum items are judged on the full year: over only if
+   paid to date already exceeds the full-year budget. */
+function compStatus(c) {
+    if (c.lump) return c.fyB <= 0 ? (c.ytdA > 0 ? 'over' : 'neutral') : (c.ytdA > c.fyB ? 'over' : 'ontrack');
+    return statusOf(c);
+}
+
+/* 6. RENDERING ============================================================ */
+
+const periodLabel = () => periodLabelFor({ granularity: S.granularity, viewMode: S.viewMode, period: S.period, year: S.year, fyEnd: S.data.fyEnd });
+const monthLabel = i => (i >= 0 ? monthYearLabelFor(FISCAL_MONTHS[i], S.data.fyEnd) : '');
+
+function render() {
+    if (!S.data) return;
+    const v = computeView();
+    S.view = v;
+    renderHeader(v);
+    renderPeriodCard(v);
+    renderTeamCard(v);
+    renderBridge(v);
+    renderVacancies(v);
+    if (S.tab === 'component') renderComponents(v); else renderEmployees(v);
+}
+
+function renderHeader(v) {
+    const variance = v.fyB - v.forecast;
+    animateNumber($('kpiFyBudget'), v.fyB, x => moneyHtml(x));
+    animateNumber($('kpiForecast'), v.forecast, x => moneyHtml(x));
+    animateNumber($('kpiForecastVar'), variance, x => `<span class="num">${fmtVariance(x, DP)}</span><span class="unit">M PKR</span>`);
+    $('kpiForecastVar').classList.toggle('is-over', variance < 0);
+    $('kpiForecastVarSub').textContent = variance < 0 ? 'Over budget' : 'Under budget';
+    $('kpiHeadcount').innerHTML = `<span class="num">${v.filled}</span><span class="unit">of ${v.budgetedHeads}</span>`;
+    $('kpiHeadcountSub').textContent = v.focusIdx >= 0
+        ? `${monthLabel(v.focusIdx)}${v.unbudgetedPaid ? `, +${v.unbudgetedPaid} unbudgeted` : ''}`
+        : 'No payroll yet';
+    $('asOfStamp').textContent = S.data.asOfIdx >= 0 ? `Payroll through ${monthLabel(S.data.asOfIdx)}` : 'No payroll recorded yet';
+}
+
+function renderDataCheckChip() {
+    const chip = $('dataCheckChip');
+    const issues = S.data.audit.filter(a => a.severity !== 'info').length;
+    chip.hidden = false;
+    chip.classList.toggle('has-issues', issues > 0);
+    chip.textContent = issues ? `${issues} data ${issues === 1 ? 'item' : 'items'} to review` : 'Data checks passed';
+}
+
+function renderPeriodCard(v) {
+    const t = v.total;
+    $('periodCaption').textContent = periodLabel();
+    animateNumber($('periodBudget'), t.b, x => moneyHtml(x, DP));
+    animateNumber($('periodActual'), t.a, x => moneyHtml(x, DP));
+    animateNumber($('periodVariance'), t.b - t.a, x => `<span class="num">${fmtVariance(x, DP)}</span><span class="unit">M PKR</span>`);
+    $('periodVariance').classList.toggle('is-over', t.b - t.a < 0);
+    $('periodBullet').innerHTML = bulletChart(t);
+    $('periodDonorBars').innerHTML = donorBars(v.donorB, v.donorA);
+
+    /* Payroll vs ledger for the same months, only when nothing is filtered. */
+    const note = $('reconNote');
+    const recon = S.data.recon;
+    if (!recon || S.dept !== ALL_DEPTS || S.donor !== ALL_DONORS) { note.hidden = true; return; }
+    const months = [...v.scope].filter(m => MONTH_INDEX[m] <= S.data.asOfIdx);
+    const payroll = sum(months.map(m => S.data.payrollByMonth[MONTH_INDEX[m]]));
+    const ledger = sum(months.map(m => recon.gl[MONTH_INDEX[m]]));
+    if (!months.length) { note.hidden = true; return; }
+    const diffPct = ledger ? ((payroll - ledger) / Math.abs(ledger)) * 100 : null;
+    const ok = diffPct !== null && Math.abs(diffPct) <= RECON_TOLERANCE * 100;
+    note.hidden = false;
+    note.className = `recon-note ${ok ? 'is-ok' : 'is-off'}`;
+    note.innerHTML = `Ledger staff cost for these months: <strong>${fmtM(ledger, DP)}</strong> M PKR. `
+        + (diffPct === null ? 'No ledger amount to compare.' : `Payroll is ${Math.abs(diffPct).toFixed(1)}% ${diffPct >= 0 ? 'higher' : 'lower'}.`);
+}
+
+function renderTeamCard(v) {
+    $('avgCostPerHead').innerHTML = v.avgCostPerHead === null ? '<span class="num">—</span>' : moneyHtml(v.avgCostPerHead, 2);
+    const momEl = $('momChange');
+    const momSub = $('momSub');
+    if (!v.mom || !v.mom.prev) {
+        momEl.innerHTML = '<span class="num">—</span>';
+        momEl.className = 'kpi-value';
+        momSub.textContent = v.mom ? `No payroll in ${MONTH_LONG[v.mom.prevM]}` : 'Needs a previous month';
+    } else {
+        const diff = v.mom.last - v.mom.prev;
+        const pct = (diff / v.mom.prev) * 100;
+        momEl.innerHTML = `<span class="num">${diff >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(1)}%</span>`;
+        momEl.className = `kpi-value ${diff > 0 ? 'is-rise' : 'is-fall'}`;
+        momSub.textContent = `${diff >= 0 ? '+' : '−'}${fmtM(Math.abs(diff), 2)} M PKR, ${MONTH_LONG[v.mom.prevM]} to ${MONTH_LONG[v.mom.lastM]}`;
+    }
+    $('spikeList').innerHTML = v.spikes.length
+        ? v.spikes.map(s => `<li><span class="spike-name">${escapeHtml(s.name)}</span><span class="spike-val">+${Math.round(s.pct * 100)}% (+${fmtM(s.rise, 2)} M)</span></li>`).join('')
+        : '<li class="empty-note">No component rose sharply on the month.</li>';
+}
+
+function renderBridge(v) {
+    const b = v.bridge;
+    const steps = [
+        { label: 'Vacant positions', value: b.vacant, tip: 'Budget to date for positions with no payroll to date' },
+        { label: 'Pay on filled positions', value: b.filled, tip: 'Budget to date minus payroll to date for everyone paid' },
+        { label: 'Unbudgeted positions', value: b.unbudgeted, tip: 'Payroll for positions with no budget this year' },
+        { label: 'Lump-sum overruns', value: b.lump, tip: 'Lump-sum items already paid above their full-year budget' }
+    ].filter(s => Math.abs(s.value) >= 1000);
+    /* Totals share one scale; steps share their own, so small steps stay visible. */
+    const totalScale = Math.max(v.fyB, v.forecast, 1);
+    const stepScale = Math.max(...steps.map(s => Math.abs(s.value)), 1);
+    const pct = (x, scale) => `${((Math.abs(x) / scale) * 100).toFixed(2)}%`;
+    const total = (label, value) => `<div class="bridge-row is-total">
+        <span class="bridge-label">${label}</span>
+        <span class="bridge-track"><span class="bridge-bar is-total" style="--w:${pct(value, totalScale)}"></span></span>
+        <span class="bridge-val">${fmtM(value, DP)}</span>
+    </div>`;
+    const rows = steps.map(s => `<div class="bridge-row" data-tip="${escapeHtml(s.tip)}">
+        <span class="bridge-label">${s.value >= 0 ? 'Less' : 'Add'}: ${escapeHtml(s.label.toLowerCase())}</span>
+        <span class="bridge-track is-step"><span class="bridge-bar ${s.value >= 0 ? 'is-fav' : 'is-adv'}" style="--w:${pct(s.value, stepScale)}"></span></span>
+        <span class="bridge-val ${s.value < 0 ? 'is-over' : 'is-fav-text'}">${s.value >= 0 ? '−' : '+'}${fmtM(Math.abs(s.value), DP)}</span>
+    </div>`).join('');
+    $('bridgeBody').innerHTML = total('FY budget', v.fyB)
+        + (rows || '<p class="empty-note">No variance to date.</p>')
+        + total('FY forecast', v.forecast);
+}
+
+function renderVacancies(v) {
+    const list = [...v.emps.values()]
+        .filter(e => e.pRegB > 0 && Math.abs(e.pRegA) < 1)
+        .sort((x, y) => y.pRegB - x.pRegB);
+    $('vacancyCount').textContent = list.length ? `${list.length}` : '';
+    $('vacancyTotal').textContent = list.length ? `${fmtM(sum(list.map(e => e.pRegB)), DP)} M PKR unspent this period` : '';
+    const show = list.slice(0, 6);
+    $('vacancyList').innerHTML = show.length
+        ? show.map(e => `<li>
+            <div class="vac-main">
+                <div class="vac-title">${escapeHtml(e.pos.designation || e.pos.code)}</div>
+                <div class="vac-sub">${escapeHtml(e.pos.dept)}, ${escapeHtml(e.pos.code)}${e.pos.isVacantName ? '' : `, ${escapeHtml(e.pos.name)}`}</div>
+            </div>
+            <div class="vac-side">
+                <div class="vac-amt">${fmtM(e.pRegB, DP)}</div>
+                <div class="vac-sub">${e.vacantMonths} ${e.vacantMonths === 1 ? 'month' : 'months'} unpaid</div>
+            </div>
+        </li>`).join('') + (list.length > show.length ? `<li class="vac-more">and ${list.length - show.length} more</li>` : '')
+        : '<li class="empty-note">Every budgeted position was paid in this period.</li>';
+}
+
+function renderComponents(v) {
+    const term = $('mainSearch').value.trim().toLowerCase();
+    const items = [...v.comps.values()]
+        .filter(c => c.b !== 0 || c.a !== 0)
+        .filter(c => !term || c.name.toLowerCase().includes(term))
+        .sort((x, y) => y.a - x.a || y.b - x.b);
+    const scale = Math.max(...items.map(c => Math.max(c.a, c.b)), 1);
+    const totalA = v.total.a;
+
+    $('componentBars').innerHTML = items.length ? items.map(c => {
+        const s = compStatus(c);
+        const variance = c.b - c.a;
+        const tip = c.lump
+            ? `${c.name}: paid as a lump sum. Paid to date ${fmtM(c.ytdA, DP)} of ${fmtM(c.fyB, DP)} M PKR full-year budget.`
+            : statusTip(c).replace(/^[^:]+/, c.name);
+        return `<div class="comp-row" tabindex="0" role="button" data-comp="${escapeHtml(c.name)}">
+            <div class="comp-name">
+                <span class="status-dot status-${s}" data-tip="${escapeHtml(tip)}"></span>
+                <span class="comp-label">${escapeHtml(c.name)}${c.lump ? ' <span class="lump-tag" data-tip="Paid once or twice a year; status compares paid to date with the full-year budget">Lump sum</span>' : ''}</span>
+            </div>
+            <div class="comp-bars" data-tip="${escapeHtml(`Budget ${fmtM(c.b, DP)} M, actual ${fmtM(c.a, DP)} M PKR`)}">
+                <span class="comp-budget" style="--w:${((Math.max(0, c.b) / scale) * 100).toFixed(2)}%"></span>
+                <span class="comp-actual status-${s}" style="--w:${((Math.max(0, c.a) / scale) * 100).toFixed(2)}%"></span>
+            </div>
+            <div class="n comp-num">${fmtM(c.a, DP)}</div>
+            <div class="n comp-num muted">${fmtM(c.b, DP)}</div>
+            <div class="n comp-num ${variance < 0 ? 'is-over' : ''}">${fmtVariance(variance, DP)}</div>
+            <div class="n comp-num muted">${fmtPct(pctOf(c.a, totalA))}</div>
+        </div>`;
+    }).join('') : `<p class="empty-note">${term ? `No component matches “${escapeHtml(term)}”.` : 'No payroll for this selection.'}</p>`;
+}
+
+const EMP_COLUMNS = [
+    { key: 'name', label: 'Position', num: false },
+    { key: 'pA', label: 'Period actual', num: true },
+    { key: 'ytdA', label: 'Actual to date', num: true },
+    { key: 'forecast', label: 'FY forecast', num: true },
+    { key: 'fyB', label: 'FY budget', num: true },
+    { key: 'fyVar', label: 'FY variance', num: true }
+];
+
+function renderEmployees(v) {
+    const term = $('mainSearch').value.trim().toLowerCase();
+    const { key, dir } = S.empSort;
+    const list = [...v.emps.values()]
+        .filter(e => e.pA !== 0 || e.fyB !== 0 || e.ytdA !== 0)
+        .filter(e => !term || [e.code, e.pos.name, e.pos.designation, e.pos.dept].some(x => (x || '').toLowerCase().includes(term)))
+        .sort((x, y) => {
+            const a = key === 'name' ? x.pos.name.toLowerCase() : x[key];
+            const b = key === 'name' ? y.pos.name.toLowerCase() : y[key];
+            return (a < b ? -1 : a > b ? 1 : 0) * dir;
+        });
+
+    $('empTableHead').innerHTML = `<tr>${EMP_COLUMNS.map(c => {
+        const active = c.key === key;
+        const arrow = active ? (dir === 1 ? ' ▲' : ' ▼') : '';
+        return `<th class="${c.num ? 'n' : ''}" aria-sort="${active ? (dir === 1 ? 'ascending' : 'descending') : 'none'}"><button type="button" class="th-sort" data-sort="${c.key}">${c.label}${arrow}</button></th>`;
+    }).join('')}</tr>`;
+
+    $('empTableBody').innerHTML = list.length ? list.map(e => `<tr class="clickable-tr" tabindex="0" data-emp="${escapeHtml(e.code)}">
+        <td>
+            <div class="acc-name">${escapeHtml(e.pos.name)}</div>
+            <div class="acc-code">${escapeHtml([e.code, e.pos.designation, e.pos.dept].filter(Boolean).join(', '))}</div>
+        </td>
+        <td class="n">${fmtM(e.pA, 2)}</td>
+        <td class="n">${fmtM(e.ytdA, 2)}</td>
+        <td class="n actual">${fmtM(e.forecast, 2)}</td>
+        <td class="n">${fmtM(e.fyB, 2)}</td>
+        <td class="n ${e.fyVar < 0 ? 'is-over' : ''}">${fmtVariance(e.fyVar, 2)}</td>
+    </tr>`).join('') : `<tr><td colspan="6" class="empty-note">${term ? `No one matches “${escapeHtml(term)}”.` : 'No positions for this selection.'}</td></tr>`;
+
+    const t = list.reduce((acc, e) => { ['pA', 'ytdA', 'forecast', 'fyB', 'fyVar'].forEach(k => { acc[k] += e[k]; }); return acc; }, { pA: 0, ytdA: 0, forecast: 0, fyB: 0, fyVar: 0 });
+    $('empTableFoot').innerHTML = `<tr>
+        <td>Total, ${list.length} ${list.length === 1 ? 'position' : 'positions'}</td>
+        <td class="n">${fmtM(t.pA, 2)}</td><td class="n">${fmtM(t.ytdA, 2)}</td>
+        <td class="n actual">${fmtM(t.forecast, 2)}</td><td class="n">${fmtM(t.fyB, 2)}</td>
+        <td class="n ${t.fyVar < 0 ? 'is-over' : ''}">${fmtVariance(t.fyVar, 2)}</td>
+    </tr>`;
+}
+
+function setTab(tab) {
+    S.tab = tab;
+    document.querySelectorAll('[data-tab]').forEach(b => {
+        const on = b.dataset.tab === tab;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
+    });
+    $('componentView').hidden = tab !== 'component';
+    $('employeeView').hidden = tab !== 'employee';
+    $('mainSearch').value = '';
+    $('mainSearch').placeholder = tab === 'component' ? 'Search components' : 'Search name, code, designation';
+    render();
+}
+
+/* 7. MODALS & DATA CHECKS ================================================= */
+
+function modalRows() {
+    const { type, target } = S.modal;
+    const months = FISCAL_MONTHS.filter(m => S.view.scope.has(m));
+    const groups = new Map();
+    S.data.ledger.forEach(row => {
+        if (!S.view.scope.has(row.month)) return;
+        const pos = S.data.positions.get(row.code);
+        if (S.dept !== ALL_DEPTS && pos.dept !== S.dept) return;
+        const share = S.donor === ALL_DONORS ? 1 : (pos.alloc[S.donor] || 0);
+        if (!share) return;
+        if (type === 'employee' && row.code !== target) return;
+        Object.entries(row.comps).forEach(([name, v]) => {
+            if (type === 'component' && name !== target) return;
+            const key = type === 'component' ? row.code : name;
+            if (!groups.has(key)) {
+                groups.set(key, type === 'component'
+                    ? { key, title: pos.name, sub: [row.code, pos.designation, pos.dept].filter(Boolean).join(', '), byMonth: {}, a: 0, b: 0 }
+                    : { key, title: name, sub: LUMP_SUM.has(name) ? 'Lump sum' : '', byMonth: {}, a: 0, b: 0 });
+            }
+            const g = groups.get(key);
+            g.byMonth[row.month] = (g.byMonth[row.month] || 0) + v.a * share;
+            g.a += v.a * share;
+            g.b += v.b * share;
+        });
+    });
+    const list = [...groups.values()].filter(g => g.a !== 0 || g.b !== 0);
+    if (type === 'employee') list.sort((x, y) => (x.key === BASE ? -1 : y.key === BASE ? 1 : y.a - x.a));
+    else list.sort((x, y) => y.a - x.a);
+    return { months, list };
+}
+
+function openBreakdown(type, target) {
+    S.modal = { type, target };
+    if (type === 'component') {
+        $('modalTitle').textContent = target;
+        $('modalSearch').placeholder = 'Search name, code, designation';
+    } else {
+        const pos = S.data.positions.get(target);
+        $('modalTitle').textContent = pos.name;
+        $('modalSearch').placeholder = 'Search components';
+    }
+    const scopeText = [periodLabel(), S.dept !== ALL_DEPTS ? S.dept : '', S.donor !== ALL_DONORS ? `${S.donor} share only` : ''].filter(Boolean).join(', ');
+    $('modalSubtitle').textContent = type === 'employee'
+        ? `${[target, S.data.positions.get(target).designation].filter(Boolean).join(', ')}. ${scopeText}`
+        : scopeText;
+    if (type === 'component' && LUMP_SUM.has(target) && S.view.comps.has(target)) {
+        const c = S.view.comps.get(target);
+        $('modalSubtitle').textContent += `. Paid as a lump sum: ${fmtM(c.ytdA, DP)} paid to date against a full-year budget of ${fmtM(c.fyB, DP)} M PKR.`;
+    }
+    $('modalSearch').value = '';
+
+    const { list } = modalRows();
+    const tB = sum(list.map(g => g.b));
+    const tA = sum(list.map(g => g.a));
+    $('modalStats').innerHTML = `
+        <div class="stat"><div class="stat-val">${moneyHtml(tB, 2)}</div><div class="stat-lbl">Budget</div></div>
+        <div class="stat"><div class="stat-val actual">${moneyHtml(tA, 2)}</div><div class="stat-lbl">Actual</div></div>
+        <div class="stat"><div class="stat-val"><span class="num">${fmtPct(pctOf(tA, tB))}</span></div><div class="stat-lbl">Spent</div></div>
+        <div class="stat"><div class="stat-val ${tB - tA < 0 ? 'is-over' : ''}"><span class="num">${fmtVariance(tB - tA, 2)}</span><span class="unit">M PKR</span></div><div class="stat-lbl">Variance</div></div>`;
+    renderModalTable();
+    openModal('breakdownModal');
+}
+
+function renderModalTable() {
+    if (!S.modal) return;
+    const { months, list } = modalRows();
+    const term = $('modalSearch').value.trim().toLowerCase();
+    const items = list.filter(g => !term || `${g.title} ${g.sub}`.toLowerCase().includes(term));
+    const first = S.modal.type === 'component' ? 'Position' : 'Component';
+    $('modalTableHead').innerHTML = `<tr><th>${first}</th>${months.map(m => `<th class="n">${m}</th>`).join('')}<th class="n">Actual</th><th class="n">Budget</th><th class="n">Variance</th></tr>`;
+    $('modalTableBody').innerHTML = items.length ? items.map(g => `<tr>
+        <td><div class="acc-name">${escapeHtml(g.title)}</div>${g.sub ? `<div class="acc-code">${escapeHtml(g.sub)}</div>` : ''}</td>
+        ${months.map(m => `<td class="n">${g.byMonth[m] ? fmtM(g.byMonth[m], 2) : '–'}</td>`).join('')}
+        <td class="n actual">${fmtM(g.a, 2)}</td>
+        <td class="n">${fmtM(g.b, 2)}</td>
+        <td class="n ${g.b - g.a < 0 ? 'is-over' : ''}">${fmtVariance(g.b - g.a, 2)}</td>
+    </tr>`).join('') : `<tr><td colspan="${months.length + 4}" class="empty-note">Nothing matches “${escapeHtml(term)}”.</td></tr>`;
+}
+
+function openAuditModal() {
+    const order = { error: 0, warn: 1, info: 2 };
+    const sevLabel = { error: 'Error', warn: 'Review', info: 'Note' };
+    const items = [...S.data.audit].sort((x, y) => order[x.severity] - order[y.severity]);
+    $('auditTableBody').innerHTML = items.length ? items.map(a => `<tr>
+        <td><span class="sev sev-${a.severity}">${sevLabel[a.severity]}</span></td>
+        <td>${escapeHtml(a.source || '')}</td>
+        <td><div class="acc-name">${escapeHtml(a.description || a.code || '—')}</div><div class="acc-code">${escapeHtml([a.description ? a.code : '', a.month].filter(Boolean).join(', '))}</div></td>
+        <td class="n">${a.amount ? fmtM(a.amount, 2) : ''}</td>
+        <td>${escapeHtml(a.reason || '')}</td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty-note">No issues found.</td></tr>';
+    $('columnTableBody').innerHTML = S.data.columns.map(c => `<tr>
+        <td>${escapeHtml(c.file)}</td><td>${escapeHtml(c.column)}</td>
+        <td class="${/^Not used/.test(c.use) ? 'muted' : ''}">${escapeHtml(c.use)}</td>
+    </tr>`).join('');
+    openModal('auditModal');
+}
+
+/* 8. EVENTS & LOADING ===================================================== */
+
+function syncToggleButtons() {
+    document.querySelectorAll('[data-granularity]').forEach(b => {
+        const on = b.dataset.granularity === S.granularity;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
+    });
+    document.querySelectorAll('[data-viewmode]').forEach(b => {
+        const on = b.dataset.viewmode === S.viewMode;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
+        b.disabled = S.granularity === 'Yearly' && b.dataset.viewmode !== 'Period';
+    });
+}
+
+function populatePeriodDropdown() {
+    const sel = $('periodDropdown');
+    sel.innerHTML = periodOptionsFor(S.granularity, S.data.fyEnd).map(([v, l]) => `<option value="${v}">${escapeHtml(l)}</option>`).join('');
+    sel.value = S.period;
+    sel.disabled = S.granularity === 'Yearly';
+}
+
+function setGranularity(g) {
+    const prev = S.period;
+    S.granularity = g;
+    S.period = nextPeriodFor(g, prev, S.data.asOfIdx);
+    if (g === 'Yearly') S.viewMode = 'Period';
+    else if (prev === 'FY' && S.viewMode === 'Period') S.viewMode = 'QTD';
+    populatePeriodDropdown();
+    syncToggleButtons();
+    render();
+}
+
+function populateFilters() {
+    $('yearDropdown').innerHTML = [...S.years].sort().reverse()
+        .map(y => `<option value="${escapeHtml(y)}" ${y === S.year ? 'selected' : ''}>${escapeHtml(y)}</option>`).join('');
+    const depts = [...new Set([...S.data.positions.values()].map(p => p.dept))].sort();
+    if (!depts.includes(S.dept)) S.dept = ALL_DEPTS;
+    $('deptDropdown').innerHTML = [ALL_DEPTS, ...depts].map(d => `<option value="${escapeHtml(d)}" ${d === S.dept ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('');
+    const donors = [...S.data.donors];
+    if (!donors.includes(DEFAULT_DONOR) && [...S.data.positions.values()].some(p => p.alloc[DEFAULT_DONOR])) donors.push(DEFAULT_DONOR);
+    donors.sort().forEach(donorColor);
+    if (S.donor !== ALL_DONORS && !donors.includes(S.donor)) S.donor = ALL_DONORS;
+    $('donorDropdown').innerHTML = [ALL_DONORS, ...donors].map(d => `<option value="${escapeHtml(d)}" ${d === S.donor ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('');
+}
+
+function showNotice(msg) {
+    const n = $('staffNotice');
+    n.textContent = msg;
+    n.hidden = !msg;
+}
+
+async function fetchStaffTexts(year) {
+    const get = async name => {
+        const res = await fetch(`Data/${year}/${name}`, { cache: 'no-cache' });
+        return res.ok ? res.text() : null;
+    };
+    const [master, budget, actuals] = await Promise.all([get(STAFF_FILES.master), get(STAFF_FILES.budget), get(STAFF_FILES.actuals)]);
+    if (!master) return null;
+    return { master, budget, actuals };
+}
+
+/* Loads, decrypts and parses one year; the ledger reconciliation loads alongside. */
+async function loadStaffYear(year, passphrase) {
+    const enc = await fetchStaffTexts(year);
+    if (!enc) return null;
+    const plain = {};
+    let legacy = false;
+    for (const [k, text] of Object.entries(enc)) {
+        if (!text) { plain[k] = ''; continue; }
+        const out = await decryptText(text, passphrase);
+        plain[k] = out.text;
+        legacy = legacy || out.legacy;
+    }
+    const data = buildStaffDataset(year, plain);
+    data.legacy = legacy;
+    if (legacy) {
+        data.audit.unshift({ severity: 'warn', source: 'Encryption', reason: 'These files use the older, weaker encryption. Re-encrypt them with tools/encrypt.html and a long passphrase.' });
+    }
+    if (!enc.budget) data.audit.push({ severity: 'warn', source: 'Staff_Budget', reason: `${STAFF_FILES.budget} not found for ${year}.` });
+    if (!enc.actuals) data.audit.push({ severity: 'warn', source: 'Staff_Actuals', reason: `${STAFF_FILES.actuals} not found for ${year}.` });
 
     try {
-        const fetchAndDecrypt = async (filename) => {
-            const res = await fetch(`Data/${selectedYear}/${filename}`);
-            if (!res.ok) return null; 
-            const encryptedText = await res.text();
-            try {
-                const decrypted = CryptoJS.AES.decrypt(encryptedText, pwdInput).toString(CryptoJS.enc.Utf8);
-                if (!decrypted) throw new Error("Invalid Key");
-                return parseCSV(decrypted);
-            } catch (error) {
-                throw new Error("Invalid Key");
-            }
-        };
-
-        const masterRows = await fetchAndDecrypt('Staff_Master.enc');
-        if (!masterRows) throw new Error("Master file missing");
-        const budgetRows = await fetchAndDecrypt('Staff_Budget.enc') || [];
-        const actualRows = await fetchAndDecrypt('Staff_Actuals.enc') || [];
-
-        buildDataEngine(masterRows, budgetRows, actualRows);
-
-        populateFilters();
-        applyTheme();
-        updateStaffDashboard();
-        
-        setTimeout(() => { loader.style.opacity = '0'; loader.style.visibility = 'hidden'; loader.classList.add('hidden'); }, 800);
-    } catch (err) {
-        document.getElementById('authOverlay').style.display = 'flex';
-        loader.classList.add('hidden');
-        errObj.innerText = err.message === "Invalid Key" ? "Decryption Failed. Incorrect Password." : `Error: ${err.message}`;
-        errObj.style.display = 'block';
+        const p = filePaths(year);
+        const [budget, tb] = await Promise.all([fetchText(p.budget, true), fetchText(p.tb, true)]);
+        const [innovation, cic, capex] = await Promise.all([fetchText(p.innovation, false), fetchText(p.cic, false), fetchText(p.capex, false)]);
+        data.recon = reconcileToLedger(data, buildDataset(year, { budget, tb, innovation, cic, capex, eod: '' }));
+    } catch (e) {
+        data.audit.push({ severity: 'info', source: 'Ledger reconciliation', reason: `Skipped: ${e.message}` });
     }
+    return data;
 }
 
-// ========================================================================
-// 2. DATA ENGINE
-// ========================================================================
-function parseCSV(text) {
-    let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    if (lines.length < 2) return [];
-    
-    const headers = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/"/g, '').trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
-    const objects = [];
-    
-    for(let i = 1; i < lines.length; i++) {
-        let vals = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/"/g, '').trim());
-        let obj = { _raw: {} };
-        let rawHeaders = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-        
-        headers.forEach((h, idx) => { 
-            obj[h] = vals[idx] || ''; 
-            obj._raw[rawHeaders[idx] ? rawHeaders[idx].trim() : ''] = vals[idx] || ''; 
-        });
-        objects.push(obj);
-    }
-    return objects;
+function applyLoaded(data) {
+    S.data = data;
+    S.year = data.year;
+    const asOfMonth = FISCAL_MONTHS[Math.max(0, data.asOfIdx)];
+    if (S.granularity === 'Monthly') S.period = asOfMonth;
+    else if (S.granularity === 'Quarterly') S.period = MONTH_QUARTER[asOfMonth];
+    populateFilters();
+    populatePeriodDropdown();
+    syncToggleButtons();
+    renderDataCheckChip();
+    render();
 }
 
-function getSafeNum(val) { 
-    let str = String(val || '').replace(/[^0-9.-]/g, ''); 
-    let num = parseFloat(str); 
-    return isNaN(num) ? 0 : num; 
-}
-
-function getStandardMonth(mthRaw) {
-    let m = String(mthRaw).trim();
-    if (!m) return '';
-    if (/^\d{4,5}$/.test(m)) {
-        let d = new Date((parseInt(m) - 25569) * 86400 * 1000);
-        return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()];
-    }
-    let months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    for (let i = 0; i < months.length; i++) { if (m.toLowerCase().includes(months[i].toLowerCase())) return months[i]; }
-    return m.substring(0,3).charAt(0).toUpperCase() + m.substring(1,3).toLowerCase();
-}
-
-function createHeaderMap(rawKeys) {
-    let map = {};
-    let lowerKeys = rawKeys.map(k => ({ orig: k, low: k.toLowerCase().trim() }));
-    
-    let baseMatch = lowerKeys.find(k => k.low.includes('base salary after inflation')) || lowerKeys.find(k => k.low.includes('updated base')) || lowerKeys.find(k => k.low === 'base salary') || lowerKeys.find(k => k.low.includes('base'));
-    if (baseMatch) map[baseMatch.orig] = 'Base Salary (Inc. Encashments)';
-
-    lowerKeys.forEach(k => {
-        if (baseMatch && k.orig === baseMatch.orig) return; 
-        let lower = k.low;
-        
-        if (lower.includes('gross') || lower.includes('net') || lower.includes('payable') || lower.includes('tax') || lower.includes('advance') || lower.includes('deduction') || lower.includes('other')) return;
-        
-        if (lower.includes('child care')) map[k.orig] = 'Child Care';
-        else if (lower.includes('car monet') || lower.includes('cma')) map[k.orig] = 'Car Monetization';
-        else if (lower.includes('cola')) map[k.orig] = 'COLA';
-        else if (lower.includes('provident') || lower === 'pf') map[k.orig] = 'Provident Fund';
-        else if (lower.includes('eobi')) map[k.orig] = 'EOBI';
-        else if (lower.includes('gratuity')) map[k.orig] = 'Gratuity';
-        else if (lower.includes('lfa') || lower.includes('leave fare')) map[k.orig] = 'LFA';
-        else if (lower.includes('wellness')) map[k.orig] = 'Wellness Allowance';
-        else if (lower.includes('health ins') || lower.includes('life insura')) map[k.orig] = 'Insurances (Health & Life)';
-        else if (lower.includes('learning')) map[k.orig] = 'Learning & Development';
-        else if (lower.includes('performance') || lower.includes('one-off')) map[k.orig] = 'Performance';
-        else if (lower.includes('arrears') || lower.includes('overtime') || lower.includes('leave encashment') || lower.includes('base salary')) map[k.orig] = 'Base Salary (Inc. Encashments)';
-    });
-    return map;
-}
-
-function buildDataEngine(masterRows, budgetRows, actualRows) {
-    positionMaster = {};
-    const donorsList = new Set();
-    const availableMonthsSet = new Set();
-
-    masterRows.forEach(r => {
-        let code = String(r['positioncode'] || '').trim().toUpperCase();
-        if (!code) return;
-        let dept = r['department'] || 'Uncategorized'; let name = r['employeename'] || 'Vacant';
-        let donorAllocations = {};
-        Object.keys(r._raw).forEach(k => {
-            let cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-            if (!['positioncode', 'employeecode', 'employeename', 'department', 'designation', 'positiongrade', 'gender', 'joiningdate', 'newagreementstartdate', 'budgetedmonths'].includes(cleanK)) {
-                let pct = parseFloat(String(r._raw[k]).replace('%', '')) || 0; if (pct > 1) pct = pct / 100;
-                if (pct > 0) { donorAllocations[k] = pct; donorsList.add(k); }
-            }
-        });
-        if (Object.keys(donorAllocations).length === 0) donorAllocations['OSR'] = 1.0;
-        positionMaster[code] = { code, dept, name, donorAllocations };
-    });
-
-    const ledgerMap = {}; 
-    const ensureLedgerEntry = (code, mth) => {
-        let key = `${code}_${mth}`;
-        if (!ledgerMap[key]) ledgerMap[key] = { code, month: mth, components: {} };
-        return ledgerMap[key];
-    };
-    const addComponentVal = (entry, compName, isActual, val) => {
-        if (!entry.components[compName]) entry.components[compName] = { b: 0, a: 0 };
-        if (isActual) entry.components[compName].a += val; else entry.components[compName].b += val;
-    };
-
-    if (actualRows.length > 0) {
-        let actualMap = createHeaderMap(Object.keys(actualRows[0]._raw));
-        actualRows.forEach(r => {
-            let code = String(r['positioncode'] || '').trim().toUpperCase();
-            if (!code || !positionMaster[code]) return;
-            let mth = getStandardMonth(r['month']);
-            if (!mth || !fiscalMonths.includes(mth)) return;
-            
-            availableMonthsSet.add(mth);
-            let entry = ensureLedgerEntry(code, mth);
-            Object.keys(r._raw).forEach(rawK => {
-                let compName = actualMap[rawK];
-                if (compName) addComponentVal(entry, compName, true, Math.abs(getSafeNum(r._raw[rawK])));
-            });
-        });
-    }
-
-    if (budgetRows.length > 0) {
-        let budgetMap = createHeaderMap(Object.keys(budgetRows[0]._raw));
-        let fyStartYear = parseInt(selectedYear.replace('FY', '')) - 1; 
-        let fyStartDate = new Date(fyStartYear, 6, 1); 
-        
-        budgetRows.forEach(r => {
-            let code = String(r['positioncode'] || '').trim().toUpperCase();
-            if (!positionMaster[code]) return;
-            
-            let joinStr = r['joiningdate'] || r['joiningdatenewagreementstartdate'] || '';
-            let joinDate = new Date(joinStr);
-            let startIdx = 0;
-            if (!isNaN(joinDate.getTime()) && joinDate > fyStartDate) {
-                let m = joinDate.getMonth(); startIdx = m >= 6 ? m - 6 : m + 6; 
-            }
-            
-            let bMonths = parseInt(r['budgetedmonths']) || 12; if (bMonths <= 0) bMonths = 12;
-            let monthlyComps = {};
-            
-            Object.keys(r._raw).forEach(rawK => {
-                let compName = budgetMap[rawK];
-                if (compName) {
-                    let val = getSafeNum(r._raw[rawK]);
-                    if (annualComponents.includes(compName)) val = val / bMonths; 
-                    monthlyComps[compName] = (monthlyComps[compName] || 0) + val;
-                }
-            });
-            
-            for (let i = startIdx; i < startIdx + bMonths; i++) {
-                if (i < 12) {
-                    let entry = ensureLedgerEntry(code, fiscalMonths[i]);
-                    Object.keys(monthlyComps).forEach(cName => { addComponentVal(entry, cName, false, monthlyComps[cName]); });
-                }
-            }
-        });
-    }
-
-    unifiedLedger = Object.values(ledgerMap);
-
-    const dDrop = document.getElementById('donorDropdown'); dDrop.innerHTML = '<option value="All Donors">All Donors</option>';
-    Array.from(donorsList).sort().forEach(d => dDrop.add(new Option(d, d)));
-    const deptDrop = document.getElementById('deptDropdown'); deptDrop.innerHTML = '<option value="All Departments">All Departments</option>';
-    [...new Set(Object.values(positionMaster).map(p => p.dept))].sort().forEach(d => deptDrop.add(new Option(d, d)));
-
-    let monthArr = Array.from(availableMonthsSet);
-    if (monthArr.length > 0) {
-        let latestIdx = -1; monthArr.forEach(m => { let idx = fiscalMonths.indexOf(m); if(idx > latestIdx) latestIdx = idx; });
-        selectedMonth = latestIdx > -1 ? fiscalMonths[latestIdx] : 'Jul';
-    }
-}
-
-// ========================================================================
-// 3. UI RENDERING & AGGREGATION
-// ========================================================================
-function populateFilters() {
-    const ys = document.getElementById('yearDropdown'); ys.innerHTML = '';
-    availableYears.slice().reverse().forEach(y => ys.add(new Option(y, y, false, y === selectedYear)));
-    populateTimeDropdown();
-}
-
-function populateTimeDropdown() {
-    const ms = document.getElementById('monthDropdown'); ms.innerHTML = '';
-    if (granularity === 'Quarterly') {
-        const quarters = [
-            { label: 'Q1 (Jul - Sep)', val: 'Sep' },
-            { label: 'Q2 (Oct - Dec)', val: 'Dec' },
-            { label: 'Q3 (Jan - Mar)', val: 'Mar' },
-            { label: 'Q4 (Apr - Jun)', val: 'Jun' }
-        ];
-        const endIdx = fiscalMonths.indexOf(selectedMonth);
-        const qtrStart = Math.floor(endIdx / 3) * 3;
-        selectedMonth = fiscalMonths[qtrStart + 2] || 'Sep'; 
-        quarters.forEach(q => ms.add(new Option(q.label, q.val, false, q.val === selectedMonth)));
-    } else {
-        fiscalMonths.forEach(m => ms.add(new Option(m, m, false, m === selectedMonth)));
-    }
-}
-
-function onGlobalFilterChange() { selectedYear = document.getElementById('yearDropdown').value; selectedDepartment = document.getElementById('deptDropdown').value; selectedDonor = document.getElementById('donorDropdown').value; updateStaffDashboard(); }
-function onTimeFilterChange() { selectedMonth = document.getElementById('monthDropdown').value; updateStaffDashboard(); }
-
-function setGranularity(val) {
-    granularity = val;
-    document.querySelectorAll('button[data-group="granularity"]').forEach(btn => btn.classList.toggle('active', btn.dataset.val === val));
-    const pRow = document.getElementById('periodToggleRow');
-    const mDrop = document.getElementById('monthDropdown');
-    if (val === 'Yearly') { pRow.style.opacity = '0.3'; pRow.style.pointerEvents = 'none'; mDrop.disabled = true; } 
-    else { pRow.style.opacity = '1'; pRow.style.pointerEvents = 'auto'; mDrop.disabled = false; populateTimeDropdown(); }
-    updateStaffDashboard();
-}
-
-function setPeriod(val) {
-    periodView = val;
-    document.querySelectorAll('button[data-group="period"]').forEach(btn => btn.classList.toggle('active', btn.dataset.val === val));
-    updateStaffDashboard();
-}
-
-function setTableView(view) {
-    tableView = view;
-    document.getElementById('btnViewComp').classList.toggle('active', view === 'Component');
-    document.getElementById('btnViewEmp').classList.toggle('active', view === 'Employee');
-    document.getElementById('mainTableSearch').value = ''; 
-    updateStaffDashboard();
-}
-
-function onMainTableSearch() { updateStaffDashboard(); }
-
-function updateStaffDashboard() {
-    const endIdx = fiscalMonths.indexOf(selectedMonth);
-    activeMonths = [];
-
-    if (granularity === 'Yearly') {
-        activeMonths = [...fiscalMonths]; timeLabel = 'FY';
-    } else if (granularity === 'Quarterly') {
-        const qtrIndex = Math.floor(endIdx / 3);
-        if (periodView === 'PTD') { activeMonths = fiscalMonths.slice(qtrIndex * 3, qtrIndex * 3 + 3); timeLabel = 'Qtr'; }
-        else if (periodView === 'YTD') { activeMonths = fiscalMonths.slice(0, qtrIndex * 3 + 3); timeLabel = 'YTD'; }
-        else { activeMonths = fiscalMonths.slice(qtrIndex * 3, qtrIndex * 3 + 3); timeLabel = 'QTD'; }
-    } else { 
-        if (periodView === 'PTD') { activeMonths = [selectedMonth]; timeLabel = 'Monthly'; }
-        else if (periodView === 'QTD') { const qtrStart = Math.floor(endIdx / 3) * 3; activeMonths = fiscalMonths.slice(qtrStart, endIdx + 1); timeLabel = 'QTD'; }
-        else if (periodView === 'YTD') { activeMonths = fiscalMonths.slice(0, endIdx + 1); timeLabel = 'YTD'; }
-    }
-
-    document.getElementById('leftLblBudget').innerText = `${timeLabel} BUDGET`;
-    document.getElementById('leftLblActual').innerText = `${timeLabel} ACTUAL`;
-
-    let totBud = 0, totAct = 0;
-    let compSummary = {};
-    let empSummary = {}; 
-    let activeHeads = new Set(), budHeads = new Set();
-    let donorSpent = {}; let donorBudget = {}; 
-
-    const elapsedMonths = endIdx + 1; 
-    const searchTerm = document.getElementById('mainTableSearch').value.toLowerCase();
-
-    let monthlySpendTrend = {};
-    activeMonths.forEach(m => monthlySpendTrend[m] = 0);
-    let compMonthly = {};
-
-    unifiedLedger.forEach(row => {
-        let master = positionMaster[row.code];
-        if (selectedDepartment !== 'All Departments' && master.dept !== selectedDepartment) return;
-        let pct = selectedDonor === 'All Donors' ? 1.0 : (master.donorAllocations[selectedDonor] || 0);
-        if (pct === 0) return;
-
-        if (!empSummary[row.code]) {
-            empSummary[row.code] = { code: row.code, name: master.name, dept: master.dept, periodAct: 0, periodBud: 0, fyBud: 0, cAct: {}, cBud: {} };
+async function unlock(e) {
+    if (e) e.preventDefault();
+    const pass = $('authPassword').value;
+    const err = $('authError');
+    err.hidden = true;
+    if (!pass) { err.textContent = 'Enter the passphrase.'; err.hidden = false; return; }
+    const btn = $('authSubmit');
+    btn.disabled = true;
+    btn.textContent = 'Unlocking…';
+    keyCache.clear();
+    try {
+        const years = [...S.years].sort().reverse();
+        let data = null;
+        for (const y of years) {
+            data = await loadStaffYear(y, pass);
+            if (data) break;
         }
-
-        let rowTotB = 0, rowTotA = 0;
-        let isActiveMonth = activeMonths.includes(row.month);
-        let isYtdMonth = fiscalMonths.indexOf(row.month) <= endIdx;
-
-        Object.keys(row.components).forEach(cName => {
-            let b = row.components[cName].b * pct;
-            let a = row.components[cName].a * pct;
-            
-            empSummary[row.code].fyBud += b;
-            
-            if (!empSummary[row.code].cBud[cName]) empSummary[row.code].cBud[cName] = 0;
-            if (!empSummary[row.code].cAct[cName]) empSummary[row.code].cAct[cName] = 0;
-            empSummary[row.code].cBud[cName] += b;
-            if (isYtdMonth) empSummary[row.code].cAct[cName] += a;
-            
-            if (isActiveMonth) {
-                if (!compSummary[cName]) compSummary[cName] = { b: 0, a: 0 };
-                compSummary[cName].b += b; compSummary[cName].a += a;
-                rowTotB += b; rowTotA += a;
-                empSummary[row.code].periodAct += a;
-                empSummary[row.code].periodBud += b;
-                
-                monthlySpendTrend[row.month] += a;
-                if (!compMonthly[cName]) { compMonthly[cName] = {}; activeMonths.forEach(m => compMonthly[cName][m] = 0); }
-                compMonthly[cName][row.month] += a;
-            }
-        });
-
-        if (empSummary[row.code].fyBud > 0) budHeads.add(row.code);
-
-        if (isActiveMonth) {
-            totBud += rowTotB; totAct += rowTotA;
-            if (rowTotA > 0) activeHeads.add(row.code);
-
-            if (selectedDonor === 'All Donors') {
-                Object.keys(master.donorAllocations).forEach(d => {
-                    if (rowTotA > 0) donorSpent[d] = (donorSpent[d] || 0) + (rowTotA * master.donorAllocations[d]);
-                    if (rowTotB > 0) donorBudget[d] = (donorBudget[d] || 0) + (rowTotB * master.donorAllocations[d]);
-                });
-            }
-        }
-    });
-
-    document.getElementById('headcountKpi').innerText = `${activeHeads.size}/${budHeads.size}`;
-    document.getElementById('leftKpiBudget').innerText = (totBud >= 1000000) ? (totBud/1000000).toFixed(1) : (totBud/1000).toFixed(1);
-    document.getElementById('leftKpiActual').innerText = (totAct >= 1000000) ? (totAct/1000000).toFixed(1) : (totAct/1000).toFixed(1);
-    document.querySelectorAll('#leftKpiBudget').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totBud >= 1000000) ? 'M PKR' : 'K PKR');
-    document.querySelectorAll('#leftKpiActual').forEach(el => el.previousElementSibling.firstElementChild.innerText = (totAct >= 1000000) ? 'M PKR' : 'K PKR');
-    
-    let netVar = totBud - totAct;
-    document.getElementById('mainTableVariance').innerText = formatPKRShort(Math.abs(netVar));
-    document.getElementById('mainTableVariance').parentElement.style.color = netVar >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)';
-
-    if (tableView === 'Component') {
-        document.getElementById('componentDonutWrapper').style.display = 'flex';
-        document.getElementById('employeeTableWrapper').style.display = 'none';
-        renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, empSummary, elapsedMonths, activeMonths, compMonthly, monthlySpendTrend, activeHeads.size, budHeads.size, donorSpent);
-    } else {
-        document.getElementById('componentDonutWrapper').style.display = 'none';
-        document.getElementById('employeeTableWrapper').style.display = 'block';
-        renderEmployeeTable(empSummary, elapsedMonths, searchTerm);
-    }
-
-    renderDonorDonut('spentDonutContainer', donorSpent); 
-    renderDonorDonut('budgetDonutContainer', donorBudget); 
-    let vacantList = Object.values(empSummary).filter(e => e.periodBud > 0 && e.periodAct === 0);
-    renderVacantPositions(vacantList);
-}
-
-// ========================================================================
-// GIANT DONUT & EXECUTIVE INSIGHTS ENGINE
-// ========================================================================
-function renderGiantDonutAndInsights(compSummary, totAct, totBud, searchTerm, empSummary, elapsedMonths, activeMonths, compMonthly, monthlySpendTrend, activeHeadsCount, budHeadsCount, donorSpent) {
-    const container = document.getElementById('componentDonutWrapper');
-    let items = [];
-    
-    Object.keys(compSummary).forEach(c => {
-        if (compSummary[c].a > 0) {
-            if (searchTerm && !c.toLowerCase().includes(searchTerm)) return;
-            items.push({ label: c, val: compSummary[c].a, bud: compSummary[c].b, pct: Math.round((compSummary[c].a / totAct) * 100) });
-        }
-    });
-
-    items.sort((a, b) => b.val - a.val);
-
-    if (items.length === 0) {
-        container.innerHTML = '<div style="color:var(--text-secondary); font-size: 1rem; font-weight: bold;">No data available for this filter.</div>';
-        return;
-    }
-
-    const colors = ['#0073a8', '#14b8a6', '#f59e0b', '#8b5cf6', '#3b82f6', '#ef4444', '#10b981', '#f43f5e', '#84cc16', '#d946ef', '#06b6d4', '#eab308'];
-    const N = items.length; const radius = 145; const strokeWidth = 110; const C = 2 * Math.PI * radius;
-    const sliceLength = C / N; const gap = 6; const dashLength = sliceLength - gap;
-    
-    let svgHtml = `<svg viewBox="0 0 460 460" style="width: 100%; max-width: 480px; max-height: 480px; overflow: visible;">`;
-    
-    items.forEach((item, i) => {
-        const color = colors[i % colors.length]; const offset = -(i * sliceLength);
-        svgHtml += `<circle cx="230" cy="230" r="${radius}" fill="none" stroke="${color}" 
-                    stroke-dasharray="${dashLength} ${C - dashLength}" stroke-dashoffset="${offset}" 
-                    style="stroke-width: ${strokeWidth}px; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dasharray 1s ease-out; cursor: pointer;" 
-                    onmouseenter="showGiantTooltip(event, '${item.label.replace(/'/g, "\\'")}', ${item.val}, ${item.bud})"
-                    onmousemove="moveTooltip(event)" onmouseleave="hideTooltip()"
-                    onclick="openComponentModal('${item.label.replace(/'/g, "\\'")}')" />`;
-        
-        const sliceAngleDeg = 360 / N; const midAngleDeg = -90 + (i * sliceAngleDeg) + (sliceAngleDeg / 2); const midAngleRad = midAngleDeg * Math.PI / 180;
-        const textX = 230 + radius * Math.cos(midAngleRad); const textY = 230 + radius * Math.sin(midAngleRad);
-        
-        let l1 = item.label; let l2 = "";
-        if (item.label.includes('(')) { const parts = item.label.split('('); l1 = parts[0].trim(); l2 = '(' + parts[1]; } 
-        else if (item.label.includes(' ')) { const parts = item.label.split(' '); if (parts[0].length > 3) { l1 = parts[0]; l2 = parts.slice(1).join(' '); } }
-        
-        svgHtml += `<text x="${textX}" y="${textY - (l2 ? 8 : 0)}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-size="12" font-family="Calibri, sans-serif" font-weight="bold" style="pointer-events: none;">`;
-        svgHtml += `<tspan x="${textX}" dy="0">${l1}</tspan>`;
-        if (l2) svgHtml += `<tspan x="${textX}" dy="15">${l2}</tspan>`;
-        svgHtml += `<tspan x="${textX}" dy="18" fill="rgba(255,255,255,0.9)">${item.pct}%</tspan></text>`;
-    });
-
-    const totParts = getFormattedParts(totAct);
-    svgHtml += `<text x="230" y="195" text-anchor="middle" dominant-baseline="middle" fill="var(--text-secondary)" font-size="14" font-family="Calibri, sans-serif" font-weight="600" letter-spacing="1">${timeLabel.toUpperCase()} SPENT</text>`;
-    svgHtml += `<text x="230" y="265" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-light-blue)" font-size="16" font-family="Calibri, sans-serif" font-weight="bold">${totParts.u}</text>`;
-    svgHtml += `<text x="230" y="235" text-anchor="middle" dominant-baseline="middle" fill="var(--krn-blue)" font-size="44" font-family="'Oswald', sans-serif" font-weight="bold">${totParts.v}</text></svg>`;
-
-    // --- 2. INSIGHTS MATH ---
-    let totFyBud = 0; let totFyForecast = 0;
-    Object.values(empSummary).forEach(e => {
-        totFyBud += e.fyBud;
-        Object.keys(e.cBud).forEach(cName => {
-            let act = e.cAct[cName] || 0; let bud = e.cBud[cName] || 0;
-            if (annualComponents.includes(cName)) totFyForecast += Math.max(act, bud); else totFyForecast += (act / elapsedMonths) * 12;
-        });
-    });
-    let fyVar = totFyBud - totFyForecast;
-    let vacantSavings = Object.values(empSummary).filter(e => e.periodBud > 0 && e.periodAct === 0).reduce((sum, e) => sum + e.periodBud, 0);
-    let activePremium = (totBud - totAct) - vacantSavings; 
-    let avgCostPerHead = activeHeadsCount > 0 ? (totAct / activeHeadsCount) : 0;
-    let hcCapacity = budHeadsCount > 0 ? Math.round((activeHeadsCount / budHeadsCount) * 100) : 0;
-    let finBurn = totBud > 0 ? Math.round((totAct / totBud) * 100) : 0;
-    
-    let donorDepPct = 0;
-    if (selectedDonor === 'All Donors') {
-        let osrSpend = donorSpent['OSR'] || donorSpent['osr'] || 0; 
-        let externalSpend = totAct - osrSpend;
-        donorDepPct = totAct > 0 ? Math.round((externalSpend / totAct) * 100) : 0;
-    } else { donorDepPct = 100; }
-
-    let volHtml = ''; 
-    let momValueHtml = `<span style="font-size: 1.6rem; font-weight: bold; color: var(--text-secondary);">N/A</span>`;
-    let momSubHtml = `<span style="font-size: 0.75rem; color: var(--text-secondary);">Requires >1 active month</span>`;
-    
-    if (activeMonths.length >= 2) {
-        let sortedActive = activeMonths.slice().sort((a,b) => fiscalMonths.indexOf(a) - fiscalMonths.indexOf(b));
-        let lastM = sortedActive[sortedActive.length - 1]; let prevM = sortedActive[sortedActive.length - 2];
-        
-        let maxSpike = 0; let spikeComp = '';
-        Object.keys(compMonthly).forEach(c => {
-            let pVal = compMonthly[c][prevM]; let lVal = compMonthly[c][lastM];
-            if (pVal > 50000 && lVal > pVal) { 
-                let jump = (lVal - pVal) / pVal;
-                if (jump > maxSpike) { maxSpike = jump; spikeComp = c; }
-            }
-        });
-        if (maxSpike > 0.10) {
-            volHtml = `
-            <div style="background: rgba(234, 88, 12, 0.08); border: 1px solid rgba(234, 88, 12, 0.3); border-radius: 12px; padding: 14px; margin-top: 12px; display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 1.2rem;">⚠️</span>
-                <span style="font-size: 0.85rem; color: #ea580c; font-weight: bold;">${spikeComp} spiked +${Math.round(maxSpike*100)}% in ${lastM}</span>
-            </div>`;
-        }
-        
-        let totLastM = monthlySpendTrend[lastM] || 0; let totPrevM = monthlySpendTrend[prevM] || 0;
-        if (totPrevM > 0) {
-            let momDiff = totLastM - totPrevM;
-            let momPct = Math.abs(Math.round((momDiff / totPrevM) * 100));
-            let momColor = momDiff > 0 ? 'var(--krn-orange)' : 'var(--krn-green)';
-            let momSign = momDiff > 0 ? '+' : '-';
-            
-            momValueHtml = `<span style="font-size: 1.6rem; font-weight: bold; color: ${momColor};">${momSign}${momPct}%</span>`;
-            momSubHtml = `<span style="font-size: 0.75rem; color: var(--text-secondary);">${momSign}${formatPKRShort(Math.abs(momDiff))} (${prevM}➔${lastM})</span>`;
-        }
-    }
-
-    // --- 3. LAYOUT ASSEMBLY (BENTO BOX) ---
-    let fyColor = fyVar >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)';
-    let fySign = fyVar >= 0 ? '+' : '';
-    let fyText = fyVar >= 0 ? '(Surplus)' : '(Deficit)';
-    let actPremStr = `${activePremium >= 0 ? '+' : ''}${formatPKRShort(activePremium)}`;
-    
-    let insightsHtml = `
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; max-width: 480px;">
-            <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
-                <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">FY Projection</div>
-                <div style="font-size: 1.8rem; font-weight: bold; color: ${fyColor}; margin-bottom: 2px;">${fySign}${formatPKRShort(Math.abs(fyVar))} ${fyText}</div>
-                <div style="font-size: 0.75rem; color: var(--text-secondary);">Driven by Vacancy Savings (+${formatPKRShort(vacantSavings)}) and Active Premium/Deficit (${actPremStr})</div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
-                    <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">Avg Cost / Head</div>
-                    <div style="font-size: 1.6rem; font-weight: bold; color: var(--krn-blue); margin-bottom: 2px;">${formatPKRShort(avgCostPerHead)}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Per active employee</div>
-                </div>
-
-                <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
-                    <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">MoM Velocity</div>
-                    <div style="margin-bottom: 2px;">${momValueHtml}</div>
-                    <div>${momSubHtml}</div>
-                </div>
-
-                <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
-                    <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 12px; text-transform: uppercase;">Funding Split</div>
-                    <div style="width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; margin-bottom: 8px;">
-                        <div style="width: ${donorDepPct}%; height: 100%; background: var(--krn-blue); border-radius: 3px;"></div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold;">
-                        <span style="color: var(--krn-blue);">${donorDepPct}% Donor</span>
-                        <span style="color: var(--text-secondary);">${100 - donorDepPct}% OSR</span>
-                    </div>
-                </div>
-
-                <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
-                    <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase;">Efficiency</div>
-                    <div style="display: flex; gap: 12px; align-items: baseline; margin-bottom: 2px;">
-                        <div>
-                            <span style="font-size: 1.4rem; font-weight: bold; color: ${hcCapacity > 100 ? 'var(--krn-orange)' : 'var(--krn-green)'};">${hcCapacity}%</span>
-                            <span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 1px;">Filled</span>
-                        </div>
-                        <div>
-                            <span style="font-size: 1.4rem; font-weight: bold; color: var(--krn-blue);">${finBurn}%</span>
-                            <span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 1px;">Burn</span>
-                        </div>
-                    </div>
-                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Headcount vs. Budget</div>
-                </div>
-            </div>
-            ${volHtml}
-        </div>
-    `;
-
-    container.style.justifyContent = 'space-between';
-    container.style.alignItems = 'flex-start';
-    container.innerHTML = `
-        <div style="flex: 1.2; display: flex; justify-content: center; align-items: center; margin-top: 20px;">${svgHtml}</div>
-        ${insightsHtml}
-    `;
-}
-
-// ========================================================================
-// EMPLOYEE TABLE RENDER
-// ========================================================================
-function renderEmployeeTable(empSummary, elapsedMonths, searchTerm) {
-    const thead = document.getElementById('mainTableHeader');
-    thead.innerHTML = `<tr><th>Position & Name</th><th>${timeLabel} Actual</th><th>FY Forecast (Smart)</th><th>FY Budget</th><th>FY Variance</th></tr>`;
-    const tbody = document.getElementById('componentTableBody'); tbody.innerHTML = '';
-    
-    const getSmartForecast = (e) => {
-        let totalF = 0;
-        Object.keys(e.cBud).forEach(cName => {
-            let act = e.cAct[cName] || 0; let bud = e.cBud[cName] || 0;
-            if (annualComponents.includes(cName)) totalF += Math.max(act, bud); 
-            else totalF += (act / elapsedMonths) * 12; 
-        });
-        return totalF;
-    };
-
-    let sortedEmps = Object.keys(empSummary).sort((x, y) => {
-        let eX = empSummary[x]; let eY = empSummary[y];
-        let vX = eX.fyBud - getSmartForecast(eX); let vY = eY.fyBud - getSmartForecast(eY);
-        return vX - vY; 
-    });
-
-    sortedEmps.forEach(code => {
-        let e = empSummary[code]; 
-        if (e.periodAct === 0 && e.fyBud === 0) return;
-        if (searchTerm && !code.toLowerCase().includes(searchTerm) && !e.name.toLowerCase().includes(searchTerm)) return;
-        
-        let forecast = getSmartForecast(e); let varNum = e.fyBud - forecast;
-        
-        tbody.innerHTML += `
-            <tr class="clickable-tr summary-table-row" onclick="openEmployeeModal('${code.replace(/'/g, "\\'")}', '${e.name.replace(/'/g, "\\'")}')">
-                <td>
-                    <div style="font-weight: bold; color: var(--krn-blue); font-size: 0.8rem;">${code}</div>
-                    <div style="font-size: 0.95rem; font-weight: 500; color: var(--text-primary); margin-top: 3px;">${e.name}</div>
-                </td>
-                <td style="font-variant-numeric: tabular-nums;">${formatPKRInline(e.periodAct)}</td>
-                <td style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight: 500;">${formatPKRInline(forecast)}</td>
-                <td style="font-variant-numeric: tabular-nums; color: var(--text-secondary);">${formatPKRInline(e.fyBud)}</td>
-                <td style="font-variant-numeric: tabular-nums; font-weight: bold; color: ${varNum >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'};">${formatPKRInline(Math.abs(varNum))}</td>
-            </tr>
-        `;
-    });
-}
-
-// ========================================================================
-// 4. MODAL & SVG DRILL DOWN LOGIC
-// ========================================================================
-function openComponentModal(compName) {
-    activeModalType = 'Component'; activeModalTarget = compName;
-    document.getElementById('modalStaffTitle').innerText = `${compName} Breakup`;
-    document.getElementById('modalStaffSubtitle').innerText = `Period: ${timeLabel} | Dept: ${selectedDepartment}`;
-    document.getElementById('modalSearch').value = ''; document.getElementById('modalSearch').placeholder = 'Search Employee...';
-    renderModalTable(); document.getElementById('staffModal').style.display = 'block';
-}
-
-function openEmployeeModal(empCode, empName) {
-    activeModalType = 'Employee'; activeModalTarget = empCode; activeModalTargetName = empName;
-    document.getElementById('modalStaffTitle').innerText = `${empCode} - ${empName}`;
-    document.getElementById('modalStaffSubtitle').innerText = `Period: ${timeLabel} Component Breakup`;
-    document.getElementById('modalSearch').value = ''; document.getElementById('modalSearch').placeholder = 'Search Component...';
-    renderModalTable(); document.getElementById('staffModal').style.display = 'block';
-}
-
-function renderModalTable() { if (activeModalType === 'Component') renderStaffModalTable(); else renderEmployeeModalTable(); }
-
-function renderStaffModalTable() {
-    const thead = document.getElementById('modalTableHeader');
-    const tbody = document.getElementById('staffModalTableBody'); tbody.innerHTML = '';
-    
-    let headerHtml = `<tr><th>Code</th><th>Name</th>`;
-    activeMonths.forEach(m => headerHtml += `<th>${m} Actual (M PKR)</th>`);
-    headerHtml += `<th>Tot Actual</th><th>Tot Budget</th><th>Var</th></tr>`;
-    thead.innerHTML = headerHtml;
-
-    const term = document.getElementById('modalSearch').value.toLowerCase();
-    let empData = {};
-
-    unifiedLedger.forEach(row => {
-        if (!activeMonths.includes(row.month)) return;
-        let master = positionMaster[row.code];
-        if (selectedDepartment !== 'All Departments' && master.dept !== selectedDepartment) return;
-        let pct = selectedDonor === 'All Donors' ? 1.0 : (master.donorAllocations[selectedDonor] || 0); if (pct === 0) return;
-        let comp = row.components[activeModalTarget]; if (!comp || (comp.b === 0 && comp.a === 0)) return;
-
-        if (!empData[row.code]) { empData[row.code] = { code: row.code, name: master.name, months: {}, tB: 0, tA: 0 }; activeMonths.forEach(m => empData[row.code].months[m] = 0); }
-        empData[row.code].months[row.month] += comp.a * pct; empData[row.code].tA += comp.a * pct; empData[row.code].tB += comp.b * pct;
-    });
-
-    Object.values(empData).sort((x, y) => y.tA - x.tA).forEach(p => {
-        if (term && !p.code.toLowerCase().includes(term) && !p.name.toLowerCase().includes(term)) return;
-        let diff = p.tB - p.tA;
-        let rowHtml = `<tr><td><strong style="color:var(--krn-blue)">${p.code}</strong></td><td>${p.name}</td>`;
-        activeMonths.forEach(m => { rowHtml += `<td style="font-variant-numeric:tabular-nums">${p.months[m] === 0 ? '-' : (p.months[m]/1000000).toFixed(2)}</td>`; });
-        rowHtml += `<td style="font-variant-numeric:tabular-nums; font-weight:bold;">${(p.tA/1000000).toFixed(2)}</td><td style="font-variant-numeric:tabular-nums; color:var(--text-secondary)">${(p.tB/1000000).toFixed(2)}</td><td style="font-variant-numeric:tabular-nums; font-weight:bold; color:${diff >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'}">${(diff/1000000).toFixed(2)}</td></tr>`;
-        tbody.innerHTML += rowHtml;
-    });
-}
-
-function renderEmployeeModalTable() {
-    const thead = document.getElementById('modalTableHeader');
-    const tbody = document.getElementById('staffModalTableBody'); tbody.innerHTML = '';
-    
-    let headerHtml = `<tr><th>Component</th>`;
-    activeMonths.forEach(m => headerHtml += `<th>${m} Actual (M PKR)</th>`);
-    headerHtml += `<th>Tot Actual</th><th>Tot Budget</th><th>Var</th></tr>`;
-    thead.innerHTML = headerHtml;
-
-    const term = document.getElementById('modalSearch').value.toLowerCase();
-    let compData = {};
-
-    unifiedLedger.forEach(row => {
-        if (row.code !== activeModalTarget) return; 
-        if (!activeMonths.includes(row.month)) return;
-        
-        let master = positionMaster[row.code];
-        let pct = selectedDonor === 'All Donors' ? 1.0 : (master.donorAllocations[selectedDonor] || 0); if (pct === 0) return;
-
-        Object.keys(row.components).forEach(cName => {
-            let b = row.components[cName].b * pct; let a = row.components[cName].a * pct;
-            if (b === 0 && a === 0) return;
-            if (!compData[cName]) { compData[cName] = { name: cName, months: {}, tB: 0, tA: 0 }; activeMonths.forEach(m => compData[cName].months[m] = 0); }
-            compData[cName].months[row.month] += a; compData[cName].tA += a; compData[cName].tB += b;
-        });
-    });
-
-    let sortedComps = Object.values(compData).sort((x, y) => { if (x.name === 'Base Salary (Inc. Encashments)') return -1; if (y.name === 'Base Salary (Inc. Encashments)') return 1; return y.tA - x.tA; });
-    sortedComps.forEach(c => {
-        if (term && !c.name.toLowerCase().includes(term)) return;
-        let diff = c.tB - c.tA;
-        let rowHtml = `<tr><td><strong style="color:var(--text-primary)">${c.name}</strong></td>`;
-        activeMonths.forEach(m => { rowHtml += `<td style="font-variant-numeric:tabular-nums">${c.months[m] === 0 ? '-' : (c.months[m]/1000000).toFixed(2)}</td>`; });
-        rowHtml += `<td style="font-variant-numeric:tabular-nums; font-weight:bold; color:var(--krn-blue);">${(c.tA/1000000).toFixed(2)}</td><td style="font-variant-numeric:tabular-nums; color:var(--text-secondary)">${(c.tB/1000000).toFixed(2)}</td><td style="font-variant-numeric:tabular-nums; font-weight:bold; color:${diff >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'}">${(diff/1000000).toFixed(2)}</td></tr>`;
-        tbody.innerHTML += rowHtml;
-    });
-}
-
-function filterStaffModal() { renderModalTable(); }
-function closeModal() { document.getElementById('staffModal').style.display = 'none'; }
-window.onclick = function(e) { if (e.target == document.getElementById('staffModal')) closeModal(); }
-
-// ========================================================================
-// 5. UTILS, SIDEBAR DONUTS, AND VACANT WIDGET
-// ========================================================================
-function formatPKRInline(num) { let p = getFormattedParts(num); return `<span class="val-unit-inline">${p.u}</span> <span class="val-num-inline">${p.v}</span>`; }
-function formatPKRShort(num) { let p = getFormattedParts(num); return `${p.v} ${p.u.charAt(0)}`; }
-function getFormattedParts(num) { let v = parseFloat(num)||0; let a = Math.abs(v); if(a>=1000000) return {v:(v/1000000).toFixed(1), u:'M PKR'}; if(a>=1000) return {v:(v/1000).toFixed(1), u:'K PKR'}; return {v:v.toLocaleString(), u:'PKR'}; }
-function applyTheme() { document.body.classList.toggle('light-mode', !isDarkMode); }
-function toggleDarkMode() { isDarkMode = !isDarkMode; applyTheme(); }
-
-const tooltip = document.getElementById('hoverTooltip');
-function showTooltip(e, label, value, pct) { const parts = getFormattedParts(value); if(tooltip) { tooltip.innerHTML = `<strong>${label}</strong><br><span class="val-num-inline" style="color:inherit">${parts.v}</span> ${parts.u} (<span class="val-num-inline" style="color:inherit">${pct}</span>%)`; tooltip.classList.add('visible'); moveTooltip(e); } }
-function showGiantTooltip(e, label, actual, budget) {
-    const actParts = getFormattedParts(actual); const budParts = getFormattedParts(budget); const varNum = budget - actual; const varParts = getFormattedParts(Math.abs(varNum));
-    const varColor = varNum >= 0 ? 'var(--krn-green)' : 'var(--krn-orange)'; const pct = budget > 0 ? Math.round((actual / budget) * 100) : (actual > 0 ? 'N/A' : 0);
-    if (tooltip) {
-        tooltip.innerHTML = `
-            <div style="font-weight:bold; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:4px; font-size: 0.9rem;">${label}</div>
-            <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem; margin-bottom:3px;"><span>Budget:</span> <strong>${budParts.v} ${budParts.u}</strong></div>
-            <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem; margin-bottom:3px;"><span>Spent:</span> <strong style="color:var(--krn-light-blue)">${actParts.v} ${actParts.u}</strong></div>
-            <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem; margin-bottom:3px;"><span>Variance:</span> <strong style="color:${varColor}">${varParts.v} ${varParts.u}</strong></div>
-            <div style="display:flex; justify-content:space-between; gap:20px; font-size:0.8rem;"><span>% Spent:</span> <strong>${pct}${pct !== 'N/A' ? '%' : ''}</strong></div>`;
-        tooltip.classList.add('visible'); moveTooltip(e);
+        if (!data) throw new Error(`No staff files found for ${years.join(' or ')}.`);
+        S.passphrase = pass;
+        $('authPassword').value = '';
+        applyLoaded(data);
+        $('authOverlay').hidden = true;
+        document.body.classList.remove('is-locked');
+    } catch (ex) {
+        keyCache.clear();
+        err.textContent = ex instanceof WrongKeyError ? 'That passphrase did not open the staff files.' : ex.message;
+        err.hidden = false;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Unlock';
     }
 }
-function moveTooltip(e) { if(tooltip) { tooltip.style.left = (e.clientX + 15) + 'px'; tooltip.style.top = (e.clientY + 15) + 'px'; } }
-function hideTooltip() { if(tooltip) tooltip.classList.remove('visible'); }
-function renderDonorDonut(containerId, donorObj) { if (Object.keys(donorObj).length === 0) { document.getElementById(containerId).innerHTML = '<div style="font-size:0.7rem; color:var(--text-secondary); text-align:center; margin-top:40px;">N/A</div>'; return; } let colors = ['var(--krn-blue)', '#14b8a6', 'var(--krn-orange)', '#8b5cf6', 'var(--krn-light-blue)']; let items = Object.keys(donorObj).sort((a,b) => donorObj[b] - donorObj[a]).map((d, i) => { return { label: d, value: donorObj[d], color: colors[i % colors.length] }; }); renderSvgDonut(containerId, items, null, null, true); }
-function renderSvgDonut(containerId, items, centerBadge = null, bottomLabel = null, showLegend = true) {
-    const container = document.getElementById(containerId); if (!container) return; const total = items.reduce((acc, it) => acc + (parseFloat(it.value) || 0), 0);
-    const radius = 33; const C = 2 * Math.PI * radius; let cumulativePercent = 0; const strokeWidth = 22; let circlesHtml = `<circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--border-color)" stroke-width="${strokeWidth}" opacity="0.3" />`; let legendHtml = '';
-    if (total > 0) { items.forEach((it) => { const fraction = it.value / total; const sliceLen = fraction * C; const offset = cumulativePercent * C; cumulativePercent += fraction; circlesHtml += `<circle class="donut-slice-${containerId}" cx="50" cy="50" r="${radius}" fill="none" stroke="${it.color}" stroke-width="${strokeWidth}" stroke-dasharray="0 ${C}" stroke-dashoffset="-${offset}" data-target-len="${sliceLen}" onmouseenter="showTooltip(event, '${it.label.replace(/'/g, "\\'")}', ${it.value}, '${Math.round(fraction*100)}')" onmousemove="moveTooltip(event)" onmouseleave="hideTooltip()" style="transform: rotate(-90deg); transform-origin: 50% 50%; pointer-events: stroke; transition: stroke-dasharray 1.4s cubic-bezier(0.16, 1, 0.3, 1), stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);" />`; if (showLegend) legendHtml += `<div class="donut-legend-item"><div class="donut-legend-item-left"><div class="donut-legend-dot" style="background-color: ${it.color};"></div><span style="white-space:nowrap; font-size:0.75rem; font-family: Calibri, sans-serif;">${it.label}</span></div><strong style="font-variant-numeric: tabular-nums; color: var(--text-primary); font-size:0.75rem;">${Math.round(fraction * 100)}%</strong></div>`; }); }
-    container.innerHTML = `<div class="svg-donut-wrapper" style="margin-top:-10px;"><div class="donut-chart-box"><svg viewBox="0 0 100 100" class="donut-svg">${circlesHtml}</svg></div>${showLegend && legendHtml ? `<div class="donut-legend-list">${legendHtml}</div>` : ''}</div>`; requestAnimationFrame(() => requestAnimationFrame(() => { container.querySelectorAll(`.donut-slice-${containerId}`).forEach(s => { const tl = parseFloat(s.getAttribute('data-target-len')) || 0; s.style.strokeDasharray = `${tl} ${C - tl}`; }); }));
+
+async function changeYear(year) {
+    const prevYear = S.year;
+    setLoader(true, `Loading ${year}…`);
+    try {
+        const data = await loadStaffYear(year, S.passphrase);
+        if (!data) {
+            showNotice(`No staff files for ${year}; still showing ${prevYear}.`);
+            $('yearDropdown').value = prevYear;
+        } else {
+            showNotice('');
+            applyLoaded(data);
+        }
+    } catch (ex) {
+        showNotice(ex instanceof WrongKeyError ? `The ${year} files use a different passphrase; still showing ${prevYear}.` : ex.message);
+        $('yearDropdown').value = prevYear;
+    } finally {
+        setLoader(false);
+    }
 }
-function renderVacantPositions(list) {
-    const container = document.getElementById('vacantPositionsContainer'); if (!container) return; container.innerHTML = ''; if (list.length === 0) { container.innerHTML = '<div style="padding:10px; text-align:center; color:var(--text-secondary); font-size:0.7rem;">No vacant positions in period.</div>'; return; }
-    list.sort((a, b) => b.periodBud - a.periodBud); list.slice(0, 5).forEach(p => { container.innerHTML += `<div class="mini-list-item"><div class="mini-list-left"><strong style="color:var(--text-primary); font-size:0.75rem;">${p.code}</strong><span style="color:var(--text-secondary); font-size:0.65rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 140px;">${p.dept}</span></div><div class="mini-list-right"><strong style="color:var(--krn-green); font-size:0.75rem;">${formatPKRShort(p.periodBud)}</strong><span style="color:var(--text-secondary); font-size:0.65rem;">Saved</span></div></div>`; });
+
+/* Clears everything decrypted from memory by reloading the page. */
+function lock() {
+    S.passphrase = null;
+    S.data = null;
+    keyCache.clear();
+    window.location.reload();
 }
+
+function bindEvents() {
+    bindCommonEvents();
+    $('authForm').addEventListener('submit', unlock);
+    $('btnLock').addEventListener('click', lock);
+    $('yearDropdown').addEventListener('change', e => changeYear(e.target.value));
+    $('deptDropdown').addEventListener('change', e => { S.dept = e.target.value; render(); });
+    $('donorDropdown').addEventListener('change', e => { S.donor = e.target.value; render(); });
+    $('periodDropdown').addEventListener('change', e => { S.period = e.target.value; render(); });
+    $('dataCheckChip').addEventListener('click', openAuditModal);
+    $('mainSearch').addEventListener('input', debounce(render, 120));
+    $('modalSearch').addEventListener('input', debounce(renderModalTable, 120));
+    document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+    document.querySelectorAll('[data-granularity]').forEach(b => b.addEventListener('click', () => setGranularity(b.dataset.granularity)));
+    document.querySelectorAll('[data-viewmode]').forEach(b => b.addEventListener('click', () => {
+        S.viewMode = b.dataset.viewmode;
+        syncToggleButtons();
+        render();
+    }));
+    $('empTableHead').addEventListener('click', e => {
+        const btn = e.target.closest('[data-sort]');
+        if (!btn) return;
+        const key = btn.dataset.sort;
+        S.empSort = S.empSort.key === key ? { key, dir: -S.empSort.dir } : { key, dir: key === 'name' || key === 'fyVar' ? 1 : -1 };
+        render();
+    });
+    onActivate($('componentBars'), '[data-comp]', el => openBreakdown('component', el.dataset.comp));
+    onActivate($('empTableBody'), 'tr[data-emp]', el => openBreakdown('employee', el.dataset.emp));
+}
+
+async function init() {
+    initTheme();
+    bindEvents();
+    S.years = await loadYears();
+    if (!window.crypto || !window.crypto.subtle) {
+        $('authError').textContent = 'This page must be opened over https to unlock staff files.';
+        $('authError').hidden = false;
+    }
+    $('authPassword').focus();
+}
+
+/* Exposed for tests only. */
+window.__staffInternals = { buildStaffDataset, parseDateLoose, parsePayrollMonth, computeView, S, reconcileToLedger };
+
+if (!window.__BVA_TEST__) {
+    if (document.readyState !== 'loading') init();
+    else document.addEventListener('DOMContentLoaded', init);
+}
+})();
