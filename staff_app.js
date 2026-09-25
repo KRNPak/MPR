@@ -84,7 +84,12 @@ const BASE_PREFERENCE = [/base salary after inflation/, /updated base/, /^base s
 class WrongKeyError extends Error {}
 const keyCache = new Map();
 
-const b64ToBytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function b64ToBytes(b64) {
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+}
 
 async function deriveKey(passphrase, salt, iterations) {
     const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey']);
@@ -1060,7 +1065,9 @@ async function unlock(e) {
         document.body.classList.remove('is-locked');
     } catch (ex) {
         keyCache.clear();
-        err.textContent = ex instanceof WrongKeyError ? 'That passphrase did not open the staff files.' : ex.message;
+        err.textContent = ex instanceof WrongKeyError ? 'That passphrase did not open the staff files.'
+            : ex instanceof RangeError ? 'The browser ran out of memory reading a staff file. Check that each workbook holds just the data table, then re-encrypt it.'
+            : ex.message;
         err.hidden = false;
     } finally {
         btn.disabled = false;

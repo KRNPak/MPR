@@ -162,9 +162,33 @@ function cellToText(cell) {
     return String(cell.v);
 }
 
+/* The area that actually holds values. A sheet's recorded range ("!ref") can run to
+   row 1,048,576 when whole columns or rows are formatted; reading that would
+   exhaust the browser's memory, so the range is worked out from the filled cells. */
+function usedRange(X, ws) {
+    let r0 = Infinity, c0 = Infinity, r1 = -1, c1 = -1;
+    for (const key in ws) {
+        if (key[0] === '!') continue;
+        const cell = ws[key];
+        if (!cell || cell.v === undefined || cell.v === null || cell.v === '') continue;
+        const { r, c } = X.utils.decode_cell(key);
+        if (r < r0) r0 = r;
+        if (c < c0) c0 = c;
+        if (r > r1) r1 = r;
+        if (c > c1) c1 = c;
+    }
+    return r1 < 0 ? null : { s: { r: r0, c: 0 }, e: { r: r1, c: c1 } };   // start at column A so positions line up
+}
+
+const MAX_SHEET_ROWS = 200000;
+
 function sheetGrid(X, ws, maxRows = Infinity) {
-    if (!ws || !ws['!ref']) return [];
-    const range = X.utils.decode_range(ws['!ref']);
+    if (!ws) return [];
+    const range = usedRange(X, ws);
+    if (!range) return [];
+    if (range.e.r - range.s.r + 1 > MAX_SHEET_ROWS) {
+        throw new Error(`A sheet has more than ${MAX_SHEET_ROWS.toLocaleString('en-US')} filled rows. Keep only the data table in the workbook and try again.`);
+    }
     const last = Math.min(range.e.r, range.s.r + maxRows - 1);
     const grid = [];
     for (let r = range.s.r; r <= last; r++) {
@@ -172,6 +196,7 @@ function sheetGrid(X, ws, maxRows = Infinity) {
         for (let c = range.s.c; c <= range.e.c; c++) row.push(cellToText(ws[X.utils.encode_cell({ r, c })]).trim());
         grid.push(row);
     }
+    grid.startRow = range.s.r;
     return grid;
 }
 
@@ -182,7 +207,7 @@ function sheetGrid(X, ws, maxRows = Infinity) {
    Without hints, the first row with two or more filled cells on the first sheet is used. */
 function readWorkbook(buffer, hints = []) {
     const X = window.XLSX;
-    const wb = X.read(buffer, { type: 'array', cellDates: false, cellNF: true, cellText: false });
+    const wb = X.read(buffer, { type: 'array', dense: false, cellDates: false, cellNF: true, cellText: false, cellStyles: false });
     let best = null;
     wb.SheetNames.forEach(name => {
         if (best && !hints.length) return;
@@ -191,7 +216,7 @@ function readWorkbook(buffer, hints = []) {
             if (preview[r].filter(Boolean).length < 2) continue;
             const norm = new Set(preview[r].map(normName));
             const score = hints.filter(h => norm.has(h)).length;
-            if (!best || score > best.score) best = { name, r, score };
+            if (!best || score > best.score) best = { name, r, score, sheetRow: (preview.startRow || 0) + r + 1 };
             if (!hints.length) break;
         }
     });
@@ -208,7 +233,7 @@ function readWorkbook(buffer, hints = []) {
     const rows = grid.slice(best.r + 1)
         .filter(row => row.some(Boolean))
         .map(row => Object.fromEntries(headers.map((h, i) => [h, row[i] ?? ''])));
-    return { headers, rows, sheet: best.name, headerRow: best.r + 1 };
+    return { headers, rows, sheet: best.name, headerRow: best.sheetRow };
 }
 
 /* One line describing a table's headers, for error messages. */
