@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karandaaz Pakistan — Budget vs Actual</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@300..700&family=Oswald:wght@400..700&display=swap" rel="stylesheet">
+
+    <!-- Bump ?v= on every deploy so browsers pick up the new files -->
+    <link rel="stylesheet" href="bva.css?v=2026.09.25">
+</head>
+<body class="view-summary light-mode">
+
+<div id="hoverTooltip" class="hover-tooltip" role="tooltip"></div>
+
+<!-- Loading / error screen -->
+<!-- Logo: save the SVG to assets/karandaaz-logo.svg. The onerror fallback uses the website copy until then. -->
+<div id="loadingOverlay" class="loading-overlay" aria-live="polite">
+    <div class="loader-content">
+        <div class="logo-container">
+            <div class="app-spinner"></div>
+            <img src="assets/karandaaz-logo.svg" alt="Karandaaz" class="loader-logo brand-logo" onerror="this.onerror=null;this.src='https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg'">
+        </div>
+        <p id="loaderStatusText" class="loader-status-text">Loading…</p>
+        <button id="btnRetry" class="btn btn-outline" type="button" hidden>Try again</button>
+    </div>
+</div>
+
+<div class="dashboard-container">
+
+    <!-- HEADER -->
+    <header class="header-banner">
+        <div class="header-left">
+            <div class="header-logo">
+                <img src="assets/karandaaz-logo.svg" alt="Karandaaz Pakistan" class="brand-logo" onerror="this.onerror=null;this.src='https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg'">
+            </div>
+            <div class="header-title-group">
+                <h1>Budget vs Actual</h1>
+                <div class="header-selectors">
+                    <label class="visually-hidden" for="yearDropdown">Fiscal year</label>
+                    <select id="yearDropdown" class="select-bare"></select>
+                    <span class="divider" aria-hidden="true">|</span>
+                    <label class="visually-hidden" for="donorDropdown">Donor</label>
+                    <select id="donorDropdown" class="select-bare"></select>
+                </div>
+                <div class="as-of-row">
+                    <span id="asOfStamp" class="as-of-stamp"></span>
+                    <button id="dataCheckChip" class="data-check-chip" type="button" hidden></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <div class="header-kpis">
+                <div class="kpi">
+                    <div class="kpi-label">FY budget</div>
+                    <div class="kpi-value" id="kpiBudget"></div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-label">FY actual</div>
+                    <div class="kpi-value actual" id="kpiActual"></div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-label">FY variance</div>
+                    <div class="kpi-value" id="kpiVariance"></div>
+                    <div class="kpi-sub" id="kpiVarianceSub"></div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-label">FY utilisation</div>
+                    <div class="kpi-value" id="kpiUtil"></div>
+                    <div class="kpi-sub" id="kpiUtilSub"></div>
+                </div>
+            </div>
+            <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Dark mode">
+                <span id="themeLabel">Light</span>
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <main class="main-layout-wrapper">
+
+        <!-- Summary panel (full width in summary view, narrow sidebar in details view) -->
+        <section id="summaryPanel" aria-label="Summary">
+            <div class="summary-split-layout">
+
+                <div class="summary-left-col">
+                    <div class="card controls-block">
+                        <div class="controls-head">
+                            <span class="controls-title">View</span>
+                            <button id="btnBackToSummary" class="btn btn-outline btn-small" type="button" hidden>Back to summary</button>
+                        </div>
+                        <div class="control-group-row">
+                            <div class="segmented" role="group" aria-label="Granularity">
+                                <button type="button" class="seg-btn" data-granularity="Monthly">Monthly</button>
+                                <button type="button" class="seg-btn" data-granularity="Quarterly">Quarterly</button>
+                                <button type="button" class="seg-btn" data-granularity="Yearly">Yearly</button>
+                            </div>
+                            <div class="segmented" role="group" aria-label="Period type">
+                                <button type="button" class="seg-btn" data-viewmode="Period">Period</button>
+                                <button type="button" class="seg-btn" data-viewmode="QTD">QTD</button>
+                                <button type="button" class="seg-btn" data-viewmode="YTD">YTD</button>
+                            </div>
+                        </div>
+                        <label class="visually-hidden" for="periodDropdown">Period</label>
+                        <select id="periodDropdown" class="select-input"></select>
+                    </div>
+
+                    <div class="card period-card">
+                        <h2 class="card-title" id="periodCaption"></h2>
+                        <div class="period-kpis">
+                            <div class="kpi">
+                                <div class="kpi-label">Budget</div>
+                                <div class="kpi-value" id="periodBudget"></div>
+                            </div>
+                            <div class="kpi">
+                                <div class="kpi-label">Actual</div>
+                                <div class="kpi-value actual" id="periodActual"></div>
+                            </div>
+                            <div class="kpi">
+                                <div class="kpi-label">Variance</div>
+                                <div class="kpi-value" id="periodVariance"></div>
+                            </div>
+                        </div>
+                        <div id="periodBullet"></div>
+                        <h3 class="section-label">By donor</h3>
+                        <div id="periodDonorBars"></div>
+                    </div>
+
+                    <div class="card eod-card" id="eodCard"></div>
+                </div>
+
+                <div class="card summary-right-card">
+                    <div class="card-header-row">
+                        <h2 class="card-title">Departmental spend</h2>
+                        <div class="status-legend" aria-label="Status key">
+                            <span><i class="status-dot status-ontrack"></i>On track</span>
+                            <span><i class="status-dot status-behind"></i>Behind pace</span>
+                            <span><i class="status-dot status-over"></i>Over budget</span>
+                            <span><i class="pace-key"></i>Plan to date</span>
+                        </div>
+                    </div>
+                    <p class="table-note">M PKR. Variance is budget minus actual; figures in brackets are over budget. Select a department to drill in.</p>
+                    <div class="table-wrapper">
+                        <table class="detail-table summary-table">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th>Trend</th>
+                                    <th class="n">Budget</th>
+                                    <th class="n">Actual</th>
+                                    <th class="n">Variance</th>
+                                    <th>Utilisation</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryTableBody"></tbody>
+                            <tfoot id="summaryTableFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Details panel -->
+        <section id="detailsPanel" aria-label="Department details">
+            <div class="card details-dept-card">
+                <div class="card-header-row">
+                    <h2 class="card-title">Departments</h2>
+                    <label class="visually-hidden" for="sortDept">Sort departments</label>
+                    <select class="select-mini" id="sortDept">
+                        <option value="Spend">Highest spend</option>
+                        <option value="Variance">Most over budget</option>
+                    </select>
+                </div>
+                <div class="dept-grid-container" id="deptListContainer"></div>
+            </div>
+
+            <div class="card details-overview-card">
+                <div class="card-header-row">
+                    <h2 class="card-title" id="card3Title">Department</h2>
+                    <label class="visually-hidden" for="sortStream">Sort streams</label>
+                    <select class="select-mini" id="sortStream">
+                        <option value="Spend">Highest spend</option>
+                        <option value="Variance">Most over budget</option>
+                    </select>
+                </div>
+                <div class="overview-top">
+                    <div id="deptBullet"></div>
+                    <div id="deptDonorBars"></div>
+                </div>
+                <h3 class="section-label">Streams — select one to see its accounts</h3>
+                <div class="stream-grid-container" id="streamListContainer"></div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- Account drill-down -->
+<div id="streamModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalStreamTitle" aria-hidden="true">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div>
+                <h2 id="modalStreamTitle" class="modal-title"></h2>
+                <p id="modalStreamSubtitle" class="modal-subtitle"></p>
+            </div>
+            <div class="modal-controls">
+                <label class="visually-hidden" for="modalSearch">Search accounts</label>
+                <input type="search" id="modalSearch" class="search-box" placeholder="Search accounts or codes">
+                <a href="staff.html" id="btnStaffLink" class="btn btn-solid" hidden>Open HR portal</a>
+                <button id="btnExportModal" class="btn btn-outline" type="button">Export CSV</button>
+                <button class="close-btn" type="button" data-close-modal aria-label="Close">&times;</button>
+            </div>
+        </div>
+        <div id="modalSummaryStats" class="stat-grid"></div>
+        <p class="table-note">Monthly actuals, totals and budget in M PKR.</p>
+        <div class="table-wrapper">
+            <table class="detail-table">
+                <thead id="modalTableHead"></thead>
+                <tbody id="modalTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Data checks -->
+<div id="auditModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="auditTitle" aria-hidden="true">
+    <div class="modal-content modal-wide">
+        <div class="modal-header">
+            <div>
+                <h2 id="auditTitle" class="modal-title">Data checks</h2>
+                <p class="modal-subtitle">Actuals placed without an exact account-code match, files that don't belong to this year, and the reconciliation to source.</p>
+            </div>
+            <div class="modal-controls">
+                <button id="btnExportAudit" class="btn btn-outline" type="button">Export CSV</button>
+                <button class="close-btn" type="button" data-close-modal aria-label="Close">&times;</button>
+            </div>
+        </div>
+        <div id="auditSummary" class="stat-grid"></div>
+        <div class="table-wrapper">
+            <table class="detail-table audit-table">
+                <thead>
+                    <tr><th>Level</th><th>Source</th><th>Item</th><th class="n">M PKR</th><th>Placed in</th><th>Why</th></tr>
+                </thead>
+                <tbody id="auditTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="vendor/papaparse.min.js?v=2026.09.25"></script>
+<script src="common.js?v=2026.09.25"></script>
+<script src="bva-data.js?v=2026.09.25"></script>
+<script src="app.js?v=2026.09.25"></script>
+</body>
+</html>

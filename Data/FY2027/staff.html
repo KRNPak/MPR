@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Karandaaz Pakistan — Staff cost</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@300..700&family=Oswald:wght@400..700&display=swap" rel="stylesheet">
+
+    <!-- Bump ?v= on every deploy so browsers pick up the new files -->
+    <link rel="stylesheet" href="bva.css?v=2026.09.25">
+    <link rel="stylesheet" href="staff.css?v=2026.09.25">
+</head>
+<body class="staff-page is-locked light-mode">
+
+<div id="hoverTooltip" class="hover-tooltip" role="tooltip"></div>
+
+<!-- Unlock screen -->
+<div id="authOverlay" class="auth-overlay">
+    <form id="authForm" class="auth-card" autocomplete="off">
+        <img src="assets/karandaaz-logo.svg" alt="Karandaaz" class="brand-logo auth-logo" onerror="this.onerror=null;this.src='https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg'">
+        <h1 class="auth-title">Staff cost</h1>
+        <p class="auth-sub">Enter the passphrase to open staff records. Data is decrypted in this browser and cleared when you lock or close the page.</p>
+        <label class="visually-hidden" for="authPassword">Passphrase</label>
+        <input type="password" id="authPassword" class="auth-input" placeholder="Passphrase" autocomplete="current-password">
+        <button type="submit" id="authSubmit" class="btn btn-solid auth-btn">Unlock</button>
+        <p id="authError" class="auth-error" role="alert" hidden></p>
+        <a href="index.html" class="auth-back">Back to Budget vs Actual</a>
+    </form>
+</div>
+
+<!-- Loading screen (year changes) -->
+<div id="loadingOverlay" class="loading-overlay hidden" aria-live="polite">
+    <div class="loader-content">
+        <div class="logo-container">
+            <div class="app-spinner"></div>
+            <img src="assets/karandaaz-logo.svg" alt="Karandaaz" class="loader-logo brand-logo" onerror="this.onerror=null;this.src='https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg'">
+        </div>
+        <p id="loaderStatusText" class="loader-status-text"></p>
+        <button id="btnRetry" class="btn btn-outline" type="button" hidden>Try again</button>
+    </div>
+</div>
+
+<div class="dashboard-container">
+
+    <!-- HEADER -->
+    <header class="header-banner">
+        <div class="header-left">
+            <div class="header-logo">
+                <a href="index.html"><img src="assets/karandaaz-logo.svg" alt="Karandaaz Pakistan" title="Back to Budget vs Actual" class="brand-logo" onerror="this.onerror=null;this.src='https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg'"></a>
+            </div>
+            <div class="header-title-group">
+                <h1>Staff cost</h1>
+                <div class="header-selectors">
+                    <label class="visually-hidden" for="yearDropdown">Fiscal year</label>
+                    <select id="yearDropdown" class="select-bare"></select>
+                    <span class="divider" aria-hidden="true">|</span>
+                    <label class="visually-hidden" for="deptDropdown">Department</label>
+                    <select id="deptDropdown" class="select-bare"></select>
+                    <span class="divider" aria-hidden="true">|</span>
+                    <label class="visually-hidden" for="donorDropdown">Donor</label>
+                    <select id="donorDropdown" class="select-bare"></select>
+                </div>
+                <div class="as-of-row">
+                    <span id="asOfStamp" class="as-of-stamp"></span>
+                    <button id="dataCheckChip" class="data-check-chip" type="button" hidden></button>
+                    <span id="staffNotice" class="staff-notice" role="status" hidden></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <div class="header-kpis">
+                <div class="kpi">
+                    <div class="kpi-label">FY budget</div>
+                    <div class="kpi-value" id="kpiFyBudget"></div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-label">FY forecast</div>
+                    <div class="kpi-value actual" id="kpiForecast"></div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-label">FY variance</div>
+                    <div class="kpi-value" id="kpiForecastVar"></div>
+                    <div class="kpi-sub" id="kpiForecastVarSub"></div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-label">Positions filled</div>
+                    <div class="kpi-value" id="kpiHeadcount"></div>
+                    <div class="kpi-sub" id="kpiHeadcountSub"></div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Dark mode">
+                    <span id="themeLabel">Light</span>
+                    <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+                <button id="btnLock" class="btn btn-outline btn-small" type="button">Lock</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="staff-layout">
+
+        <!-- Left: period controls and totals -->
+        <aside class="staff-col">
+            <div class="card controls-block">
+                <div class="controls-head">
+                    <span class="controls-title">View</span>
+                    <a href="index.html" class="btn btn-outline btn-small">Budget vs Actual</a>
+                </div>
+                <div class="control-group-row">
+                    <div class="segmented" role="group" aria-label="Granularity">
+                        <button type="button" class="seg-btn" data-granularity="Monthly">Monthly</button>
+                        <button type="button" class="seg-btn" data-granularity="Quarterly">Quarterly</button>
+                        <button type="button" class="seg-btn" data-granularity="Yearly">Yearly</button>
+                    </div>
+                    <div class="segmented" role="group" aria-label="Period type">
+                        <button type="button" class="seg-btn" data-viewmode="Period">Period</button>
+                        <button type="button" class="seg-btn" data-viewmode="QTD">QTD</button>
+                        <button type="button" class="seg-btn" data-viewmode="YTD">YTD</button>
+                    </div>
+                </div>
+                <label class="visually-hidden" for="periodDropdown">Period</label>
+                <select id="periodDropdown" class="select-input"></select>
+            </div>
+
+            <div class="card period-card">
+                <h2 class="card-title" id="periodCaption"></h2>
+                <div class="period-kpis">
+                    <div class="kpi"><div class="kpi-label">Budget</div><div class="kpi-value" id="periodBudget"></div></div>
+                    <div class="kpi"><div class="kpi-label">Actual</div><div class="kpi-value actual" id="periodActual"></div></div>
+                    <div class="kpi"><div class="kpi-label">Variance</div><div class="kpi-value" id="periodVariance"></div></div>
+                </div>
+                <div id="periodBullet"></div>
+                <p id="reconNote" class="recon-note" hidden></p>
+                <h3 class="section-label">By donor</h3>
+                <div id="periodDonorBars"></div>
+            </div>
+
+            <div class="card team-card">
+                <div class="team-kpis">
+                    <div class="kpi">
+                        <div class="kpi-label">Average monthly cost per head</div>
+                        <div class="kpi-value" id="avgCostPerHead"></div>
+                    </div>
+                    <div class="kpi">
+                        <div class="kpi-label">Change on previous month</div>
+                        <div class="kpi-value" id="momChange"></div>
+                        <div class="kpi-sub" id="momSub"></div>
+                    </div>
+                </div>
+                <h3 class="section-label">Biggest monthly rises</h3>
+                <ul id="spikeList" class="spike-list"></ul>
+            </div>
+        </aside>
+
+        <!-- Centre: components or employees -->
+        <section class="card staff-main">
+            <div class="card-header-row">
+                <div class="segmented tab-switch" role="group" aria-label="Breakdown">
+                    <button type="button" class="seg-btn active" data-tab="component" aria-pressed="true">By component</button>
+                    <button type="button" class="seg-btn" data-tab="employee" aria-pressed="false">By position</button>
+                </div>
+                <label class="visually-hidden" for="mainSearch">Search</label>
+                <input type="search" id="mainSearch" class="search-box" placeholder="Search components">
+            </div>
+
+            <div id="componentView" class="component-view">
+                <div class="comp-legend">
+                    <span><i class="key-actual"></i>Actual</span>
+                    <span><i class="key-budget"></i>Budget</span>
+                    <span><i class="status-dot status-ontrack"></i>On track</span>
+                    <span><i class="status-dot status-behind"></i>Behind pace</span>
+                    <span><i class="status-dot status-over"></i>Over budget</span>
+                </div>
+                <div class="comp-head">
+                    <span>Component</span><span></span>
+                    <span class="n">Actual</span><span class="n">Budget</span><span class="n">Variance</span><span class="n">Share</span>
+                </div>
+                <div id="componentBars" class="comp-list"></div>
+                <p class="table-note">M PKR for the selected period. Figures in brackets are over budget. Select a component to see it by position.</p>
+            </div>
+
+            <div id="employeeView" class="employee-view" hidden>
+                <p class="table-note">M PKR. Forecast is actual to date plus budget for the remaining months; lump-sum items use the higher of paid to date and the full-year budget. Select a position to see its pay components.</p>
+                <div class="table-wrapper">
+                    <table class="detail-table emp-table">
+                        <thead id="empTableHead"></thead>
+                        <tbody id="empTableBody"></tbody>
+                        <tfoot id="empTableFoot"></tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: projection and vacancies -->
+        <aside class="staff-col">
+            <div class="card bridge-card">
+                <h2 class="card-title">Full-year projection</h2>
+                <p class="table-note">How the full-year forecast differs from budget, M PKR. Hover a step for details.</p>
+                <div id="bridgeBody" class="bridge"></div>
+            </div>
+            <div class="card vacancy-card">
+                <div class="card-header-row">
+                    <h2 class="card-title">Unpaid budgeted positions <span id="vacancyCount" class="count-badge"></span></h2>
+                </div>
+                <p id="vacancyTotal" class="table-note"></p>
+                <ul id="vacancyList" class="vacancy-list"></ul>
+            </div>
+        </aside>
+
+    </main>
+</div>
+
+<!-- Breakdown: component by position, or position by component -->
+<div id="breakdownModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal-content modal-wide">
+        <div class="modal-header">
+            <div>
+                <h2 id="modalTitle" class="modal-title"></h2>
+                <p id="modalSubtitle" class="modal-subtitle"></p>
+            </div>
+            <div class="modal-controls">
+                <label class="visually-hidden" for="modalSearch">Search</label>
+                <input type="search" id="modalSearch" class="search-box">
+                <button class="close-btn" type="button" data-close-modal aria-label="Close">&times;</button>
+            </div>
+        </div>
+        <div id="modalStats" class="stat-grid"></div>
+        <p class="table-note">Monthly actuals, totals and budget in M PKR.</p>
+        <div class="table-wrapper">
+            <table class="detail-table">
+                <thead id="modalTableHead"></thead>
+                <tbody id="modalTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Data checks -->
+<div id="auditModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="auditTitle" aria-hidden="true">
+    <div class="modal-content modal-wide">
+        <div class="modal-header">
+            <div>
+                <h2 id="auditTitle" class="modal-title">Data checks</h2>
+                <p class="modal-subtitle">Problems found while reading the staff files, the payroll-to-ledger reconciliation, and how every column was used.</p>
+            </div>
+            <div class="modal-controls">
+                <button class="close-btn" type="button" data-close-modal aria-label="Close">&times;</button>
+            </div>
+        </div>
+        <div class="audit-scroll">
+            <div class="table-wrapper">
+                <table class="detail-table audit-table">
+                    <thead><tr><th>Level</th><th>Source</th><th>Item</th><th class="n">M PKR</th><th>Why</th></tr></thead>
+                    <tbody id="auditTableBody"></tbody>
+                </table>
+            </div>
+            <h3 class="section-label">How each column was used</h3>
+            <div class="table-wrapper">
+                <table class="detail-table audit-table">
+                    <thead><tr><th>File</th><th>Column</th><th>Used as</th></tr></thead>
+                    <tbody id="columnTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="vendor/papaparse.min.js?v=2026.09.25"></script>
+<script src="common.js?v=2026.09.25"></script>
+<script src="bva-data.js?v=2026.09.25"></script>
+<script src="staff_app.js?v=2026.09.25"></script>
+</body>
+</html>
