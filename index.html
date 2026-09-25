@@ -3,259 +3,375 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karandaaz Pakistan — Budget vs Actual</title>
+    <title>Karandaaz HR Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css"> <!-- Reusing your existing theme -->
+    
+    <!-- PDF Generation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        /* Specific Portal  Styles */
+        .login-gate {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-page); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .login-box {
+            background: var(--bg-card); padding: 40px; border-radius: 12px;
+            box-shadow: var(--card-shadow); text-align: center; border: 1px solid var(--border-color);
+            width: 90%; max-width: 400px;
+        }
+        .cnic-input {
+            width: 100%; padding: 12px; margin: 20px 0; border-radius: 6px;
+            border: 1px solid var(--border-color); background: transparent;
+            color: var(--text-primary); font-size: 1.1rem; text-align: center; letter-spacing: 2px;
+        }
+        .login-btn {
+            background: var(--krn-blue); color: white; border: none; padding: 12px 24px;
+            border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1rem;
+        }
+        
+        /* Bento Grid */
+        .bento-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 20px; box-shadow: var(--card-shadow);
+            display: flex; flex-direction: column; position: relative; align-self: start;
+        }
+        .locked-card { opacity: 0.6 !important; filter: grayscale(100%) !important; pointer-events: none !important; position: relative !important; }
+        .locked-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.05); border-radius: 12px; backdrop-filter: blur(2px);
+        }
+ /* Pill Toggle Switch */
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+}
+.theme-switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.theme-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #cbd5e1;
+  transition: .4s;
+  border-radius: 24px;
+}
+.theme-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px; width: 18px;
+  left: 3px; bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+input:checked + .theme-slider {
+  background-color: #0284c7;
+}
+input:checked + .theme-slider:before {
+  transform: translateX(22px);
+}
+/* Let this page scroll vertically — the shared theme sets
+   body { overflow: hidden } for a different, fixed-height page,
+   which would clip bento cards on shorter viewports here. */
+  body { overflow-y: auto !important; }
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@300..700&family=Oswald:wght@400..700&display=swap" rel="stylesheet">
+  /* Formatting for Login Inputs */
+  .login-input {
+      width: 100%;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      background: #fff;
+      color: #333;
+      transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .login-input:focus {
+      outline: none;
+      border-color: #005A9C;
+      box-shadow: 0 0 0 2px rgba(0, 90, 156, 0.2);
+  }
 
-    <!-- Bump ?v= on every deploy so browsers pick up the new files -->
-    <link rel="stylesheet" href="bva.css?v=2026.09.24">
+  /* Brand typeface (Chivo) for numerals — shared styles.css still lists
+     Oswald first as a fallback chain used by other pages. */
+  .val-num, .val-num-inline, .val-unit { font-family: 'Chivo', Calibri, sans-serif !important; }
+
+  /* ---------------- Sidebar shell (Option B layout) ---------------- */
+  .dashboard-shell { display: flex; align-items: flex-start; min-height: 100vh; }
+  .sidebar {
+      flex: 0 0 280px; background: var(--krn-blue); color: #ffffff;
+      padding: 32px 22px; box-sizing: border-box;
+      display: flex; flex-direction: column; gap: 24px;
+      position: sticky; top: 0; min-height: 100vh;
+  }
+  .sidebar-logo { height: 26px; width: auto; display: block; align-self: flex-start; }
+  .sidebar-identity { display: flex; align-items: center; gap: 12px; }
+  .sidebar-avatar {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      font-family: 'Chivo', sans-serif; font-weight: 700; font-size: 0.9rem;
+      flex-shrink: 0;
+  }
+  .sidebar-name { font-family: 'Chivo', sans-serif; font-weight: 700; font-size: 1rem; }
+  .sidebar-meta { font-size: 0.72rem; color: #bcdcee; margin-top: 2px; }
+  .sidebar-position { margin-top: 6px; font-size: 0.85rem; line-height: 1.4; }
+  .sidebar-joined { font-size: 0.72rem; color: #bcdcee; margin-top: 4px; }
+  .sidebar-divider { height: 1px; background: rgba(255,255,255,0.18); }
+  .sidebar-details-label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: #9fcbe0; margin-bottom: 10px;
+  }
+  .sidebar-detail-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.14);
+  }
+  .sidebar-detail-row:last-child { border-bottom: none; }
+  .sidebar-detail-label { font-size: 0.78rem; color: #d7ecf6; }
+  .sidebar-detail-value { font-family: 'Chivo', sans-serif; font-weight: 600; font-size: 0.84rem; color: #ffffff; }
+  .sidebar-theme-toggle { margin-top: auto; display: flex; align-items: center; gap: 10px; cursor: pointer; color: #d7ecf6; font-size: 0.75rem; }
+  .sidebar-logout {
+      display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1);
+      border: none; border-radius: 8px; padding: 9px 12px; cursor: pointer;
+      color: #ffffff; font-size: 0.78rem; font-weight: 600; font-family: inherit;
+      width: 100%; box-sizing: border-box; text-align: left;
+  }
+  .sidebar-logout:hover { background: rgba(255,255,255,0.18); }
+
+  /* The brand blue is identical in light and dark theme, which reads as
+     too bright next to dark mode's near-black cards — use a deeper navy
+     for the sidebar specifically when dark mode is active. */
+  body.dark-mode .sidebar { background: #00394f; }
+
+  /* ---------------- Main content + clickable cards ---------------- */
+  .dashboard-main { flex: 1 1 auto; padding: 36px 40px; box-sizing: border-box; min-width: 0; }
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1160px; align-items: start; }
+  .click-card {
+      all: unset; box-sizing: border-box; width: 100%; align-self: start;
+      display: flex; flex-direction: column; text-align: left; cursor: pointer; font-family: inherit;
+      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px;
+      padding: 22px; box-shadow: var(--card-shadow);
+      transition: box-shadow .15s ease;
+  }
+  .click-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+  .click-card:focus-visible { outline: 2px solid var(--krn-blue); outline-offset: 2px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+  .card-header-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);
+  }
+  .card-header-row h3 { margin: 0; font-size: 1rem; color: var(--text-primary); }
+  .card-chevron { flex-shrink: 0; color: var(--text-secondary); }
+
+  @media (max-width: 900px) {
+      .dashboard-shell { flex-direction: column; }
+      .sidebar { position: static; min-height: unset; flex: 0 0 auto; width: 100%; }
+      .main-grid { grid-template-columns: 1fr; max-width: none; }
+  }
+</style>
 </head>
-<body class="view-summary light-mode">
+<body class="light-mode">
 
-<div id="hoverTooltip" class="hover-tooltip" role="tooltip"></div>
-
-<!-- Loading / error screen -->
-<!-- Logo: save the SVG to assets/karandaaz-logo.svg. The onerror fallback uses the website copy until then. -->
-<div id="loadingOverlay" class="loading-overlay" aria-live="polite">
-    <div class="loader-content">
-        <div class="logo-container">
-            <div class="app-spinner"></div>
-            <img src="assets/karandaaz-logo.svg" alt="Karandaaz" class="loader-logo brand-logo" onerror="this.onerror=null;this.src='https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg'">
+    <!-- CNIC LOGIN GATE -->
+    <div id="loginScreen" class="login-gate">
+        <div class="login-box">
+            <img src="https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg" alt="Karandaaz" style="height: 40px; margin-bottom: 20px;">
+            <h2 style="margin: 0; color: var(--text-primary);">Employee Portal</h2>
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">Enter your CNIC (Without Dashes) to access your secure data.</p>
+            <div style="margin-bottom: 25px;">
+                <input type="text" id="empCodeInput" placeholder="Employee Code (e.g., KRN001)" class="login-input" required />
+                <input type="text" id="cnicInput" placeholder="CNIC (e.g., 12345-1234567-1)" class="login-input" style="margin-bottom: 0;" required />
+            </div>
+            <button class="login-btn" onclick="authenticateUser()">Secure Login &rarr;</button>
+            <div id="loginError" style="color: var(--krn-orange); font-size: 0.8rem; margin-top: 10px; display: none;">CNIC not found. Please verify and try again.</div>
         </div>
-        <p id="loaderStatusText" class="loader-status-text">Loading…</p>
-        <button id="btnRetry" class="btn btn-outline" type="button" hidden>Try again</button>
     </div>
-</div>
 
-<div class="dashboard-container">
+    <!-- MAIN PORTAL DASHBOARD (Hidden until login) -->
+    <div id="dashboardScreen" style="display: none;">
+    <div class="dashboard-shell">
 
-    <!-- HEADER -->
-    <header class="header-banner">
-        <div class="header-left">
-            <div class="header-logo">
-                <img src="assets/karandaaz-logo.svg" alt="Karandaaz Pakistan" class="brand-logo" onerror="this.onerror=null;this.src='https://www.karandaaz.com.pk/_next/static/media/navbar-logo.0ebe1390.svg'">
-            </div>
-            <div class="header-title-group">
-                <h1>Budget vs Actual</h1>
-                <div class="header-selectors">
-                    <label class="visually-hidden" for="yearDropdown">Fiscal year</label>
-                    <select id="yearDropdown" class="select-bare"></select>
-                    <span class="divider" aria-hidden="true">|</span>
-                    <label class="visually-hidden" for="donorDropdown">Donor</label>
-                    <select id="donorDropdown" class="select-bare"></select>
-                </div>
-                <div class="as-of-row">
-                    <span id="asOfStamp" class="as-of-stamp"></span>
-                    <button id="dataCheckChip" class="data-check-chip" type="button" hidden></button>
+        <!-- SIDEBAR -->
+        <aside class="sidebar" aria-label="Employee summary">
+            <img class="sidebar-logo" alt="Karandaaz" src="data:image/png;base64,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">
+
+            <div class="sidebar-identity">
+                <span class="sidebar-avatar" id="empInitials">&mdash;</span>
+                <div>
+                    <div class="sidebar-name" id="empNameDisplay">Employee Name</div>
+                    <div class="sidebar-meta">Grade <span id="empGradeDisplay">0</span> &middot; <span id="empCodeDisplay">&mdash;</span></div>
                 </div>
             </div>
-        </div>
 
-        <div class="header-right">
-            <div class="header-kpis">
-                <div class="kpi">
-                    <div class="kpi-label">FY budget</div>
-                    <div class="kpi-value" id="kpiBudget"></div>
-                </div>
-                <div class="kpi">
-                    <div class="kpi-label">FY actual</div>
-                    <div class="kpi-value actual" id="kpiActual"></div>
-                </div>
-                <div class="kpi">
-                    <div class="kpi-label">FY variance</div>
-                    <div class="kpi-value" id="kpiVariance"></div>
-                    <div class="kpi-sub" id="kpiVarianceSub"></div>
-                </div>
-                <div class="kpi">
-                    <div class="kpi-label">FY utilisation</div>
-                    <div class="kpi-value" id="kpiUtil"></div>
-                    <div class="kpi-sub" id="kpiUtilSub"></div>
-                </div>
+            <div>
+                <div class="sidebar-position" id="empPositionDisplay">&mdash;</div>
+                <div class="sidebar-joined">Joined <span id="empJoinDisplay">&mdash;</span></div>
             </div>
-            <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Dark mode">
-                <span id="themeLabel">Light</span>
-                <span class="switch-track"><span class="switch-thumb"></span></span>
+
+            <div class="sidebar-divider"></div>
+
+            <div>
+                <div class="sidebar-details-label">Employee Details</div>
+                <div id="sidebarDetailsList"><!-- Compensation rows injected by JS --></div>
+            </div>
+
+            <label class="sidebar-theme-toggle">
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"></path></svg>
+                <span class="theme-switch" style="width: 38px; height: 20px;">
+                    <input type="checkbox" id="themeToggleCheckbox" onchange="toggleTheme()" aria-label="Toggle dark mode">
+                    <span class="theme-slider"></span>
+                </span>
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path></svg>
+                <span id="themeLabel" style="font-weight: bold; letter-spacing: 0.5px;">LIGHT</span>
+            </label>
+            <button type="button" class="sidebar-logout" onclick="logoutUser()">
+                <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg>
+                Log Out
             </button>
-        </div>
-    </header>
+        </aside>
 
-    <!-- MAIN LAYOUT -->
-    <main class="main-layout-wrapper">
+        <!-- MAIN CONTENT -->
+        <main class="dashboard-main">
+          <div class="main-grid">
 
-        <!-- Summary panel (full width in summary view, narrow sidebar in details view) -->
-        <section id="summaryPanel" aria-label="Summary">
-            <div class="summary-split-layout">
-
-                <div class="summary-left-col">
-                    <div class="card controls-block">
-                        <div class="controls-head">
-                            <span class="controls-title">View</span>
-                            <button id="btnBackToSummary" class="btn btn-outline btn-small" type="button" hidden>Back to summary</button>
-                        </div>
-                        <div class="control-group-row">
-                            <div class="segmented" role="group" aria-label="Granularity">
-                                <button type="button" class="seg-btn" data-granularity="Monthly">Monthly</button>
-                                <button type="button" class="seg-btn" data-granularity="Quarterly">Quarterly</button>
-                                <button type="button" class="seg-btn" data-granularity="Yearly">Yearly</button>
-                            </div>
-                            <div class="segmented" role="group" aria-label="Period type">
-                                <button type="button" class="seg-btn" data-viewmode="Period">Period</button>
-                                <button type="button" class="seg-btn" data-viewmode="QTD">QTD</button>
-                                <button type="button" class="seg-btn" data-viewmode="YTD">YTD</button>
-                            </div>
-                        </div>
-                        <label class="visually-hidden" for="periodDropdown">Period</label>
-                        <select id="periodDropdown" class="select-input"></select>
-                    </div>
-
-                    <div class="card period-card">
-                        <h2 class="card-title" id="periodCaption"></h2>
-                        <div class="period-kpis">
-                            <div class="kpi">
-                                <div class="kpi-label">Budget</div>
-                                <div class="kpi-value" id="periodBudget"></div>
-                            </div>
-                            <div class="kpi">
-                                <div class="kpi-label">Actual</div>
-                                <div class="kpi-value actual" id="periodActual"></div>
-                            </div>
-                            <div class="kpi">
-                                <div class="kpi-label">Variance</div>
-                                <div class="kpi-value" id="periodVariance"></div>
-                            </div>
-                        </div>
-                        <div id="periodBullet"></div>
-                        <h3 class="section-label">By donor</h3>
-                        <div id="periodDonorBars"></div>
-                    </div>
-
-                    <div class="card eod-card" id="eodCard"></div>
-                </div>
-
-                <div class="card summary-right-card">
-                    <div class="card-header-row">
-                        <h2 class="card-title">Departmental spend</h2>
-                        <div class="status-legend" aria-label="Status key">
-                            <span><i class="status-dot status-ontrack"></i>On track</span>
-                            <span><i class="status-dot status-behind"></i>Behind pace</span>
-                            <span><i class="status-dot status-over"></i>Over budget</span>
-                            <span><i class="pace-key"></i>Plan to date</span>
-                        </div>
-                    </div>
-                    <p class="table-note">M PKR. Variance is budget minus actual; figures in brackets are over budget. Select a department to drill in.</p>
-                    <div class="table-wrapper">
-                        <table class="detail-table summary-table">
-                            <thead>
-                                <tr>
-                                    <th>Department</th>
-                                    <th>Trend</th>
-                                    <th class="n">Budget</th>
-                                    <th class="n">Actual</th>
-                                    <th class="n">Variance</th>
-                                    <th>Utilisation</th>
-                                </tr>
-                            </thead>
-                            <tbody id="summaryTableBody"></tbody>
-                            <tfoot id="summaryTableFoot"></tfoot>
-                        </table>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Details panel -->
-        <section id="detailsPanel" aria-label="Department details">
-            <div class="card details-dept-card">
+            <!-- 1. Provident Fund -->
+            <button type="button" class="click-card" id="pfCard" onclick="openPFModal()" title="Click for Monthly Ledger">
                 <div class="card-header-row">
-                    <h2 class="card-title">Departments</h2>
-                    <label class="visually-hidden" for="sortDept">Sort departments</label>
-                    <select class="select-mini" id="sortDept">
-                        <option value="Spend">Highest spend</option>
-                        <option value="Variance">Most over budget</option>
-                    </select>
+                    <h3>Provident Fund</h3>
+                    <svg class="card-chevron" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
                 </div>
-                <div class="dept-grid-container" id="deptListContainer"></div>
-            </div>
+                <div class="val" style="margin-bottom: 15px;"><span class="val-unit">Net Closing Balance (PKR)</span><span class="val-num" id="pfTotal">0</span></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.75rem;">
+                    <div><span style="color: var(--text-secondary);">Employee Cont.</span><br><strong id="pfEmployee" style="color: var(--text-primary);">0</strong></div>
+                    <div id="pfEmployerBox"><span style="color: var(--text-secondary);">Employer Cont.</span><br><strong id="pfEmployer" style="color: var(--text-primary);">0</strong></div>
+                    <div><span style="color: var(--text-secondary);">Acc. Profits</span><br><strong id="pfProfit" style="color: var(--krn-green);">0</strong></div>
+                    <div><span style="color: var(--text-secondary);">Total Withdrawals</span><br><strong id="pfWithdrawal" style="color: var(--krn-orange);">0</strong></div>
+                </div>
+            </button>
 
-            <div class="card details-overview-card">
+            <!-- 2. Gratuity -->
+            <button type="button" class="click-card" id="gratuityCard" onclick="openGratuityModal()" title="Click for accrual detail">
                 <div class="card-header-row">
-                    <h2 class="card-title" id="card3Title">Department</h2>
-                    <label class="visually-hidden" for="sortStream">Sort streams</label>
-                    <select class="select-mini" id="sortStream">
-                        <option value="Spend">Highest spend</option>
-                        <option value="Variance">Most over budget</option>
-                    </select>
+                    <h3>Gratuity Payable</h3>
+                    <svg class="card-chevron" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
                 </div>
-                <div class="overview-top">
-                    <div id="deptBullet"></div>
-                    <div id="deptDonorBars"></div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div class="val"><span class="val-unit">Accrued Amount (PKR)</span><span class="val-num" id="gratuityTotal">0</span></div>
+                    <div id="gratuityBreakdown" style="text-align: right; font-size: 0.75rem;">
+                        <!-- Breakdown injected by JS -->
+                    </div>
                 </div>
-                <h3 class="section-label">Streams — select one to see its accounts</h3>
-                <div class="stream-grid-container" id="streamListContainer"></div>
-            </div>
-        </section>
+                <div style="height: 8px; background: rgba(0,0,0,0.08); border-radius: 4px; margin-top: 16px; display: flex; overflow: hidden;">
+                    <div id="gratuityBarOpening" style="width: 0%; background: var(--krn-blue);"></div>
+                    <div id="gratuityBarAccrual" style="width: 0%; background: var(--krn-light-blue);"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-secondary); margin-top: 6px;">
+                    <span>Opening</span><span>FY Accrual</span>
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 14px;">
+                    <strong id="gratuityTenure" style="color: var(--text-primary);">&mdash;</strong> of service &middot; accrues at Base Salary &times; 4.17% / month
+                </div>
+            </button>
 
-    </main>
-</div>
+            <!-- 3. Training & Development -->
+            <button type="button" class="click-card" id="trainingCard" onclick="openTrainingModal()" title="Click for accrual detail">
+                <div class="card-header-row">
+                    <h3>Accrued Training Budget</h3>
+                    <svg class="card-chevron" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div class="val"><span class="val-unit">Available Limit (PKR)</span><span class="val-num" id="trainAvailable">0</span></div>
+                    <div style="text-align: right; font-size: 0.75rem;">
+                        <span style="color: var(--text-secondary);">Accrued:</span> <strong id="trainAccrued">0</strong><br>
+                        <span style="color: var(--text-secondary);">Utilized:</span> <strong id="trainUtilized">0</strong>
+                    </div>
+                </div>
+                <div style="height: 8px; background: rgba(0,0,0,0.08); border-radius: 4px; margin-top: 16px; overflow: hidden;">
+                    <div id="trainUtilBar" style="height: 100%; width: 0%; background: var(--krn-orange); border-radius: 4px;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-secondary); margin-top: 6px;">
+                    <span id="trainUtilPercent">0% utilized</span>
+                    <span>Entitlement: <strong id="trainEntitlement" style="color: var(--text-primary);">0</strong></span>
+                </div>
+                <div id="trainingWarning" style="display: none; background: rgba(249, 115, 22, 0.1); color: var(--krn-orange); padding: 8px; border-radius: 4px; font-size: 0.7rem; margin-top: 15px; border: 1px solid var(--krn-orange); text-align: left;">
+                    <strong>Advance Utilized:</strong> You have dipped into un-accrued funds. A Training Bond is currently active.
+                </div>
+            </button>
 
-<!-- Account drill-down -->
-<div id="streamModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalStreamTitle" aria-hidden="true">
-    <div class="modal-content">
-        <div class="modal-header">
-            <div>
-                <h2 id="modalStreamTitle" class="modal-title"></h2>
-                <p id="modalStreamSubtitle" class="modal-subtitle"></p>
+            <!-- 4. Salary Advances -->
+            <button type="button" class="click-card" id="advancesCard" title="Click for advances ledger">
+                <div class="card-header-row">
+                    <h3>Salary Advances</h3>
+                    <svg class="card-chevron" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 5px; display: flex; align-items: center;">
+                    Max Available Limit (PKR)
+                    <span style="margin-left:5px; cursor:help; font-size:0.9rem;" title="Calculation: Min(Base Salary × 5, PF Balance × 60%) minus active advances. Maximum 3 active advances allowed.">&#8505;&#65039;</span>
+                </div>
+                <div class="val-num" id="advLimit" style="margin-bottom: 4px;">0</div>
+                <div style="font-size: 0.68rem; color: var(--text-secondary); margin-bottom: 15px;">Capped by: <strong id="advCapReason" style="color: var(--text-primary);">&mdash;</strong></div>
+                <div id="activeAdvancesContainer">
+                    <!-- Progress bars injected by JS -->
+                </div>
+            </button>
+
+            <!-- 5. Expense Claims — temporarily hidden from the UI (per request).
+                 The data (Expenses.csv), API field (myExpenses), rendering logic
+                 in portal_app.js, and the openExpensesModal() modal are all still
+                 fully intact — nothing else needs to change to bring this back.
+                 To re-enable: uncomment the <button> block below.
+            <button type="button" class="click-card" id="expensesCard" onclick="openExpensesModal()" title="Click for claim history">
+                <div class="card-header-row">
+                    <h3>Expense Claims</h3>
+                    <svg class="card-chevron" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+                </div>
+                <div class="val" style="margin-bottom: 15px;"><span class="val-unit">Reimbursed (PKR)</span><span class="val-num" id="expPaidTotal">0</span></div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 0.75rem;">
+                    <span style="color: var(--text-secondary);">Pending: <strong id="expPendingCount" style="color: var(--text-primary);">0</strong> claim(s)</span>
+                    <strong id="expPendingAmount" style="color: var(--krn-orange);">0</strong>
+                </div>
+            </button>
+            -->
+
+            <!-- 6. Tax Certificate -->
+            <div class="bento-card">
+                <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Tax Certificates</h3>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0;">Generate your official Section 149 Tax Deduction Certificate.</p>
+                <select id="taxYearSelect" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-page); color: var(--text-primary); margin-bottom: 15px;">
+                    <option value="FY2027">July 2026 - June 2027</option>
+                    <option value="FY2026">July 2025 - June 2026</option>
+                </select>
+                <button onclick="generateTaxPDF()" style="background: transparent; color: var(--krn-blue); border: 1px solid var(--krn-blue); padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%;">Generate PDF &darr;</button>
             </div>
-            <div class="modal-controls">
-                <label class="visually-hidden" for="modalSearch">Search accounts</label>
-                <input type="search" id="modalSearch" class="search-box" placeholder="Search accounts or codes">
-                <a href="staff.html" id="btnStaffLink" class="btn btn-solid" hidden>Open HR portal</a>
-                <button id="btnExportModal" class="btn btn-outline" type="button">Export CSV</button>
-                <button class="close-btn" type="button" data-close-modal aria-label="Close">&times;</button>
+
+            <!-- 7. Lease Finance Limit -->
+            <div class="bento-card" id="leaseCard">
+                <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Lease Finance Limit</h3>
+                <div class="val"><span class="val-unit">Max Vehicle Lease (PKR)</span><span class="val-num" id="leaseLimit">0</span></div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 10px;">Calculation: (PF + Gratuity) - (Advances + Overage Training)</div>
             </div>
-        </div>
-        <div id="modalSummaryStats" class="stat-grid"></div>
-        <p class="table-note">Monthly actuals, totals and budget in M PKR.</p>
-        <div class="table-wrapper">
-            <table class="detail-table">
-                <thead id="modalTableHead"></thead>
-                <tbody id="modalTableBody"></tbody>
-            </table>
-        </div>
+
+          </div>
+        </main>
+
     </div>
-</div>
-
-<!-- Data checks -->
-<div id="auditModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="auditTitle" aria-hidden="true">
-    <div class="modal-content modal-wide">
-        <div class="modal-header">
-            <div>
-                <h2 id="auditTitle" class="modal-title">Data checks</h2>
-                <p class="modal-subtitle">Actuals placed without an exact account-code match, files that don't belong to this year, and the reconciliation to source.</p>
-            </div>
-            <div class="modal-controls">
-                <button id="btnExportAudit" class="btn btn-outline" type="button">Export CSV</button>
-                <button class="close-btn" type="button" data-close-modal aria-label="Close">&times;</button>
-            </div>
-        </div>
-        <div id="auditSummary" class="stat-grid"></div>
-        <div class="table-wrapper">
-            <table class="detail-table audit-table">
-                <thead>
-                    <tr><th>Level</th><th>Source</th><th>Item</th><th class="n">M PKR</th><th>Placed in</th><th>Why</th></tr>
-                </thead>
-                <tbody id="auditTableBody"></tbody>
-            </table>
-        </div>
     </div>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="common.js?v=2026.09.24"></script>
-<script src="bva-data.js?v=2026.09.24"></script>
-<script src="app.js?v=2026.09.24"></script>
+    <!-- Hidden Template for PDF Rendering -->
+    <div id="pdfTemplate" style="display: none; padding: 40px; background: white; color: black; font-family: Arial, sans-serif;">
+        <!-- Javascript will inject the official certificate HTML here before calling html2pdf -->
+    </div>
+
+    <script src="portal_app.js"></script>
 </body>
 </html>
