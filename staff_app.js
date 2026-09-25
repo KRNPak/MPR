@@ -13,6 +13,12 @@
 /* 1. CONFIGURATION ======================================================== */
 
 const STAFF_FILES = { master: 'Staff_Master.enc', budget: 'Staff_Budget.enc', actuals: 'Staff_Actuals.enc' };
+/* Header names each staff file should contain; used to find the right sheet and header row in workbooks. */
+const STAFF_HINTS = {
+    master: ['positioncode', 'employeename', 'department', 'designation'],
+    budget: ['positioncode', 'budgetedmonths', 'basesalary', 'joiningdate'],
+    actuals: ['positioncode', 'month', 'basesalary', 'grosssalary']
+};
 const LEGACY_CRYPTOJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';
 const ENC_PREFIX = 'KRNENC1';
 
@@ -41,7 +47,9 @@ const ID_FIELDS = {
     name: ['employeename', 'name', 'employee'],
     department: ['department', 'dept'],
     designation: ['designation', 'jobtitle', 'title'],
-    grade: ['positiongrade', 'grade'],
+    grade: ['positiongrade', 'grade', 'grades'],
+    stream: ['streams', 'stream', 'costcentre', 'costcenter'],
+    leaving: ['lastworkingday', 'lastworkingdate', 'lastworking', 'dateofleaving', 'leavingdate'],
     gender: ['gender'],
     joining: ['joiningdate', 'joiningdatenewagreementstartdate', 'dateofjoining', 'doj'],
     agreement: ['newagreementstartdate', 'agreementstartdate'],
@@ -100,6 +108,7 @@ function loadCryptoJS() {
 
 /* Files made with tools/encrypt.html:  KRNENC1$<iterations>$<salt>$<iv>$<ciphertext>  (AES-256-GCM, PBKDF2-SHA256).
    Older files from CryptoJS ("U2FsdGVkX1…") still open, and are flagged for re-encryption. */
+/* Returns { data, legacy } where data is CSV text or .xlsx bytes. */
 async function decryptText(text, passphrase) {
     const t = text.trim();
     if (t.startsWith(`${ENC_PREFIX}$`)) {
@@ -109,7 +118,7 @@ async function decryptText(text, passphrase) {
         try {
             const key = await keyCache.get(cacheKey);
             const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBytes(ivB64) }, key, b64ToBytes(ctB64));
-            return { text: new TextDecoder().decode(plain), legacy: false };
+            return { data: new Uint8Array(plain), legacy: false };
         } catch (e) {
             throw new WrongKeyError();
         }
@@ -119,7 +128,7 @@ async function decryptText(text, passphrase) {
         let out = '';
         try { out = window.CryptoJS.AES.decrypt(t, passphrase).toString(window.CryptoJS.enc.Utf8); } catch (e) { out = ''; }
         if (!out || !/position/i.test(out.split(/\r?\n/, 1)[0])) throw new WrongKeyError();
-        return { text: out, legacy: true };
+        return { data: out, legacy: true };
     }
     throw new Error('A staff file is in an unrecognised format. Re-create it with tools/encrypt.html.');
 }
@@ -257,7 +266,7 @@ function parsePct(raw) {
 
 function parseMaster(table, ctx) {
     const ids = resolveIds(table.headers);
-    if (!ids.position) throw new Error('Staff_Master has no "Position code" column.');
+    if (!ids.position) throw new Error(`Staff_Master has no "Position code" column. ${describeHeaders(table)}`);
     const idHeaders = new Set(Object.values(ids).filter(Boolean));
 
     const donorCols = DONOR_COLUMNS
@@ -318,7 +327,7 @@ function createStaffLedger() {
 function parseStaffBudget(table, master, ctx) {
     if (!table) return;
     const ids = resolveIds(table.headers);
-    if (!ids.position) throw new Error('Staff_Budget has no "Position code" column.');
+    if (!ids.position) throw new Error(`Staff_Budget has no "Position code" column. ${describeHeaders(table)}`);
     const { map } = mapComponents(table, ids, 'Staff_Budget', ctx);
     const fyStart = new Date(ctx.fyEnd - 1, 6, 1);
     const fyEndDate = new Date(ctx.fyEnd, 5, 30);
@@ -358,7 +367,7 @@ function parseStaffBudget(table, master, ctx) {
 function parseStaffActuals(table, master, ctx) {
     if (!table) return;
     const ids = resolveIds(table.headers);
-    if (!ids.position || !ids.month) throw new Error('Staff_Actuals needs "Position code" and "Month" columns.');
+    if (!ids.position || !ids.month) throw new Error(`Staff_Actuals needs "Position code" and "Month" columns. ${describeHeaders(table)}`);
     const { map, invert } = mapComponents(table, ids, 'Staff_Actuals', ctx, { detectSign: true });
     const unknown = new Map();
     const outside = new Map();
@@ -392,9 +401,10 @@ function buildStaffDataset(year, texts) {
         flag: e => audit.push(e),
         column: (file, column, use) => { columns.push({ file, column, use }); }
     };
-    const master = parseMaster(readCSV(texts.master), ctx);
-    parseStaffBudget(readCSV(texts.budget), master, ctx);
-    parseStaffActuals(readCSV(texts.actuals), master, ctx);
+    const asTable = x => (x && typeof x === 'object' ? x : readCSV(x));
+    const master = parseMaster(asTable(texts.master), ctx);
+    parseStaffBudget(asTable(texts.budget), master, ctx);
+    parseStaffActuals(asTable(texts.actuals), master, ctx);
 
     const ledger = ctx.ledger.values();
     const asOfIdx = Math.max(-1, ...ledger.filter(r => Object.values(r.comps).some(c => c.a !== 0)).map(r => MONTH_INDEX[r.month]));
@@ -987,7 +997,7 @@ async function loadStaffYear(year, passphrase) {
     for (const [k, text] of Object.entries(enc)) {
         if (!text) { plain[k] = ''; continue; }
         const out = await decryptText(text, passphrase);
-        plain[k] = out.text;
+        plain[k] = await toTable(out.data, STAFF_HINTS[k]);   // CSV or Excel inside the encrypted file
         legacy = legacy || out.legacy;
     }
     const data = buildStaffDataset(year, plain);
@@ -1000,8 +1010,11 @@ async function loadStaffYear(year, passphrase) {
 
     try {
         const p = filePaths(year);
-        const [budget, tb] = await Promise.all([fetchText(p.budget, true), fetchText(p.tb, true)]);
-        const [innovation, cic, capex] = await Promise.all([fetchText(p.innovation, false), fetchText(p.cic, false), fetchText(p.capex, false)]);
+        const [budget, tb, innovation, cic, capex] = await Promise.all([
+            fetchTable(p.budget, true, FILE_HINTS.budget), fetchTable(p.tb, true, FILE_HINTS.tb),
+            fetchTable(p.innovation, false, FILE_HINTS.innovation), fetchTable(p.cic, false, FILE_HINTS.cic),
+            fetchTable(p.capex, false, FILE_HINTS.capex)
+        ]);
         data.recon = reconcileToLedger(data, buildDataset(year, { budget, tb, innovation, cic, capex, eod: '' }));
     } catch (e) {
         data.audit.push({ severity: 'info', source: 'Ledger reconciliation', reason: `Skipped: ${e.message}` });

@@ -459,9 +459,9 @@ async function loadYear(year) {
     try {
         const p = filePaths(year);
         const [budget, tb, innovation, cic, capex, eod] = await Promise.all([
-            fetchText(p.budget, true), fetchText(p.tb, true),
-            fetchText(p.innovation, false), fetchText(p.cic, false),
-            fetchText(p.capex, false), fetchText(p.eod, false)
+            fetchTable(p.budget, true, FILE_HINTS.budget), fetchTable(p.tb, true, FILE_HINTS.tb),
+            fetchTable(p.innovation, false, FILE_HINTS.innovation), fetchTable(p.cic, false, FILE_HINTS.cic),
+            fetchTable(p.capex, false, FILE_HINTS.capex), fetchTable(p.eod, false, FILE_HINTS.eod)
         ]);
         const data = buildDataset(year, { budget, tb, innovation, cic, capex, eod });
         if (!data.rows.length) throw new Error(`No budget or actuals found for ${year}.`);

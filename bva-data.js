@@ -6,6 +6,16 @@
    payroll to the "Staff cost" line in the trial balance. Needs common.js.
    ========================================================================== */
 
+/* Header names each file should contain, used to find the right sheet and header row in .xlsx files. */
+const FILE_HINTS = {
+    budget: ['department', 'accountcode', 'accountname', 'donor', 'q1budget'],
+    tb: ['naturalacctsegmentvalue', 'totaldr', 'totalcr', 'accountingperiodparam'],
+    innovation: ['party', 'type'],
+    cic: ['party', 'type'],
+    capex: ['description', 'budget'],
+    eod: ['month', 'capitalavailablepkrmillion', 'capitaldeployedpkrmillion']
+};
+
 function filePaths(year) {
     return {
         budget: `Data/${year}/Budget.csv`,
@@ -106,7 +116,7 @@ const isTotalLabel = s => {
 };
 
 function parseBudget(table, ctx) {
-    const col = resolveColumns(table.headers, COLUMN_SPECS.budget, 'Budget.csv');
+    const col = resolveColumns(table.headers, COLUMN_SPECS.budget, 'Budget');
     const coa = new Map();       // account code → mapping
     const byName = new Map();    // normalised account name → mapping (only real names)
     const deptOrder = [];
@@ -192,7 +202,7 @@ function resolveTbDonor(row, col, mapping) {
 }
 
 function parseTrialBalance(table, chart, ctx) {
-    const col = resolveColumns(table.headers, COLUMN_SPECS.tb, 'ActualDonor.csv');
+    const col = resolveColumns(table.headers, COLUMN_SPECS.tb, 'ActualDonor');
     table.rows.forEach(row => {
         const code = clean(row[col.code]).toUpperCase();
         const actual = getSafeNum(row[col.dr]) - getSafeNum(row[col.cr]);
@@ -222,7 +232,7 @@ function parseTrialBalance(table, chart, ctx) {
             ctx.flag({
                 severity: guessed ? 'warn' : 'info', source: 'Trial balance', code, description: desc,
                 month: period.month, amount: actual,
-                mappedTo: `${mapping.Dept} / ${mapping.Stream}`, reason: `Code not in Budget.csv, placed by ${hit.method.charAt(0).toLowerCase()}${hit.method.slice(1)}`
+                mappedTo: `${mapping.Dept} / ${mapping.Stream}`, reason: `Code not in the budget file, placed by ${hit.method.charAt(0).toLowerCase()}${hit.method.slice(1)}`
             });
         }
     });
@@ -253,8 +263,8 @@ function parseInvestments(table, deptName, fileLabel, ctx) {
    item is found there; otherwise from CAPEX.csv's own Budget column (spread evenly). */
 function parseCapex(table, chart, ctx) {
     if (!table) return;
-    const col = resolveColumns(table.headers, COLUMN_SPECS.capex, 'CAPEX.csv');
-    const months = detectMonthColumns(table.headers, 'CAPEX.csv', ctx);
+    const col = resolveColumns(table.headers, COLUMN_SPECS.capex, 'CAPEX');
+    const months = detectMonthColumns(table.headers, 'CAPEX', ctx);
     const capexDept = chart.deptOrder.find(d => /capex|capital/i.test(d)) || 'CAPEX';
     const seen = new Set();
 
@@ -271,14 +281,14 @@ function parseCapex(table, chart, ctx) {
         if (hit) {
             mapping = hit.mapping;
             if (hit.method.startsWith('Partial')) {
-                ctx.flag({ severity: 'warn', source: 'CAPEX', description: desc, mappedTo: `${mapping.Dept} / ${mapping.Name}`, reason: 'Partial name match to Budget.csv' });
+                ctx.flag({ severity: 'warn', source: 'CAPEX', description: desc, mappedTo: `${mapping.Dept} / ${mapping.Name}`, reason: 'Partial name match to the budget file' });
             }
         } else {
             mapping = { Dept: capexDept, Stream: desc, Name: desc, Program: 'Unallocated', Donor: DEFAULT_DONOR, Code: `CAPEX-${normName(desc).toUpperCase().slice(0, 24)}` };
             const annual = col.budget ? getSafeNum(row[col.budget]) : 0;
             if (annual) {
                 FISCAL_MONTHS.forEach(m => ctx.ledger.add(m, mapping, DEFAULT_DONOR, { budget: annual / 12 }));
-                ctx.flag({ severity: 'info', source: 'CAPEX', description: desc, amount: annual, mappedTo: capexDept, reason: 'Not in Budget.csv. CAPEX.csv budget used, spread evenly over 12 months' });
+                ctx.flag({ severity: 'info', source: 'CAPEX', description: desc, amount: annual, mappedTo: capexDept, reason: 'Not in the budget file. The CAPEX file budget is used, spread evenly over 12 months' });
             }
         }
 
@@ -295,9 +305,9 @@ function parseEod(table, ctx) {
     if (!table) return [];
     let col;
     try {
-        col = resolveColumns(table.headers, COLUMN_SPECS.eod, 'EOD.csv');
+        col = resolveColumns(table.headers, COLUMN_SPECS.eod, 'EOD');
     } catch (e) {
-        ctx.flag({ severity: 'warn', source: 'EOD.csv', reason: `File could not be read, so the EOD panel is hidden. ${e.message}` });
+        ctx.flag({ severity: 'warn', source: 'EOD', reason: `File could not be read, so the EOD panel is hidden. ${e.message}` });
         return [];
     }
     const out = [];
@@ -308,9 +318,10 @@ function parseEod(table, ctx) {
         const dep = getSafeNum(row[col.deployed]);
         const pct = avail ? (dep / avail) * 100 : 0;
         if (col.statedPct) {
-            const stated = getSafeNum(row[col.statedPct]);
+            let stated = getSafeNum(row[col.statedPct]);
+            if (Math.abs(stated) <= 1.5 && pct > 1.5) stated *= 100;   // Excel % cells arrive as fractions
             if (Math.abs(stated - pct) > 0.5) {
-                ctx.flag({ severity: 'info', source: 'EOD.csv', month: clean(row[col.month]), reason: `Stated EOD ${stated.toFixed(2)}% differs from deployed ÷ available (${pct.toFixed(2)}%). The dashboard uses the calculated figure.` });
+                ctx.flag({ severity: 'info', source: 'EOD', month: clean(row[col.month]), reason: `Stated EOD ${stated.toFixed(2)}% differs from deployed ÷ available (${pct.toFixed(2)}%). The dashboard uses the calculated figure.` });
             }
         }
         out.push({ label: `${MONTH_LONG[p.month]} ${p.year}`, date: new Date(p.year, CALENDAR_MONTH[p.month], 1), avail, dep, pct });
@@ -327,12 +338,14 @@ function buildDataset(year, texts) {
         flag: entry => audit.push(entry)
     };
 
-    const chart = parseBudget(readCSV(texts.budget), ctx);
-    parseTrialBalance(readCSV(texts.tb), chart, ctx);
-    parseInvestments(readCSV(texts.innovation), 'Innovation Investment', 'Innovation.csv', ctx);
-    parseInvestments(readCSV(texts.cic), 'Corporate Investment and Credit', 'CIC.csv', ctx);
-    parseCapex(readCSV(texts.capex), chart, ctx);
-    const eod = parseEod(readCSV(texts.eod), ctx);
+    /* Each input is a table from fetchTable/toTable, or raw CSV text. */
+    const asTable = x => (x && typeof x === 'object' ? x : readCSV(x));
+    const chart = parseBudget(asTable(texts.budget), ctx);
+    parseTrialBalance(asTable(texts.tb), chart, ctx);
+    parseInvestments(asTable(texts.innovation), 'Innovation Investment', 'Innovation', ctx);
+    parseInvestments(asTable(texts.cic), 'Corporate Investment and Credit', 'CIC', ctx);
+    parseCapex(asTable(texts.capex), chart, ctx);
+    const eod = parseEod(asTable(texts.eod), ctx);
 
     const rows = ctx.ledger.values();
     const t = ctx.totals;

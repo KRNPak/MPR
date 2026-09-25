@@ -67,7 +67,16 @@ function debounce(fn, ms) {
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
+const CAL_TO_MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/* Month labels: "Jul-26", "Sept-25", "July 2026", or an ISO date ("2026-07-01"),
+   which is how Excel date cells arrive from .xlsx files. */
 function parseMonthLabel(raw) {
+    const iso = clean(raw).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (iso) {
+        const mi = parseInt(iso[2], 10) - 1;
+        return mi >= 0 && mi < 12 ? { month: CAL_TO_MONTH[mi], year: parseInt(iso[1], 10) } : null;
+    }
     const m = clean(raw).match(/^([A-Za-z]{3,9})\.?[\s\-_']*(\d{2}|\d{4})?$/);
     if (!m) return null;
     const month = m[1].charAt(0).toUpperCase() + m[1].slice(1, 3).toLowerCase();
@@ -109,6 +118,136 @@ function readCSV(text) {
     return { headers: res.meta.fields || [], rows: res.data };
 }
 
+/* ---- Excel workbooks ----------------------------------------------------
+   Data files can be .xlsx or .csv. When both exist, the .xlsx is used.
+   The first worksheet is read; its header row is the first row with two or
+   more filled cells. Date cells become ISO dates (2026-07-01) so the year is
+   never lost; numbers keep full precision; percentages arrive as fractions. */
+
+const SHEETJS_URL = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+let sheetJsPromise = null;
+
+function ensureSheetJS() {
+    if (window.XLSX) return Promise.resolve();
+    if (!sheetJsPromise) {
+        sheetJsPromise = new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = SHEETJS_URL;
+            s.onload = resolve;
+            s.onerror = () => { sheetJsPromise = null; reject(new Error('Could not load the Excel reader. Check the internet connection and try again.')); };
+            document.head.appendChild(s);
+        });
+    }
+    return sheetJsPromise;
+}
+
+const isZipBytes = bytes => bytes.length > 3 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
+const pad2 = n => String(n).padStart(2, '0');
+
+function cellToText(cell) {
+    if (!cell || cell.v === undefined || cell.v === null) return '';
+    if (cell.t === 'd') {
+        const d = cell.v;
+        return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+    if (cell.t === 'n') {
+        if (cell.z && window.XLSX.SSF.is_date(cell.z)) {
+            const p = window.XLSX.SSF.parse_date_code(cell.v);
+            return `${p.y}-${pad2(p.m)}-${pad2(p.d)}`;
+        }
+        return String(cell.v);
+    }
+    if (cell.t === 'b') return cell.v ? 'TRUE' : 'FALSE';
+    if (cell.t === 'e') return '';
+    return String(cell.v);
+}
+
+function sheetGrid(X, ws, maxRows = Infinity) {
+    if (!ws || !ws['!ref']) return [];
+    const range = X.utils.decode_range(ws['!ref']);
+    const last = Math.min(range.e.r, range.s.r + maxRows - 1);
+    const grid = [];
+    for (let r = range.s.r; r <= last; r++) {
+        const row = [];
+        for (let c = range.s.c; c <= range.e.c; c++) row.push(cellToText(ws[X.utils.encode_cell({ r, c })]).trim());
+        grid.push(row);
+    }
+    return grid;
+}
+
+/* Returns the same { headers, rows } shape as readCSV, plus the sheet used.
+   hints: normalised header names the file should contain (e.g. ['positioncode', 'month']).
+   Every sheet's first 30 rows are checked and the row matching the most hints becomes
+   the header row, so extra sheets, title rows and grouped headings above are skipped.
+   Without hints, the first row with two or more filled cells on the first sheet is used. */
+function readWorkbook(buffer, hints = []) {
+    const X = window.XLSX;
+    const wb = X.read(buffer, { type: 'array', cellDates: false, cellNF: true, cellText: false });
+    let best = null;
+    wb.SheetNames.forEach(name => {
+        if (best && !hints.length) return;
+        const preview = sheetGrid(X, wb.Sheets[name], 30);
+        for (let r = 0; r < preview.length; r++) {
+            if (preview[r].filter(Boolean).length < 2) continue;
+            const norm = new Set(preview[r].map(normName));
+            const score = hints.filter(h => norm.has(h)).length;
+            if (!best || score > best.score) best = { name, r, score };
+            if (!hints.length) break;
+        }
+    });
+    if (!best) return { headers: [], rows: [], sheet: wb.SheetNames[0] || '' };
+
+    const grid = sheetGrid(X, wb.Sheets[best.name]);
+    /* Blank or repeated headers get a suffix so no column is silently dropped. */
+    const seen = {};
+    const headers = grid[best.r].map((h, i) => {
+        let name = h.replace(/\s+/g, ' ').trim() || `Column ${i + 1}`;
+        if (seen[name]) name = `${name}_${seen[name]++}`; else seen[name] = 1;
+        return name;
+    });
+    const rows = grid.slice(best.r + 1)
+        .filter(row => row.some(Boolean))
+        .map(row => Object.fromEntries(headers.map((h, i) => [h, row[i] ?? ''])));
+    return { headers, rows, sheet: best.name, headerRow: best.r + 1 };
+}
+
+/* One line describing a table's headers, for error messages. */
+function describeHeaders(table) {
+    if (!table) return 'the file is empty';
+    const where = table.sheet ? `sheet "${table.sheet}"${table.headerRow ? `, row ${table.headerRow}` : ''}` : 'first row';
+    const shown = table.headers.filter(h => !/^Column \d+$/.test(h)).slice(0, 10);
+    return `Headers found on ${where}: ${shown.join(', ') || 'none'}${table.headers.length > 10 ? ', …' : ''}.`;
+}
+
+/* Accepts CSV text, an .xlsx ArrayBuffer/bytes, or an already-read table. */
+async function toTable(src, hints = []) {
+    if (!src) return null;
+    if (typeof src === 'string') return readCSV(src);
+    if (src.headers && src.rows) return src;
+    const bytes = src instanceof Uint8Array ? src : new Uint8Array(src);
+    if (isZipBytes(bytes)) {
+        await ensureSheetJS();
+        return readWorkbook(bytes, hints);
+    }
+    return readCSV(new TextDecoder().decode(bytes));
+}
+
+/* Fetches a data file, preferring Name.xlsx over Name.csv. */
+async function fetchTable(csvPath, required, hints = []) {
+    const xlsxPath = csvPath.replace(/\.csv$/i, '.xlsx');
+    const xres = await fetch(xlsxPath, { cache: 'no-cache' });
+    if (xres.ok) {
+        const buf = await xres.arrayBuffer();
+        if (isZipBytes(new Uint8Array(buf))) return toTable(buf, hints);   // guards against HTML error pages
+    }
+    const cres = await fetch(csvPath, { cache: 'no-cache' });
+    if (!cres.ok) {
+        if (required) throw new Error(`Could not load ${xlsxPath.split('/').pop()} or ${csvPath.split('/').pop()} for this year (HTTP ${cres.status}).`);
+        return null;
+    }
+    return readCSV(await cres.text());
+}
+
 function resolveColumns(headers, spec, fileLabel) {
     const byNorm = new Map(headers.map(h => [normName(h), h]));
     const col = {};
@@ -120,7 +259,7 @@ function resolveColumns(headers, spec, fileLabel) {
     });
     const missing = spec.required.filter(f => !col[f]);
     if (missing.length) {
-        throw new Error(`${fileLabel} is missing required column(s): ${missing.join(', ')}. Found: ${headers.slice(0, 8).join(', ') || 'none'}.`);
+        throw new Error(`${fileLabel} is missing required column(s): ${missing.join(', ')}. Found: ${headers.slice(0, 10).join(', ') || 'none'}.`);
     }
     return col;
 }
