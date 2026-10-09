@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Encrypt staff files — Karandaaz</title>
+<style>
+    :root { --blue: #006890; --text: #1e293b; --muted: #4b5a6c; --border: #cfd8e3; --bg: #e4e9ef; --card: #f9fbfc; --ok: #0f7b55; --err: #d9480f; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 16px; font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif; color: var(--text); background: var(--bg); line-height: 1.5; }
+    main { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    h1 { margin: 0; font-size: 1.6rem; color: var(--blue); }
+    h2 { margin: 0 0 4px; font-size: 1.1rem; }
+    p { margin: 0; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    label { font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 4px; }
+    input[type=password], input[type=text] { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px; font: inherit; background: #fff; }
+    .row { display: flex; gap: 8px; align-items: flex-end; }
+    .row > div { flex: 1; }
+    button { font: inherit; font-weight: 600; padding: 9px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--blue); }
+    .primary { background: var(--blue); color: #fff; }
+    .secondary { background: transparent; color: var(--blue); }
+    button:disabled { opacity: 0.6; cursor: progress; }
+    .tabs { display: flex; gap: 6px; }
+    .tabs button[aria-pressed="true"] { background: var(--blue); color: #fff; }
+    .tabs button[aria-pressed="false"] { background: transparent; color: var(--blue); }
+    #log { list-style: none; padding: 0; margin: 0; font-size: 0.9rem; }
+    #log li { padding: 4px 0; border-bottom: 1px solid var(--border); }
+    #log li.ok { color: var(--ok); }
+    #log li.err { color: var(--err); }
+    #log a { color: var(--blue); font-weight: 600; }
+    code { background: #eef2f6; padding: 1px 5px; border-radius: 4px; }
+    [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+    <div>
+        <h1>Encrypt staff files</h1>
+        <p class="muted">Everything happens in this browser. Files are never uploaded anywhere. Close the tab when you're done.</p>
+    </div>
+
+    <div class="card">
+        <div class="tabs" role="group" aria-label="Mode">
+            <button type="button" data-mode="new" aria-pressed="true">Encrypt new files</button>
+            <button type="button" data-mode="upgrade" aria-pressed="false">Upgrade old .enc files</button>
+        </div>
+        <p class="muted" id="modeHelp">Select <code>Staff_Master</code>, <code>Staff_Budget</code> and <code>Staff_Actuals</code> as .xlsx (recommended) or .csv files. You'll get matching <code>.enc</code> files to put in <code>Data/FY20XX/</code>.</p>
+
+        <div id="oldPassRow" hidden>
+            <label for="oldPass">Current password (the one the old files use)</label>
+            <input type="password" id="oldPass" autocomplete="off">
+        </div>
+
+        <div class="row">
+            <div>
+                <label for="newPass">New passphrase (at least 16 characters)</label>
+                <input type="password" id="newPass" autocomplete="new-password">
+            </div>
+            <button type="button" class="secondary" id="btnGenerate">Generate</button>
+        </div>
+        <div>
+            <label for="newPass2">Type it again</label>
+            <input type="password" id="newPass2" autocomplete="new-password">
+        </div>
+        <p class="muted" id="generated" hidden></p>
+
+        <div>
+            <label for="files">Files</label>
+            <input type="file" id="files" multiple accept=".xlsx,.csv,.enc">
+        </div>
+        <button type="button" class="primary" id="btnRun">Encrypt and download</button>
+        <ul id="log"></ul>
+    </div>
+
+    <div class="card">
+        <h2>How this works</h2>
+        <p class="muted">Files are encrypted with AES-256-GCM. The key comes from your passphrase through PBKDF2-SHA256 with 600,000 iterations, which makes guessing slow. A long, random passphrase is still what protects the data, so use the Generate button and store the result in a password manager. Share it only with people who should see salaries.</p>
+        <p class="muted">Use the same passphrase for all three files of a year. The dashboard still opens old-style files, but flags them until they're upgraded.</p>
+    </div>
+</main>
+
+<script>
+'use strict';
+(() => {
+    const ITERATIONS = 600000;
+    const PREFIX = 'KRNENC1';
+    const CRYPTOJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';
+    const $ = id => document.getElementById(id);
+    let mode = 'new';
+
+    const toB64 = bytes => { let s = ''; bytes.forEach(b => { s += String.fromCharCode(b); }); return btoa(s); };
+
+    async function deriveKey(pass, salt) {
+        const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+        return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: ITERATIONS, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+    }
+
+    /* data: CSV text or the raw bytes of an .xlsx workbook */
+    async function encrypt(data, key, salt) {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+        const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes));
+        return [PREFIX, ITERATIONS, toB64(salt), toB64(iv), toB64(ct)].join('$');
+    }
+
+    function loadCryptoJS() {
+        if (window.CryptoJS) return Promise.resolve();
+        const sources = ['../vendor/crypto-js.js', CRYPTOJS_URL];
+        return sources.reduce((prev, src) => prev.catch(() => new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = src;
+            s.onload = resolve;
+            s.onerror = () => { s.remove(); reject(new Error(src)); };
+            document.head.appendChild(s);
+        })), Promise.reject(new Error('start'))).catch(() => {
+            throw new Error('Could not load the library needed to open old files. Keep this page inside the repo\'s tools folder, next to the vendor folder.');
+        });
+    }
+
+    function log(msg, cls, link) {
+        const li = document.createElement('li');
+        li.className = cls || '';
+        li.textContent = msg;
+        if (link) { li.append(' '); li.appendChild(link); }
+        $('log').appendChild(li);
+    }
+
+    function generatePassphrase() {
+        const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+        const bytes = crypto.getRandomValues(new Uint8Array(24));
+        const chars = [...bytes].map(b => alphabet[b % alphabet.length]).join('');
+        return chars.match(/.{1,6}/g).join('-');
+    }
+
+    document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
+        mode = b.dataset.mode;
+        document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+        $('oldPassRow').hidden = mode !== 'upgrade';
+        $('modeHelp').innerHTML = mode === 'new'
+            ? 'Select <code>Staff_Master</code>, <code>Staff_Budget</code> and <code>Staff_Actuals</code> as .xlsx (recommended) or .csv files. You\'ll get matching <code>.enc</code> files to put in <code>Data/FY20XX/</code>.'
+            : 'Select the existing <code>.enc</code> files for one year. They\'re opened with the current password and saved again with the new passphrase.';
+        $('btnRun').textContent = mode === 'new' ? 'Encrypt and download' : 'Upgrade and download';
+    }));
+
+    $('btnGenerate').addEventListener('click', () => {
+        const p = generatePassphrase();
+        $('newPass').value = p;
+        $('newPass2').value = p;
+        $('generated').hidden = false;
+        $('generated').textContent = `Generated passphrase: ${p} — save it in a password manager now; it can't be recovered.`;
+    });
+
+    $('btnRun').addEventListener('click', async () => {
+        $('log').innerHTML = '';
+        const pass = $('newPass').value;
+        const files = [...$('files').files];
+        if (pass.length < 16) return log('Use a passphrase of at least 16 characters.', 'err');
+        if (pass !== $('newPass2').value) return log('The two passphrases do not match.', 'err');
+        if (!files.length) return log('Choose at least one file.', 'err');
+        if (!window.crypto || !crypto.subtle) return log('This browser cannot encrypt here. Open the page over https or from a local file in Chrome or Edge.', 'err');
+
+        const btn = $('btnRun');
+        btn.disabled = true;
+        try {
+            if (mode === 'upgrade') {
+                if (!$('oldPass').value) throw new Error('Enter the current password.');
+                await loadCryptoJS();
+            }
+            log('Preparing key… (this takes a second or two)');
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const key = await deriveKey(pass, salt);
+
+            for (const f of files) {
+                let data;
+                if (mode === 'upgrade') {
+                    const text = await f.text();
+                    let plain = '';
+                    try { plain = CryptoJS.AES.decrypt(text.trim(), $('oldPass').value).toString(CryptoJS.enc.Utf8); } catch (e) { plain = ''; }
+                    if (!plain) { log(`${f.name}: the current password did not open this file.`, 'err'); continue; }
+                    data = plain;
+                } else {
+                    data = new Uint8Array(await f.arrayBuffer());
+                    const isZip = data[0] === 0x50 && data[1] === 0x4b;
+                    const head = isZip ? '' : new TextDecoder().decode(data.slice(0, 16)).trim();
+                    if (head.startsWith('U2FsdGVkX1') || head.startsWith(PREFIX)) {
+                        log(`${f.name}: already encrypted. Use "Upgrade old .enc files" instead.`, 'err');
+                        continue;
+                    }
+                    if (!isZip && !/\.csv$/i.test(f.name)) {
+                        log(`${f.name}: choose .xlsx or .csv files.`, 'err');
+                        continue;
+                    }
+                }
+                const out = await encrypt(data, key, salt);
+                const name = f.name.replace(/\.(csv|xlsx|enc|txt)$/i, '') + '.enc';
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([out], { type: 'text/plain' }));
+                a.download = name;
+                a.textContent = `Download ${name}`;
+                log(`${f.name}: done.`, 'ok', a);
+                a.click();
+            }
+            log('Put the .enc files in the right Data/FY20XX folder and commit them. Delete any unencrypted copies you no longer need.');
+        } catch (e) {
+            log(e.message, 'err');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+})();
+</script>
+</body>
+</html>

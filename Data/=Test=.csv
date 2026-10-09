@@ -1,0 +1,167 @@
+Department,Program,Stream,Account code,Account Name,Donor,Q1 Budget,Q2 Budget,Q4 Budget,Q4 Budget
+Corporate Investment and Credit,,Credit,,,OSR,"350,000,000","375,000,000","375,000,000","375,000,000"
+Corporate Investment and Credit,,Equity,,,OSR,0,0,0,"1,000,000,000"
+Corporate Investment and Credit,,Green,,,OSR,0,0,"350,000,000","375,000,000"
+Transaction cost,,Innovation Investment,,WV/GFI: Technical Assistance through PFSL,OSR,"300,000","400,000","500,000","300,000"
+Transaction cost,,Innovation Investment,,Litigation Fee for WV,OSR,"1,500,000","1,000,000",0,0
+Transaction cost,,Innovation Investment,,PROPARCO Guarantee Fee,OSR,"9,800,000",0,0,0
+Transaction cost,,Corporate Investment and Credit,,Pre & post investment cost,OSR,"8,000,000","8,000,000","8,000,000","8,000,000"
+Innovation Investment,Consessional Loans,WV: Concessional Debt,,,OSR,"20,000,000","40,000,000","60,000,000","40,000,000"
+Innovation Investment,Consessional Loans,GFI: Concessional Debt,,,OSR,"25,000,000","15,000,000","20,000,000","15,000,000"
+Innovation Investment,Product Development,WV: Agency Services - AP,,,OSR,"30,000,000","30,000,000","40,000,000","40,000,000"
+Innovation Investment,Product Development,Wholesale Credit,,,OSR,0,"100,000,000",0,0
+Innovation Investment,Product Development,HD: Debt Finance Product,,,OSR,"25,000,000","25,000,000","25,000,000","25,000,000"
+Development Impact,,Assessment CIC Portfolio,,,OSR,"1,000,000",0,0,0
+Development Impact,,Economic Impact of Digital Payments: Insights from Karandaaz Experiments,,,GF,0,"5,000,000","5,000,000","5,000,000"
+Development Impact,,Third Party Monitoring of Karandaaz Projects,,,OSR,"1,454,248","4,362,745","4,362,745","7,620,261"
+Development Impact,,Third Party Monitoring of Karandaaz Projects,,,GF,"1,045,752","3,137,255","3,137,255","5,479,739"
+"Research, Marketing & Communications",,Communication and Marketing,K102014,"Web, Digital & Social Media",OSR,"548,750",548750.0,548750.0,"600,000"
+"Research, Marketing & Communications",,Communication and Marketing,K102016,KRN Marketing Collateral,OSR,"375,000",375000.0,375000.0,"375,000"
+"Research, Marketing & Communications",,Communication and Marketing,K102006,PR Services and Engagement Activities,OSR,"960,000","960,000","960,000","960,000"
+"Research, Marketing & Communications",,Communication and Marketing,K102013,KRN Conference,OSR,"1,000,000",21500000.0,0.0,0
+"Research, Marketing & Communications",,Communication and Marketing,K102013,KRN Conference,GF,"12,500,000",0.0,0.0,0
+"Research, Marketing & Communications",,Communication and Marketing,K102017,Impact Investing Visibility and Outreach,OSR,0,3250000.0,1625000.0,"1,625,000"
+"Research, Marketing & Communications",,Communication and Marketing,K103044,DFS Visibility & Outreach,GF,"5,000,000",5000000.0,5000000.0,"5,000,000"
+"Research, Marketing & Communications",,Communication and Marketing,K102014,"Web, Digital & Social Media",GF,"548,750",548750.0,548750.0,"600,000"
+"Research, Marketing & Communications",,Communication and Marketing,K102016,KRN Marketing Collateral,GF,"375,000",375000.0,375000.0,"375,000"
+"Research, Marketing & Communications",,Communication and Marketing,K102006,PR Services and Engagement Activities,GF,"960,000","960,000","960,000","960,000"
+"Research, Marketing & Communications",,Research and Insight,K102005,Green Economy- Developing Case Studies,OSR,"580,000",0.0,0.0,0
+"Research, Marketing & Communications",,Research and Insight,,"Mapping Battery Demand in Pakistan: Solar, Mobility, Residential, and Industrial Applications",OSR,0,4500000.0,4500000.0,"6,000,000"
+"Research, Marketing & Communications",,Research and Insight,K103021,Data Portal 2.0,GF,"1,250,000",1250000.0,1250000.0,"1,250,000"
+"Research, Marketing & Communications",,Research and Insight,K103065,Knowledge Partnerships (FAW and SME Finance Forum Subscription),GF,"1,075,000",1525000.0,725000.0,"675,000"
+"Research, Marketing & Communications",,Research and Insight,K102001,KFIS 2026 (on-going),GF,"5,525,000",2490000.0,0.0,0
+"Research, Marketing & Communications",,Research and Insight,K102003,Alternate Revenue Models for National Payment System (on-going),GF,"2,300,000",0.0,0.0,0
+"Research, Marketing & Communications",,Research and Insight,,The Impact of Digital Financial Inclusion on the Economy: Cross-Country Time Series Analysis,GF,0,1500000.0,1500000.0,"2,000,000"
+Capacity Building of KRN,,Capacity Building,H103002,Capacity Building,OSR,0,0.0,0.0,10000000.0
+Capacity Building of KRN,,Employee Engagement,H126002,Employee Engagement,OSR,"450,000","450,000","450,000","450,000"
+Capacity Building of KRN,,Capacity Building,H103002,Capacity Building,GF,0,0.0,0.0,10000000.0
+Capacity Building of KRN,,Employee Engagement,H126002,Employee Engagement,GF,"450,000","450,000","450,000","450,000"
+Corporate Social Responsibility,,Corporate Social Responsibility,H128002,Corporate Social Responsibility,OSR,"625,000","625,000","625,000","625,000"
+Corporate Social Responsibility,,Corporate Social Responsibility,H128002,Corporate Social Responsibility,GF,"625,000","625,000","625,000","625,000"
+Administrative Expenses,Premises and Operations,Office Supplies,H116001,Kitchen Supplies,OSR,"405,000","405,000","405,000","405,000"
+Administrative Expenses,Premises and Operations,Office Supplies,H116002,Cleaning Material,OSR,"25,500","25,500","25,500","25,500"
+Administrative Expenses,Premises and Operations,Office Supplies,H116003,Postage & Courier,OSR,"19,500","19,500","19,500","19,500"
+Administrative Expenses,Premises and Operations,Office Supplies,H116004,Office Supplies,OSR,"142,500","142,500","142,500","142,500"
+Administrative Expenses,Governance and Compliance,Fee & Subscription,H126001,Fee & Subscription,OSR,"37,500","37,500","37,500","37,500"
+Administrative Expenses,Premises and Operations,Printing and stationery,H121002,Stationery Printing,OSR,"50,000","50,000","50,000","50,000"
+Administrative Expenses,Premises and Operations,Utilities,H106001,Electricity,OSR,"345,000","345,000","345,000","345,000"
+Administrative Expenses,Premises and Operations,Utilities,H106002,Telephone & Internet,OSR,"68,063","68,063","68,063","68,063"
+Administrative Expenses,Premises and Operations,Utilities,H106006,Generator Expenses,OSR,"222,750","222,750","222,750","222,750"
+Administrative Expenses,Premises and Operations,Office Rent,H117001,Office Rent- Islamabad,OSR,"5,828,403","5,828,403","5,828,403","5,828,403"
+Administrative Expenses,Premises and Operations,Repair and maintenance,H124001,Office Repair & Maintenance,OSR,"125,000","125,000","125,000","125,000"
+Administrative Expenses,Premises and Operations,Repair and maintenance,H124002,Equipment Repair & Maintenance,OSR,"75,000","75,000","75,000","75,000"
+Administrative Expenses,Professional services,Professional charges,H122002,External Audit,OSR,"485,884","485,884","485,884","485,884"
+Administrative Expenses,Professional services,Professional charges,H122010,External Audit Fee - Group Audits,OSR,"916,050","916,050","916,050","916,050"
+Administrative Expenses,Professional services,Professional charges,H122004,Legal Charges,OSR,"375,000","375,000","375,000","375,000"
+Administrative Expenses,Professional services,Professional charges,H122005,Out of Pocket Ext-Audit,OSR,0,0,0,0
+Administrative Expenses,Professional services,Professional charges,H122007,Tax Consultancy,OSR,"625,000","625,000","625,000","625,000"
+Administrative Expenses,Professional services,Professional charges,H122008,PCP Professional Charges,OSR,0,0,0,0
+Administrative Expenses,People and Travel,Travel,H104001,Travel,OSR,"1,339,300","1,339,300","1,339,300","1,339,300"
+Administrative Expenses,People and Travel,Travel,H104002,BoD-Travel,OSR,0,0,0,0
+Administrative Expenses,People and Travel,Travel,H119003,Perdiem,OSR,0,0,0,0
+Administrative Expenses,People and Travel,Travel,H104003,International travel,OSR,0,0,0,0
+Administrative Expenses,People and Travel,Boarding and lodging,H108001,Road Transportation,OSR,0,0,0,0
+Administrative Expenses,People and Travel,Boarding and lodging,H119001,Boarding & Lodging,OSR,"888,000","888,000","888,000","888,000"
+Administrative Expenses,People and Travel,Boarding and lodging,H119002,BoD-Boarding & Lodging,OSR,0,0,0,0
+Administrative Expenses,People and Travel,Meeting and conferences,H115001,Meeting & Conferences,OSR,"237,500","237,500","237,500","237,500"
+Administrative Expenses,Premises and Operations,Vehicle operations and maintenance,H108002,Vehicle Operations,OSR,"656,219","656,219","656,219","656,219"
+Administrative Expenses,Premises and Operations,Vehicle operations and maintenance,H108003,Vehicle Maintenance,OSR,"75,000","75,000","75,000","75,000"
+Administrative Expenses,Premises and Operations,Vehicle operations and maintenance,H108004,Vehicle Insurance - Amortization,OSR,"51,408","51,408","51,408","51,408"
+Administrative Expenses,Professional services,Guards and Janitorial,H128001,Guards & Janitorial Services,OSR,"517,500","517,500","517,500","517,500"
+Administrative Expenses,Governance and Compliance,Board and Committee Meetings,H130003,Board and Committee Meetings,OSR,"2,475,413","2,475,413","2,475,413","2,475,413"
+Administrative Expenses,Governance and Compliance,Board and Committee Meetings,H109001,Directors - Trainings & Workshops,OSR,0,0,0,0
+Administrative Expenses,Governance and Compliance,Board and Committee Meetings,H114001,Investment / Credit Committee,OSR,0,0,0,0
+Administrative Expenses,Governance and Compliance,Assets' Insurance,H118001,Amortization - Asset and Vehicles Insurance,OSR,"62,500","62,500","62,500","62,500"
+Administrative Expenses,Governance and Compliance,Directors' Insurance,H129006,Directors & officers liability insurance,OSR,"412,500","412,500","412,500","412,500"
+Administrative Expenses,Premises and Operations,IT related costs,H116006,IT Supplies,OSR,"37,500","37,500","37,500","37,500"
+Administrative Expenses,Premises and Operations,IT related costs,H125001,Software Annual Support Services,OSR,"649,963","649,963","649,963","649,963"
+Administrative Expenses,Premises and Operations,IT related costs,H116008,Printer Monthly Rental and Usage,OSR,"68,750","68,750","68,750","68,750"
+Administrative Expenses,Premises and Operations,IT related costs,H116007,IT - Repair and Maintenance,OSR,"31,250","31,250","31,250","31,250"
+Administrative Expenses,Premises and Operations,IT related costs,H125003,ERP support and maintenance cost,OSR,0,0,0,0
+Administrative Expenses,Premises and Operations,IT related costs,H122001,IT Consultancy,OSR,0,0,0,0
+Administrative Expenses,People and Travel,Employee reimbursements,H106003,Communication reimbursement,OSR,"568,425","568,425","568,425","568,425"
+Administrative Expenses,People and Travel,Employee reimbursements,H106007,Fuel reimbursement,OSR,"7,924,219","7,924,219","7,924,219","7,924,219"
+Administrative Expenses,Premises and Operations,Office Supplies,H116001,Kitchen Supplies,GF,"405,000","405,000","405,000","405,000"
+Administrative Expenses,Premises and Operations,Office Supplies,H116002,Cleaning Material,GF,"25,500","25,500","25,500","25,500"
+Administrative Expenses,Premises and Operations,Office Supplies,H116003,Postage & Courier,GF,"19,500","19,500","19,500","19,500"
+Administrative Expenses,Premises and Operations,Office Supplies,H116004,Office Supplies,GF,"142,500","142,500","142,500","142,500"
+Administrative Expenses,Governance and Compliance,Fee & Subscription,H126001,Fee & Subscription,GF,"37,500","37,500","37,500","37,500"
+Administrative Expenses,Premises and Operations,Printing and stationery,H121002,Stationery Printing,GF,"50,000","50,000","50,000","50,000"
+Administrative Expenses,Premises and Operations,Utilities,H106001,Electricity,GF,"345,000","345,000","345,000","345,000"
+Administrative Expenses,Premises and Operations,Utilities,H106002,Telephone & Internet,GF,"68,063","68,063","68,063","68,063"
+Administrative Expenses,Premises and Operations,Utilities,H106006,Generator Expenses,GF,"222,750","222,750","222,750","222,750"
+Administrative Expenses,Premises and Operations,Office Rent,H117001,Office Rent- Islamabad,GF,"5,828,403","5,828,403","5,828,403","5,828,403"
+Administrative Expenses,Premises and Operations,Repair and maintenance,H124001,Office Repair & Maintenance,GF,"125,000","125,000","125,000","125,000"
+Administrative Expenses,Premises and Operations,Repair and maintenance,H124002,Equipment Repair & Maintenance,GF,"75,000","75,000","75,000","75,000"
+Administrative Expenses,Professional services,Professional charges,H122002,External Audit,GF,"485,884","485,884","485,884","485,884"
+Administrative Expenses,Professional services,Professional charges,H122010,External Audit Fee - Group Audits,GF,"916,050","916,050","916,050","916,050"
+Administrative Expenses,Professional services,Professional charges,H122004,Legal Charges,GF,"375,000","375,000","375,000","375,000"
+Administrative Expenses,Professional services,Professional charges,H122005,Out of Pocket Ext-Audit,GF,0,0,0,0
+Administrative Expenses,Professional services,Professional charges,H122007,Tax Consultancy,GF,"625,000","625,000","625,000","625,000"
+Administrative Expenses,Professional services,Professional charges,H122008,PCP Professional Charges,GF,0,0,0,0
+Administrative Expenses,People and Travel,Travel,H104001,Travel,GF,"1,339,300","1,339,300","1,339,300","1,339,300"
+Administrative Expenses,People and Travel,Travel,H104002,BoD-Travel,GF,0,0,0,0
+Administrative Expenses,People and Travel,Travel,H119003,Perdiem,GF,0,0,0,0
+Administrative Expenses,People and Travel,Travel,H104003,International travel,GF,0,0,0,0
+Administrative Expenses,People and Travel,Boarding and lodging,H108001,Road Transportation,GF,0,0,0,0
+Administrative Expenses,People and Travel,Boarding and lodging,H119001,Boarding & Lodging,GF,"888,000","888,000","888,000","888,000"
+Administrative Expenses,People and Travel,Boarding and lodging,H119002,BoD-Boarding & Lodging,GF,0,0,0,0
+Administrative Expenses,People and Travel,Meeting and conferences,H115001,Meeting & Conferences,GF,"237,500","237,500","237,500","237,500"
+Administrative Expenses,Premises and Operations,Vehicle operations and maintenance,H108002,Vehicle Operations,GF,"656,219","656,219","656,219","656,219"
+Administrative Expenses,Premises and Operations,Vehicle operations and maintenance,H108003,Vehicle Maintenance,GF,"75,000","75,000","75,000","75,000"
+Administrative Expenses,Premises and Operations,Vehicle operations and maintenance,H108004,Vehicle Insurance - Amortization,GF,"51,408","51,408","51,408","51,408"
+Administrative Expenses,Professional services,Guards and Janitorial,H128001,Guards & Janitorial Services,GF,"517,500","517,500","517,500","517,500"
+Administrative Expenses,Governance and Compliance,Board and Committee Meetings,H130003,Board and Committee Meetings,GF,"2,475,413","2,475,413","2,475,413","2,475,413"
+Administrative Expenses,Governance and Compliance,Board and Committee Meetings,H109001,Directors - Trainings & Workshops,GF,0,0,0,0
+Administrative Expenses,Governance and Compliance,Board and Committee Meetings,H114001,Investment / Credit Committee,GF,0,0,0,0
+Administrative Expenses,Governance and Compliance,Assets' Insurance,H118001,Amortization - Asset and Vehicles Insurance,GF,"62,500","62,500","62,500","62,500"
+Administrative Expenses,Governance and Compliance,Directors' Insurance,H129006,Directors & officers liability insurance,GF,"412,500","412,500","412,500","412,500"
+Administrative Expenses,Premises and Operations,IT related costs,H116006,IT Supplies,GF,"37,500","37,500","37,500","37,500"
+Administrative Expenses,Premises and Operations,IT related costs,H125001,Software Annual Support Services,GF,"649,963","649,963","649,963","649,963"
+Administrative Expenses,Premises and Operations,IT related costs,H116008,Printer Monthly Rental and Usage,GF,"68,750","68,750","68,750","68,750"
+Administrative Expenses,Premises and Operations,IT related costs,H116007,IT - Repair and Maintenance,GF,"31,250","31,250","31,250","31,250"
+Administrative Expenses,Premises and Operations,IT related costs,H125003,ERP support and maintenance cost,GF,0,0,0,0
+Administrative Expenses,Premises and Operations,IT related costs,H122001,IT Consultancy,GF,0,0,0,0
+Administrative Expenses,People and Travel,Employee reimbursements,H106003,Communication reimbursement,GF,"568,425","568,425","568,425","568,425"
+Administrative Expenses,People and Travel,Employee reimbursements,H106007,Fuel reimbursement,GF,"7,924,219","7,924,219","7,924,219","7,924,219"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digital Public Infrastructure,,Digital Nation Pakistan,GF,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digital Public Infrastructure,D107043,Raast Implementation,GF,0,"145,345,427",0,"186,775,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digital Public Infrastructure,D107039,Raast S&M,GF,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digital Public Infrastructure,D107017,RAAST Adoption,GF,"60,329,506","53,426,917","30,886,240","36,858,771"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digital Public Infrastructure,D107046,RAAST Governance,GF,0,"6,000,000","12,000,000","12,000,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digital Public Infrastructure,D107055,Raast-BUNA: Implementation,GF,"73,158,176","719,618,018","634,198,217","5,548,295"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digital Public Infrastructure,D107044,Buna-Raast Connectivity,GF,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digital Public Infrastructure,D107018,"W1: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events",GF,"2,000,000","2,000,000","2,000,000","2,000,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,SECP LEAP Program,D107010,LEAP Consultancy,FCDO,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,SECP LEAP Program,D107021,LEAP PMO,FCDO,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,SECP LEAP Program,D107011,Company Registry,FCDO,0,"24,873,187","13,020,000",0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,SECP LEAP Program,D107022,SOC Implementation,FCDO,0,0,0,"3,225,608"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,SECP LEAP Program,D107023,XBRL Implementation,FCDO,0,"7,440,000","11,160,000","18,600,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,SECP LEAP Program,D105013,SECP overhead / Capacity building,FCDO,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,SECP LEAP Program,D107024,Internal Workflow Automation,FCDO,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,SECP LEAP Program,D105012,Secured Transaction Registry (STR),FCDO,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,SECP LEAP Program,D107051,"W2: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events",FCDO,"300,000","300,000","300,000","300,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D107037,FBR - Digitization for Tax System (Stage 1: Digital Strategy & Implementation Plan),GF,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D107052,FBR - Digitization for Tax System (Stage 2: Project & Change Management ),GF,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,,FBR - Digitization for Tax System (Stage 3: McKinsey PMO),GF,"169,260,000","169,260,000","169,260,000","169,260,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,,FBR - Digitalization for Tax System(Stage 3): Research Firm,GF,"6,975,000",0,"11,625,000","4,650,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D107053,FBR - Digitalization for Tax System: Individual Consultant,GF,"5,197,500","15,592,500","5,197,500",0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D107054,BISP - BISP and RAAST integration,GF,"16,000,000",0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,--,Project 1: CDNS,GF,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D108002,Conditional Cash Transfer (CCT),GF,"95,451,695","4,890,000","94,321,695","2,630,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Digitalization of Government Programs,D106008,"W3: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events",GF,"10,000,000","5,000,000",0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107038,DFA - C,GF,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D105015,Pilot to Scale - Digital Payments and Access to Finance,GF,"17,289,683.00","32,707,501","17,011,668","11,434,418"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107029,Sector Transformation - Agri Value Chain Transformation,GF,"21,627,032.00","22,154,257","14,401,015","10,950,314"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107058,Agent Network Visibility Dashboard,GF,0.00,"7,750,000","7,750,000",0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107015,New Accounts Acquisition and Digitalization of Payments,GF,0.00,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D103021,Digital Payments,GF,0,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107049,Cashless Ecosystem,GF,0.00,0,0,0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Innovation & Enablement,D107025,"W4: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events (such as Agri Tech engagement on sustainable business models and agriculture sector progress, merchant onboarding redesign, PISP workshop)",GF,"1,250,000.00","1,250,000","1,250,000","1,250,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Adoption,D107030,Adoption Projects,GF,"82,117,268.00","5,922,017","17,062,346","32,263,775"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Adoption,D107028,E-Commerce Value chain Interventions,GF,"12,550,201.00",0,0,"9,551,300"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,D108005,Mainstreaming: Gender as a Core Element in All Interventions,GF,0.00,"250,000","250,000",0
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,"D108006, D103004",Disruption and Experimentation: Innovative Solutions for Women's Inclusion,GF,"15,170,823.00","18,993,719","12,455,943","18,993,989"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,D108007,Scale and Usage: Expanding Successful Models for Women's Empowerment,GF,"4,000,000","5,000,000","5,000,000","10,000,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,,Raast Adoption,GF,0.00,"5,000,000","5,000,000","5,000,000"
+Digital Financial Services,Pakistan Centre for Digital Financial Inclusion - PCDFI,Women Economic & Digital Inclusion Initiative,D108008,"W5: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events (such as collaborative study on challenges faced by women in Pakistan with FAW, women centric UI/UX workshops, women preferred alias research for access to DFS)",GF,"500,000.00","500,000","500,000","500,000"

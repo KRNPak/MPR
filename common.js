@@ -15,7 +15,10 @@ const DEFAULT_DONOR = 'OSR';
 const ALL_DONORS = 'All Donors';
 const BEHIND_PACE_THRESHOLD = 0.75;               // spend below 75% of plan-to-date = "behind pace"
 /* Donor colours avoid the green / amber / orange used for status. */
-const DONOR_PALETTE = ['#006890', '#4a96d2', '#0f9d9a', '#7c5cc4', '#2f4858', '#93b5d6', '#b5838d', '#6b7f3a'];
+/* Donor colours: fixed for the main donors so they look the same every year, chosen to be
+   easy to tell apart and to avoid the green / amber / orange used for status. */
+const DONOR_FIXED_COLORS = { OSR: '#1d4ed8', GF: '#db2777', FIP: '#0891b2', FCDO: '#7c3aed' };
+const DONOR_PALETTE = ['#475569', '#be123c', '#4d7c0f', '#c084fc', '#0f766e', '#92400e', '#64748b', '#f472b6'];
 
 const FISCAL_MONTHS = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 const MONTH_INDEX = Object.fromEntries(FISCAL_MONTHS.map((m, i) => [m, i]));
@@ -124,18 +127,28 @@ function readCSV(text) {
    more filled cells. Date cells become ISO dates (2026-07-01) so the year is
    never lost; numbers keep full precision; percentages arrive as fractions. */
 
-const SHEETJS_URL = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+/* Libraries are served from this site's vendor/ folder, with the publisher's CDN
+   as a fallback, so the dashboards don't depend on outside sites being reachable. */
+const SHEETJS_SOURCES = ['vendor/xlsx.mini.min.js', 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.mini.min.js'];
+
+function loadScriptFrom(sources) {
+    return sources.reduce((prev, src) => prev.catch(() => new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = () => { s.remove(); reject(new Error(src)); };
+        document.head.appendChild(s);
+    })), Promise.reject(new Error('start')));
+}
+
 let sheetJsPromise = null;
 
 function ensureSheetJS() {
     if (window.XLSX) return Promise.resolve();
     if (!sheetJsPromise) {
-        sheetJsPromise = new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = SHEETJS_URL;
-            s.onload = resolve;
-            s.onerror = () => { sheetJsPromise = null; reject(new Error('Could not load the Excel reader. Check the internet connection and try again.')); };
-            document.head.appendChild(s);
+        sheetJsPromise = loadScriptFrom(SHEETJS_SOURCES).catch(() => {
+            sheetJsPromise = null;
+            throw new Error('Could not load the Excel reader. Check that the vendor folder (vendor/xlsx.mini.min.js) was uploaded with the site.');
         });
     }
     return sheetJsPromise;
@@ -314,9 +327,17 @@ function detectMonthColumns(headers, fileLabel, ctx) {
 const donorColors = new Map();
 
 function donorColor(d) {
-    if (!donorColors.has(d)) donorColors.set(d, DONOR_PALETTE[donorColors.size % DONOR_PALETTE.length]);
+    if (!donorColors.has(d)) {
+        const fixed = DONOR_FIXED_COLORS[String(d).trim().toUpperCase()];
+        const used = new Set(donorColors.values());
+        const next = DONOR_PALETTE.find(c => !used.has(c)) || DONOR_PALETTE[donorColors.size % DONOR_PALETTE.length];
+        donorColors.set(d, fixed || next);
+    }
     return donorColors.get(d);
 }
+
+/* Label for the single-period button: "Month", "Quarter" or "Year". */
+const PERIOD_BUTTON_LABEL = { Monthly: 'Month', Quarterly: 'Quarter', Yearly: 'Year' };
 
 const STATUS_LABEL = { ontrack: 'On track', behind: 'Behind pace', over: 'Over budget', neutral: 'Not started' };
 

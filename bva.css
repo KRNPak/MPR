@@ -376,7 +376,7 @@ body.view-details .eod-table, body.view-details .eod-card .table-note { display:
 .close-btn { border: none; background: transparent; font-size: 1.6rem; line-height: 1; color: var(--text-secondary); cursor: pointer; padding: 0 4px; }
 .close-btn:hover { color: var(--over); }
 
-.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; flex-shrink: 0; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 10px; flex-shrink: 0; }
 .stat { border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; }
 .stat-val { display: flex; align-items: baseline; }
 .stat-val .num { font-size: 1.4rem; font-weight: 600; }
@@ -441,3 +441,7 @@ body.view-details .eod-table, body.view-details .eod-card .table-note { display:
     .util-cell { min-width: 130px; }
     .search-box { width: 100%; }
 }
+
+/* EOD table: keep row labels on one line, let the longer column headings wrap */
+.eod-table td:first-child { white-space: nowrap; }
+.eod-table th { line-height: 1.25; vertical-align: bottom; }

@@ -19,7 +19,7 @@ const STAFF_HINTS = {
     budget: ['positioncode', 'budgetedmonths', 'basesalary', 'joiningdate'],
     actuals: ['positioncode', 'month', 'basesalary', 'grosssalary']
 };
-const LEGACY_CRYPTOJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';
+const LEGACY_CRYPTOJS_SOURCES = ['vendor/crypto-js.js', 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js'];
 const ENC_PREFIX = 'KRNENC1';
 
 /* Departments in Budget.csv whose trial-balance actuals should match payroll. */
@@ -100,12 +100,9 @@ let cryptoJsPromise = null;
 function loadCryptoJS() {
     if (window.CryptoJS) return Promise.resolve();
     if (!cryptoJsPromise) {
-        cryptoJsPromise = new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = LEGACY_CRYPTOJS_URL;
-            s.onload = resolve;
-            s.onerror = () => reject(new Error('Could not load the decryption library for older files.'));
-            document.head.appendChild(s);
+        cryptoJsPromise = loadScriptFrom(LEGACY_CRYPTOJS_SOURCES).catch(() => {
+            cryptoJsPromise = null;
+            throw new Error('Could not load the decryption library for older files (vendor/crypto-js.js).');
         });
     }
     return cryptoJsPromise;
@@ -943,6 +940,7 @@ function syncToggleButtons() {
         b.classList.toggle('active', on);
         b.setAttribute('aria-pressed', String(on));
         b.disabled = S.granularity === 'Yearly' && b.dataset.viewmode !== 'Period';
+        if (b.dataset.viewmode === 'Period') b.textContent = PERIOD_BUTTON_LABEL[S.granularity];
     });
 }
 

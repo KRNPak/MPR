@@ -203,6 +203,16 @@ function resolveTbDonor(row, col, mapping) {
 
 function parseTrialBalance(table, chart, ctx) {
     const col = resolveColumns(table.headers, COLUMN_SPECS.tb, 'ActualDonor');
+    /* Review items are grouped by account code, so one code is one line however many months or donors it spans. */
+    const review = new Map();
+    const note = (code, desc, month, amount, method, mappedTo) => {
+        const key = `${code}|${method}`;
+        if (!review.has(key)) review.set(key, { code, desc, months: new Set(), amount: 0, method, mappedTo });
+        const r = review.get(key);
+        r.months.add(month);
+        r.amount += amount;
+    };
+
     table.rows.forEach(row => {
         const code = clean(row[col.code]).toUpperCase();
         const actual = getSafeNum(row[col.dr]) - getSafeNum(row[col.cr]);
@@ -214,7 +224,7 @@ function parseTrialBalance(table, chart, ctx) {
         const period = parseMonthLabel(row[col.period]);
         if (!period || !inFiscalYear(period, ctx.fyEnd)) {
             ctx.totals.tbExcluded += actual;
-            ctx.flag({ severity: 'error', source: 'Trial balance', code, description: desc, amount: actual, month: clean(row[col.period]), reason: `Period is outside ${ctx.year}, so the row was ignored` });
+            ctx.flag({ severity: 'error', source: 'Trial balance', code, description: desc, amount: actual, month: clean(row[col.period]), reason: `Period is outside ${ctx.year}, so the row was ignored. Fix: check the period on this row of the trial balance.` });
             return;
         }
 
@@ -222,19 +232,37 @@ function parseTrialBalance(table, chart, ctx) {
         const hit = mapTbAccount(code, desc, type, chart);
         if (!hit) { ctx.totals.tbExcluded += actual; return; }
 
+        /* Codes that can't be placed anywhere are left out of the dashboard and listed for review. */
+        if (hit.method === 'Not mapped') {
+            ctx.totals.tbUnmapped += actual;
+            note(code, desc, period.month, actual, hit.method, '');
+            return;
+        }
+
         const mapping = { ...hit.mapping, Code: code };   // keep the real GL code for traceability
         const donor = resolveTbDonor(row, col, mapping);
         ctx.ledger.add(period.month, mapping, donor, { actual });
         ctx.totals.tbIncluded += actual;
+        if (hit.method !== 'Account code') note(code, desc, period.month, actual, hit.method, `${mapping.Dept} / ${mapping.Stream}`);
+    });
 
-        if (hit.method !== 'Account code') {
-            const guessed = hit.method.startsWith('Partial') || hit.method.startsWith('Code prefix') || hit.method === 'Not mapped';
-            ctx.flag({
-                severity: guessed ? 'warn' : 'info', source: 'Trial balance', code, description: desc,
-                month: period.month, amount: actual,
-                mappedTo: `${mapping.Dept} / ${mapping.Stream}`, reason: `Code not in the budget file, placed by ${hit.method.charAt(0).toLowerCase()}${hit.method.slice(1)}`
-            });
+    review.forEach(r => {
+        const months = FISCAL_MONTHS.filter(m => r.months.has(m)).join(', ');
+        const fix = `Fix: add ${r.code} to the Account code cell of the right line in the budget file.`;
+        let severity = 'warn';
+        let reason;
+        if (r.method === 'Not mapped') {
+            reason = `Code is not in the budget file and could not be placed, so it is left out of the dashboard. ${fix}`;
+        } else if (r.method === 'Exact name match') {
+            severity = 'info';
+            reason = `Code is not in the budget file; placed by matching the account name exactly. ${fix}`;
+        } else {
+            reason = `Code is not in the budget file; placed by ${r.method.charAt(0).toLowerCase()}${r.method.slice(1)}, which is a best guess. ${fix}`;
         }
+        ctx.flag({
+            severity, source: 'Trial balance', code: r.code, description: r.desc, month: months, amount: r.amount,
+            mappedTo: r.mappedTo || 'Left out of the dashboard', reason
+        });
     });
 }
 
@@ -321,7 +349,7 @@ function parseEod(table, ctx) {
             let stated = getSafeNum(row[col.statedPct]);
             if (Math.abs(stated) <= 1.5 && pct > 1.5) stated *= 100;   // Excel % cells arrive as fractions
             if (Math.abs(stated - pct) > 0.5) {
-                ctx.flag({ severity: 'info', source: 'EOD', month: clean(row[col.month]), reason: `Stated EOD ${stated.toFixed(2)}% differs from deployed ÷ available (${pct.toFixed(2)}%). The dashboard uses the calculated figure.` });
+                ctx.flag({ severity: 'info', source: 'EOD', month: `${MONTH_LONG[p.month]} ${p.year}`, reason: `Stated EOD ${stated.toFixed(2)}% differs from deployed ÷ available (${pct.toFixed(2)}%). The dashboard uses the calculated figure. Fix: correct the EOD % cell for this month, or ignore this note.` });
             }
         }
         out.push({ label: `${MONTH_LONG[p.month]} ${p.year}`, date: new Date(p.year, CALENDAR_MONTH[p.month], 1), avail, dep, pct });
@@ -334,7 +362,7 @@ function buildDataset(year, texts) {
     const audit = [];
     const ctx = {
         year, fyEnd, ledger: createLedger(),
-        totals: { tbAll: 0, tbIncluded: 0, tbExcluded: 0, investments: 0, capex: 0 },
+        totals: { tbAll: 0, tbIncluded: 0, tbExcluded: 0, tbUnmapped: 0, investments: 0, capex: 0 },
         flag: entry => audit.push(entry)
     };
 

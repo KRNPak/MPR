@@ -149,7 +149,7 @@ function renderEod() {
     eod.forEach((e, i) => { if (e.date <= target) idx = i; });
 
     if (idx < 0) {
-        card.innerHTML = `<h2 class="card-title">Capital deployment (EOD)</h2><p class="empty-note">No EOD data for this period.</p>`;
+        card.innerHTML = `<h2 class="card-title">Efficiency of Deployment (EOD)</h2><p class="empty-note">No EOD data for this period.</p>`;
         return;
     }
     const windowAvg = n => {
@@ -165,7 +165,7 @@ function renderEod() {
     const fmtPkrM = v => v.toLocaleString('en-US', { maximumFractionDigits: 0 });
 
     card.innerHTML = `
-        <h2 class="card-title">Capital deployment (EOD)</h2>
+        <h2 class="card-title">Efficiency of Deployment (EOD)</h2>
         <div class="eod-headline">
             <div>
                 <div class="eod-pct">${cur.pct.toFixed(1)}%</div>
@@ -174,14 +174,14 @@ function renderEod() {
             <div class="eod-trend" data-tip="EOD % over the last ${trend.length} months; dashed line is the 12-month average">${sparkline(trend, trend.map(() => a12.pct), 120, 34)}</div>
         </div>
         <table class="mini-table eod-table">
-            <thead><tr><th></th><th class="n">EOD</th><th class="n">Available</th><th class="n">Deployed</th></tr></thead>
+            <thead><tr><th></th><th class="n">Capital available</th><th class="n">Capital deployed</th><th class="n">EOD</th></tr></thead>
             <tbody>
-                <tr><td>This month</td><td class="n">${cur.pct.toFixed(1)}%</td><td class="n">${fmtPkrM(cur.avail)}</td><td class="n">${fmtPkrM(cur.dep)}</td></tr>
-                <tr><td>3-month avg</td><td class="n">${a3.pct.toFixed(1)}%</td><td class="n">${fmtPkrM(a3.avail)}</td><td class="n">${fmtPkrM(a3.dep)}</td></tr>
-                <tr><td>12-month avg</td><td class="n">${a12.pct.toFixed(1)}%</td><td class="n">${fmtPkrM(a12.avail)}</td><td class="n">${fmtPkrM(a12.dep)}</td></tr>
+                <tr><td>This month</td><td class="n">${fmtPkrM(cur.avail)}</td><td class="n">${fmtPkrM(cur.dep)}</td><td class="n">${cur.pct.toFixed(1)}%</td></tr>
+                <tr><td>3-month avg</td><td class="n">${fmtPkrM(a3.avail)}</td><td class="n">${fmtPkrM(a3.dep)}</td><td class="n">${a3.pct.toFixed(1)}%</td></tr>
+                <tr><td>12-month avg</td><td class="n">${fmtPkrM(a12.avail)}</td><td class="n">${fmtPkrM(a12.dep)}</td><td class="n">${a12.pct.toFixed(1)}%</td></tr>
             </tbody>
         </table>
-        <p class="table-note">Available and deployed capital in PKR million.</p>`;
+        <p class="table-note">Capital available and deployed in PKR million.</p>`;
 }
 
 function deptRank(d) {
@@ -340,6 +340,7 @@ function openAuditModal() {
     $('auditSummary').innerHTML = `
         <div class="stat"><div class="stat-val">${moneyHtml(totals.tbAll)}</div><div class="stat-lbl">Trial balance, all rows</div></div>
         <div class="stat"><div class="stat-val">${moneyHtml(totals.tbExcluded)}</div><div class="stat-lbl">Excluded: non-spend or wrong period</div></div>
+        <div class="stat"><div class="stat-val ${totals.tbUnmapped ? 'is-over' : ''}">${moneyHtml(totals.tbUnmapped)}</div><div class="stat-lbl">Left out: codes not in the budget file</div></div>
         <div class="stat"><div class="stat-val">${moneyHtml(totals.investments + totals.capex)}</div><div class="stat-lbl">Added from investments and CAPEX</div></div>
         <div class="stat"><div class="stat-val ${totals.reconciled ? '' : 'is-over'}">${moneyHtml(totals.ledgerActual)}</div><div class="stat-lbl">${totals.reconciled ? 'Dashboard actual, reconciled' : 'Dashboard actual, does not reconcile'}</div></div>`;
 
@@ -388,6 +389,7 @@ function syncToggleButtons() {
         b.classList.toggle('active', on);
         b.setAttribute('aria-pressed', String(on));
         b.disabled = state.granularity === 'Yearly' && b.dataset.viewmode !== 'Period';
+        if (b.dataset.viewmode === 'Period') b.textContent = PERIOD_BUTTON_LABEL[state.granularity];
     });
 }
 

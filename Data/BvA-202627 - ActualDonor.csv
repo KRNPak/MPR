@@ -1,0 +1,1150 @@
+ADDITIONAL_SEGMENT_VALUE,ADDITIONAL_SEGMENT_DESC,ACCT_TYPE,NATURAL_ACCT_SEGMENT_VALUE,NATURAL_ACCT_SEGMENT_DESC,BEGIN_BALANCE,TOTAL_DR,TOTAL_CR,END_BALANCE,ACCOUNTING_PERIOD_PARAM
+101,FCDO,E,C103002,MBL-SME Loans-Variable Expenses,0,0,0,0,Jul-26
+101,FCDO,E,C106002,CIC Transaction cost - Legal D.D & Documentation,0,0,0,0,Jul-26
+101,FCDO,E,C107002,Strategic Investment - Pre & post investment cost,0,0,0,0,Jul-26
+101,FCDO,E,C107003,Due diligence cost - Pre & post investment cost,0,0,0,0,Jul-26
+101,FCDO,E,C108002,Credit - Pre & post investment cost,0,0,0,0,Jul-26
+101,FCDO,E,C109001,CIC - Equity Deals,0,0,0,0,Jul-26
+101,FCDO,E,C109002,Equity - Pre & post investment cost,0,0,0,0,Jul-26
+101,FCDO,E,C130001,Capacity Building of Partners,0,0,0,0,Jul-26
+101,FCDO,E,C130004,SEED Technical Assistance,0,0,0,0,Jul-26
+101,FCDO,E,D105012,Secured Transaction Registry (STR),0,0,0,0,Jul-26
+101,FCDO,E,D105013,SECP Overhead,0,0,0,0,Jul-26
+101,FCDO,E,D107010,LEAP Consultancy,0,0,0,0,Jul-26
+101,FCDO,E,D107011,Company Registry,0,0,0,0,Jul-26
+101,FCDO,E,D107021,LEAP PMO,0,0,0,0,Jul-26
+101,FCDO,E,D107022,SOC Implementation,0,0,0,0,Jul-26
+101,FCDO,E,D107023,XBRL Implementation,0.00E+00,0,0,0.00E+00,Jul-26
+101,FCDO,E,D107025,"W4: Technical Advisory, Industry/Int'l Expert Engagement, Learning/Networking Events",0,0,0,0,Jul-26
+101,FCDO,E,D107051,"W2: Technical Advisory, Industry/Int'l Expert Engagement, Learning/Networking Events",0,0,0,0,Jul-26
+101,FCDO,E,H101001,Bank Charges,0,0,0,0,Jul-26
+101,FCDO,E,H103002,Capacity Building,0,25000,0,25000,Jul-26
+101,FCDO,E,H104001,Travel,0,0,0,0,Jul-26
+101,FCDO,E,H105001,HR Consultancies & Internships,0,0,0,0,Jul-26
+101,FCDO,E,H106001,Electricity,0,0,0,0,Jul-26
+101,FCDO,E,H106002,Telephone & Internet,0,0,0,0,Jul-26
+101,FCDO,E,H106003,Communication reimbursement,0,0,0,0,Jul-26
+101,FCDO,E,H106006,Generator Expenses,0,0,0,0,Jul-26
+101,FCDO,E,H106007,Fuel reimbursement,0,0,0,0,Jul-26
+101,FCDO,E,H107001,Depreciation Expense - Furnitures and Fixtures,0,0,0,0,Jul-26
+101,FCDO,E,H107002,Depreciation Expense - Office Equipment,0,0,0,0,Jul-26
+101,FCDO,E,H107004,Depreciation Expense - Computers,0,0,0,0,Jul-26
+101,FCDO,E,H107006,Depreciation Expense - Solar Equipment,0,0,0,0,Jul-26
+101,FCDO,E,H108001,Road Transportation,0,0,0,0,Jul-26
+101,FCDO,E,H108002,Vehicle Operations,0,0,0,0,Jul-26
+101,FCDO,E,H108003,Vehicle Maintenance,0,0,0,0,Jul-26
+101,FCDO,E,H108004,Vehicle Insurance - Amortization,0,0,0,0,Jul-26
+101,FCDO,E,H110002,Health Insurance - Amortization,0,99930,0,99930,Jul-26
+101,FCDO,E,H113001,Exchange Gain,0,0,0,0,Jul-26
+101,FCDO,E,H113002,Exchange Loss,0,0,0,0,Jul-26
+101,FCDO,E,H115001,Meeting & Conferences,0,0,0,0,Jul-26
+101,FCDO,E,H116001,Kitchen Supplies,0,0,0,0,Jul-26
+101,FCDO,E,H116002,Cleaning Material,0,0,0,0,Jul-26
+101,FCDO,E,H116003,Postage & Courier,0,0,0,0,Jul-26
+101,FCDO,E,H116004,Office Supplies,0,0,0,0,Jul-26
+101,FCDO,E,H116006,IT Supplies,0,0,0,0,Jul-26
+101,FCDO,E,H117001,Office Rent- Islamabad,0,0,0,0,Jul-26
+101,FCDO,E,H118001,Amortization - Asset and Vehicles Insurance,0,0,0,0,Jul-26
+101,FCDO,E,H119001,Boarding & Lodging,0,0,0,0,Jul-26
+101,FCDO,E,H119002,BoD-Boarding & Lodging,0,0,0,0,Jul-26
+101,FCDO,E,H119003,Perdiem,0,0,0,0,Jul-26
+101,FCDO,E,H121002,Stationery Printing,0,0,0,0,Jul-26
+101,FCDO,E,H122001,IT Consultancy,0,0,0,0,Jul-26
+101,FCDO,E,H122002,External Audit,0,0,0,0,Jul-26
+101,FCDO,E,H122003,Internal Audit,0,0,0,0,Jul-26
+101,FCDO,E,H122004,Legal Charges,0,0,0,0,Jul-26
+101,FCDO,E,H122005,Out of Pocket Ext-Audit,0,0,0,0,Jul-26
+101,FCDO,E,H122007,Tax Consultancy,0,0,0,0,Jul-26
+101,FCDO,E,H122010,External Audit Fee - Group Audits,0,0,0,0,Jul-26
+101,FCDO,E,H123003,Daily Wages,0,0,0,0,Jul-26
+101,FCDO,E,H123005,Staff Training,0,0,0,0,Jul-26
+101,FCDO,E,H123006,EOBI Expense,0,6660,0,6660,Jul-26
+101,FCDO,E,H123007,Advertisement Expenses,0,0,0,0,Jul-26
+101,FCDO,E,H124001,Office Repair & Maintenance,0,0,0,0,Jul-26
+101,FCDO,E,H124002,Equipment Repair & Maintenance,0,0,0,0,Jul-26
+101,FCDO,E,H125001,Software Annual Support Services,0,0,0,0,Jul-26
+101,FCDO,E,H126001,Fee & Subscription,0,0,0,0,Jul-26
+101,FCDO,E,H126002,Employee Engagement,0,0,0,0,Jul-26
+101,FCDO,E,H126003,Rewards & Compensation Survey,0,0,0,0,Jul-26
+101,FCDO,E,H128001,Guards & Janitorial Services,0,0,0,0,Jul-26
+101,FCDO,E,H128002,Corporate and Social Responsibility,0,0,0,0,Jul-26
+101,FCDO,E,H129006,Directors & officers liability insurance,0,0,0,0,Jul-26
+101,FCDO,E,H129009,JSK Feeds - Management Expense,0,0,0,0,Jul-26
+101,FCDO,E,H129021,Life Insurance - Amortization,0,6538,0,6538,Jul-26
+101,FCDO,E,H129022,Unwinding of Interest on loan to BF Biosciences,0,0,0,0,Jul-26
+101,FCDO,E,H129031,LT Gov Framework Exercise/Study,0,0,0,0,Jul-26
+101,FCDO,E,H129033,Management fee expense PFSL,0,0,0,0,Jul-26
+101,FCDO,E,H129034,Modification loss / gain on BFBL,0,0,0,0,Jul-26
+101,FCDO,E,H129035,Modification loss / gain due to change in cashflow on IHV,0,0,0,0,Jul-26
+101,FCDO,E,H129036,Modification loss on KRN convertible loans,0,0,0,0,Jul-26
+101,FCDO,E,H130003,Board and Committee Meetings,0,0,0,0,Jul-26
+101,FCDO,E,I109001,ICF 6 - GCF (Grant),0,0,0,0,Jul-26
+101,FCDO,E,I109002,ICF 6 - GCF Grant,0,0,0,0,Jul-26
+101,FCDO,E,I112001,WV: Technical Assistance (BDS),0,0,0,0,Jul-26
+101,FCDO,E,I114001,WV: Capacity Building Funds,0,0,0,0,Jul-26
+101,FCDO,E,K102006,PR Services,0,0,0,0,Jul-26
+101,FCDO,E,K102009,Karandaaz Innovation - Advertising & Outreach,0,0,0,0,Jul-26
+101,FCDO,E,K102011,The Impact of Digital Financial Inclusion on the Economy,0,0,0,0,Jul-26
+101,FCDO,E,K102012,Knowledge Partnerships,0,0,0,0,Jul-26
+101,FCDO,E,K102014,Website Maintenance+SEO,0,0,0,0,Jul-26
+101,FCDO,E,K102015,Digital and Social Media,0,0,0,0,Jul-26
+101,FCDO,E,K102016,Marketing Collateral,0,0,0,0,Jul-26
+101,FCDO,E,K102017,SME/CIC Market Visibility and Outreach,0,0,0,0,Jul-26
+101,FCDO,E,K102025,ICF Marketing & MEL,0,0,0,0,Jul-26
+101,FCDO,E,K102026,"WV - Events, Videos, Briefs",0,0,0,0,Jul-26
+101,FCDO,E,K102034,"SECP Outreach Activity - STR, LEAP",0,0,0,0,Jul-26
+101,FCDO,E,K103002,W2 - Data Portal (FCDO),0,0,0,0,Jul-26
+101,FCDO,E,K103020,Data Portal 2.0 (FCDO),0,0,0,0,Jul-26
+101,FCDO,E,K103027,Study on Landscape of Women-Led Businesses,0,0,0,0,Jul-26
+101,FCDO,E,K103028,Study on Quality of Jobs Created,0,0,0,0,Jul-26
+101,FCDO,E,K103030,Study on the prevalent tax regime,0,0,0,0,Jul-26
+101,FCDO,E,K103035,Constant Contact,0,0,0,0,Jul-26
+101,FCDO,E,K103036,Graphic Design Services,0,0,0,0,Jul-26
+101,FCDO,E,K103041,Study on Healthcare Service Delivery in Pakistan (New),0,0,0,0,Jul-26
+101,FCDO,E,K103044,"DFS Outreach (videos, publications, photo collections)",0,0,0,0,Jul-26
+101,FCDO,E,K103045,SEED - Legal and Professional Charges,0,0,0,0,Jul-26
+101,FCDO,E,K103046,Zoom Webinar,0,0,0,0,Jul-26
+101,FCDO,E,K103047,SEO for Website,0,0,0,0,Jul-26
+101,FCDO,E,K103050,KRN Small Development Initiatives,0,0,0,0,Jul-26
+101,FCDO,E,K103051,Corporate Governance in SMEs,0,0,0,0,Jul-26
+101,FCDO,E,K103052,"Engagement with Influencer Platforms/Podcasts (Pakistonomy, Tabadlab, etc.)",0,0,0,0,Jul-26
+101,FCDO,E,K103056,Green Investment Instruments (e.g. Green Carbon Markets),0,0,0,0,Jul-26
+101,FCDO,E,M102001,Third Party Monitoring of Karandaaz Projects,0,0,0,0,Jul-26
+101,FCDO,E,M104008,CIC Assessment,0,0,0,0,Jul-26
+101,FCDO,E,M104010,MEL functional Assessments (FCDO),0,0,0,0,Jul-26
+101,FCDO,E,M104011,ESG Compliance Assessment,0,0,0,0,Jul-26
+101,FCDO,E,M104012,Assessment of STR (SECP) - DFS,0,0,0,0,Jul-26
+101,FCDO,E,M111001,KRN Green Portfolio,0,0,0,0,Jul-26
+101,FCDO,E,SS5H100,Staff Salaries,0,1773467,0,1773467,Jul-26
+101,FCDO,E,SS5H200,Staff Provident Fund,0,177458,0,177458,Jul-26
+101,FCDO,E,SS5H201,Gratuity expense (Staff Salaries),0,0,0,0,Jul-26
+101,FCDO,E,SS5H300,Staff Over time,0,0,0,0,Jul-26
+101,FCDO,E,SS5H400,Staff Car Monetization,0,353000,0,353000,Jul-26
+101,FCDO,E,SS5H500,Staff Child care assistance,0,0,0,0,Jul-26
+101,FCDO,E,SS5H600,Performance payout,0,0,0,0,Jul-26
+101,FCDO,E,SS5H700,Staff Arrears,0,0,0,0,Jul-26
+101,FCDO,E,SS5H800,Other Deductions,0,0,0,0,Jul-26
+101,FCDO,E,SS5H900,Other Reimbursement Expenses,0,240196,0,240196,Jul-26
+201,BMGF,E,D103004,DFS - Digital Financial Inclusion for Women,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D103011,Digital Experiment 4,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D103014,Community of Fintechs,0,0,0,0,Jul-26
+201,BMGF,E,D103015,UI/UX based support for market players,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D103016,Fintech Disrupt Challenge,0,0,0,0,Jul-26
+201,BMGF,E,D103018,Digital Experiment 3,0,0,0,0,Jul-26
+201,BMGF,E,D103020,FIWC - 2,0,0,0,0,Jul-26
+201,BMGF,E,D103021,Digital Payments,0,0,0,0,Jul-26
+201,BMGF,E,D103022,Sectoral Projects - Value chain,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D103025,FIWC - 3,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D105002,DFS - Innov. & Incb.. - Agri Program Development,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D105011,BISP Financial Literacy,0,0,0,0,Jul-26
+201,BMGF,E,D105015,Pilot to scale,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D106008,"W3: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events",0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D107002,MPG - Infrastructure,0,0,0,0,Jul-26
+201,BMGF,E,D107003,MPG - Consultant (Mckinsey),0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D107005,Pilot MPG Linked Projects,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D107006,MPG - Mosc Expenses,0,0,0,0,Jul-26
+201,BMGF,E,D107007,MPG Operations,0,0,0,0,Jul-26
+201,BMGF,E,D107009,Engagement with Fintech Practitioners,0,0,0,0,Jul-26
+201,BMGF,E,D107012,Ecommerce,0,0,0,0,Jul-26
+201,BMGF,E,D107013,CDNS Phase-2 Development,0,0,0,0,Jul-26
+201,BMGF,E,D107015,New Accounts Acquisition,0,0,0,0,Jul-26
+201,BMGF,E,D107016,MOPASS,0,0,0,0,Jul-26
+201,BMGF,E,D107017,RAAST Adoption,0,0,0,0,Jul-26
+201,BMGF,E,D107018,"W1: Technical Advisory, Industry/Int'l Expert Engagement, Learning/Networking Events",0.00E+00,198486.7,0,1.98E+05,Jul-26
+201,BMGF,E,D107020,Pakistan Stack,0,0,0,0,Jul-26
+201,BMGF,E,D107025,"W4: Technical Advisory, Industry/Int'l Expert Engagement, Learning/Networking Events",0,73414.56,0,73414.56,Jul-26
+201,BMGF,E,D107026,FIWC - 4 (Account or channel specifIc),0,0,0,0,Jul-26
+201,BMGF,E,D107028,E-commerce Value Chain Interventions,0,0,0,0,Jul-26
+201,BMGF,E,D107029,Sector Transformation - Agri Value Chain Transformation,0,4219078,0,4219078,Jul-26
+201,BMGF,E,D107030,Adoption Projects,0,0,0,0,Jul-26
+201,BMGF,E,D107034,Channel Development (Agents/Digital Onboarding),0,0,0,0,Jul-26
+201,BMGF,E,D107037,FBR - Digital Invoicing Initiative (Landscape Assessment),0,0,0,0,Jul-26
+201,BMGF,E,D107038,DFA-C,0,2550257,0,2550257,Jul-26
+201,BMGF,E,D107039,RAAST S&M,0,0,0,0,Jul-26
+201,BMGF,E,D107043,RAAST Implementation Phase,0,0,28801.55,-28801.6,Jul-26
+201,BMGF,E,D107044,Buna-RAAST Connectivity,0,0,225860,-225860,Jul-26
+201,BMGF,E,D107046,RAAST Governance,0,0,0,0,Jul-26
+201,BMGF,E,D107047,FIWC - 5 (Launch),0,0,0,0,Jul-26
+201,BMGF,E,D107048,New Project - Innovation Challenge Round,0,0,0,0,Jul-26
+201,BMGF,E,D107049,Cashless Ecosystem,0,0,0,0,Jul-26
+201,BMGF,E,D107051,"W2: Technical Advisory, Industry/Int'l Expert Engagement, Learning/Networking Events",0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D107052,FBR - Digitization for Tax System (Stage 2: Project & Change Management ),0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D107053,FBR - Digitalization for Tax System: Individual Consultant,0.00E+00,10395000,0,1.04E+07,Jul-26
+201,BMGF,E,D107054,BISP - BISP and RAAST integration,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D107055,Raast-BUNA: Implementation,0.00E+00,23699302,10674.21,2.37E+07,Jul-26
+201,BMGF,E,D107059,FBR Digitization for Tax System (Stage 3: McKinsey PMO),0.00E+00,50570744,0,5.06E+07,Jul-26
+201,BMGF,E,D108001,Technical assistance for social protection program,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D108002,CCT Program to eradicate Polio,0.00E+00,2360000,0,2.36E+06,Jul-26
+201,BMGF,E,D108003,Termination Cost - Grant Audit,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D108005,Mainstreaming,0,0,0,0,Jul-26
+201,BMGF,E,D108006,Disruption and Experimentation: Innovative Solutions for Women's Inclusion,0.00E+00,0,0,0.00E+00,Jul-26
+201,BMGF,E,D108008,"W5: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events",0.00E+00,1531480,0,1.53E+06,Jul-26
+201,BMGF,E,H101001,Bank Charges,0,0,0,0,Jul-26
+201,BMGF,E,H103002,Capacity Building,0,254053.5,0,254053.5,Jul-26
+201,BMGF,E,H104001,Travel,0,90776,0,90776,Jul-26
+201,BMGF,E,H104002,BoD-Travel,0,0,0,0,Jul-26
+201,BMGF,E,H104003,International Travel,0,0,0,0,Jul-26
+201,BMGF,E,H105001,HR Consultancies & Internships,0,296542.5,0,296542.5,Jul-26
+201,BMGF,E,H106001,Electricity,0,165832,0,165832,Jul-26
+201,BMGF,E,H106002,Telephone & Internet,0,57170.5,0,57170.5,Jul-26
+201,BMGF,E,H106003,Communication reimbursement,0,101167.2,0,101167.2,Jul-26
+201,BMGF,E,H106006,Generator Expenses,0,110410,44164,66246,Jul-26
+201,BMGF,E,H106007,Fuel reimbursement,0,2420903,0,2420903,Jul-26
+201,BMGF,E,H107001,Depreciation Expense - Furnitures and Fixtures,0,0,0,0,Jul-26
+201,BMGF,E,H107002,Depreciation Expense - Office Equipment,0,0,0,0,Jul-26
+201,BMGF,E,H107004,Depreciation Expense - Computers,0,0,0,0,Jul-26
+201,BMGF,E,H108001,Road Transportation,0,0,0,0,Jul-26
+201,BMGF,E,H108002,Vehicle Operations,0,350,0,350,Jul-26
+201,BMGF,E,H108003,Vehicle Maintenance,0,100,0,100,Jul-26
+201,BMGF,E,H108004,Vehicle Insurance - Amortization,0,5062.5,0,5062.5,Jul-26
+201,BMGF,E,H109001,Directors - Trainings & Workshops,0,0,0,0,Jul-26
+201,BMGF,E,H110002,Health Insurance - Amortization,0,1377366,0,1377366,Jul-26
+201,BMGF,E,H111001,BMGF Grant,0,0,0,0,Jul-26
+201,BMGF,E,H113001,Exchange Gain,0,0,0,0,Jul-26
+201,BMGF,E,H113002,Exchange Loss,0,35644.16,0,35644.16,Jul-26
+201,BMGF,E,H115001,Meeting & Conferences,0,66461,0,66461,Jul-26
+201,BMGF,E,H116001,Kitchen Supplies,0,65745.48,0,65745.48,Jul-26
+201,BMGF,E,H116002,Cleaning Material,0,0,0,0,Jul-26
+201,BMGF,E,H116003,Postage & Courier,0,1,0,1,Jul-26
+201,BMGF,E,H116004,Office Supplies,0,29501,0,29501,Jul-26
+201,BMGF,E,H116006,IT Supplies,0,16250,0,16250,Jul-26
+201,BMGF,E,H116007,IT - Repair and Maintenance,0,0,0,0,Jul-26
+201,BMGF,E,H116008,Printer Monthly Rental and Usage,0,0,0,0,Jul-26
+201,BMGF,E,H117001,Office Rent- Islamabad,0,1582801,0,1582801,Jul-26
+201,BMGF,E,H118001,Amortization - Asset and Vehicles Insurance,0,19069.13,0,19069.13,Jul-26
+201,BMGF,E,H119001,Boarding & Lodging,0,0,0,0,Jul-26
+201,BMGF,E,H119002,BoD-Boarding & Lodging,0,86366,0,86366,Jul-26
+201,BMGF,E,H119003,Perdiem,0,108208,0,108208,Jul-26
+201,BMGF,E,H121001,Office Stationery,0,0,0,0,Jul-26
+201,BMGF,E,H121002,Stationery Printing,0,0,0,0,Jul-26
+201,BMGF,E,H122001,IT Consultancy,0,0,0,0,Jul-26
+201,BMGF,E,H122002,External Audit,0,0,0,0,Jul-26
+201,BMGF,E,H122003,Internal Audit,0,0,0,0,Jul-26
+201,BMGF,E,H122004,Legal Charges,0,302082,0,302082,Jul-26
+201,BMGF,E,H122005,Out of Pocket Ext-Audit,0,0,0,0,Jul-26
+201,BMGF,E,H122007,Tax Consultancy,0,28750,0,28750,Jul-26
+201,BMGF,E,H122010,External Audit Fee - Group Audits,0,0,0,0,Jul-26
+201,BMGF,E,H123003,Daily Wages,0,0,0,0,Jul-26
+201,BMGF,E,H123005,Staff Training,0,0,0,0,Jul-26
+201,BMGF,E,H123006,EOBI Expense,0,91797,0,91797,Jul-26
+201,BMGF,E,H123007,Advertisement Expenses,0,0,0,0,Jul-26
+201,BMGF,E,H124001,Office Repair & Maintenance,0,180,0,180,Jul-26
+201,BMGF,E,H124002,Equipment Repair & Maintenance,0,0,0,0,Jul-26
+201,BMGF,E,H125001,Software Annual Support Services,0,132653.9,0,132653.9,Jul-26
+201,BMGF,E,H125002,Annual License fee - Amortization,0,0,0,0,Jul-26
+201,BMGF,E,H125003,ERP support and maintenance cost,0,0,0,0,Jul-26
+201,BMGF,E,H126001,Fee & Subscription,0,1000,0,1000,Jul-26
+201,BMGF,E,H126002,Employee Engagement,0,20630.5,0,20630.5,Jul-26
+201,BMGF,E,H126003,Rewards & Compensation Survey,0,0,0,0,Jul-26
+201,BMGF,E,H126004,Corporate Social Responsibility,0,0,0,0,Jul-26
+201,BMGF,E,H126005,SPOT recognition,0,214100,0,214100,Jul-26
+201,BMGF,E,H128001,Guards & Janitorial Services,0,333368,0,333368,Jul-26
+201,BMGF,E,H128002,Corporate and Social Responsibility,0,0,0,0,Jul-26
+201,BMGF,E,H129006,Directors & officers liability insurance,0,135595.8,0,135595.8,Jul-26
+201,BMGF,E,H129021,Life Insurance - Amortization,0,90115,0,90115,Jul-26
+201,BMGF,E,H129031,LT Gov Framework Exercise/Study,0,0,0,0,Jul-26
+201,BMGF,E,H130002,Cross-Currency Rounding Account,0,0,0,0,Jul-26
+201,BMGF,E,H130003,Board and Committee Meetings,0,0,0,0,Jul-26
+201,BMGF,E,H13003D,Dummy account as of June-22,0,0,0,0,Jul-26
+201,BMGF,E,I109003,ICF-7,0,0,0,0,Jul-26
+201,BMGF,E,K102001,KFIS 2026,0,0,0,0,Jul-26
+201,BMGF,E,K102002,Landscape Study of Digital Lending for Small and Medium-Sized Merchants in Urban Pakistan,0,0,0,0,Jul-26
+201,BMGF,E,K102003,Alternate Revenue Models for National Payment System,0,0,0,0,Jul-26
+201,BMGF,E,K102004,Collateral Regime required to optimize EWRF in Pakistan,0,0,0,0,Jul-26
+201,BMGF,E,K102006,PR Services,0,210900.8,0,210900.8,Jul-26
+201,BMGF,E,K102008,Product-Oriented Research on Select Agri Value Chains,0,0,0,0,Jul-26
+201,BMGF,E,K102014,Website Maintenance+SEO,0,76647.06,0,76647.06,Jul-26
+201,BMGF,E,K102015,Digital and Social Media,0,241258.2,0,241258.2,Jul-26
+201,BMGF,E,K102016,Marketing Collateral,0,0,374.5,-374.5,Jul-26
+201,BMGF,E,K102017,SME/CIC Market Visibility and Outreach,0,0,0,0,Jul-26
+201,BMGF,E,K102018,FII Survey Wave VI,0,0,0,0,Jul-26
+201,BMGF,E,K102028,CDNS ATM Card Launch,0,0,0,0,Jul-26
+201,BMGF,E,K102036,Production equipment,0,0,0,0,Jul-26
+201,BMGF,E,K103001,W2 - Data Portal (BMGF),0,0,0,0,Jul-26
+201,BMGF,E,K103010,Regulatory Researches and Policy Notes,0,0,0,0,Jul-26
+201,BMGF,E,K103021,Data Portal 2.0 (BMGF),0,0,0,0,Jul-26
+201,BMGF,E,K103023,Market Assessment - Geographical Eco System,0,0,0,0,Jul-26
+201,BMGF,E,K103025,FII Survey Wave VII,0,0,0,0,Jul-26
+201,BMGF,E,K103033,Regulatory Framework for Digital Assets,0,0,0,0,Jul-26
+201,BMGF,E,K103035,Constant Contact,0,0,0,0,Jul-26
+201,BMGF,E,K103036,Graphic Design Services,0,0,0,0,Jul-26
+201,BMGF,E,K103039,FII Survey Wave VII (in-Field Data Collection - Feb/Mar 2022),0,0,0,0,Jul-26
+201,BMGF,E,K103043,Digital Pakistan Conference and Workships/Events/Industry Consultations/Round Tables,0,0,0,0,Jul-26
+201,BMGF,E,K103044,"DFS Outreach (videos, publications, photo collections)",0,712464,0,712464,Jul-26
+201,BMGF,E,K103046,Zoom Webinar,0,0,0,0,Jul-26
+201,BMGF,E,K103047,SEO for Website,0,0,0,0,Jul-26
+201,BMGF,E,K103052,"Engagement with Influencer Platforms/Podcasts (Pakistonomy, Tabadlab, etc.)",0,0,0,0,Jul-26
+201,BMGF,E,K103053,SBP Campaign - Digital Fraud,0,0,0,0,Jul-26
+201,BMGF,E,K103058,KFIS 2024,0,0,0,0,Jul-26
+201,BMGF,E,K103059,Digital Fraud,0,0,0,0,Jul-26
+201,BMGF,E,K103061,Improving DFS Adoption Among Women,0,0,0,0,Jul-26
+201,BMGF,E,K103062,"Editing and Printing of Internal Notes (e.g. Budget, Import Substitution of Agri Commodities, Digitization of Argi Cooperatives)",0,0,0,0,Jul-26
+201,BMGF,E,K103064,"Research Partnerships (e.g. Collboration wtih Research Experts, Decodis)",0,0,0,0,Jul-26
+201,BMGF,E,K103065,Knowledge Partnerships BMGF (FAW),0,0,0,0,Jul-26
+201,BMGF,E,K103066,Corporate Governance in SMEs (on-going),0,0,0,0,Jul-26
+201,BMGF,E,K103068,Payment Digitization Index,0,0,0,0,Jul-26
+201,BMGF,E,K103070,Feasibility Study for an E-invoicing platform in Pakistan,0,0,0,0,Jul-26
+201,BMGF,E,K103072,RAAST Awareness Campaign,0,191690.7,0,191690.7,Jul-26
+201,BMGF,E,M102001,Third Party Monitoring of Karandaaz Projects,0,0,0,0,Jul-26
+201,BMGF,E,M103001,Assessment of SCF market adoption,0,0,0,0,Jul-26
+201,BMGF,E,M103003,Mid-cycle assessmentof Raast merchant onboarding,0,0,0,0,Jul-26
+201,BMGF,E,M104004,GrowTech Assessment,0,0,0,0,Jul-26
+201,BMGF,E,M112001,Assessment of Incentive Scheme Projects,0,0,0,0,Jul-26
+201,BMGF,E,M113001,"CDNS - Assessment of Digitization Impact (Total Budgeted PKR 20.0M, spread over 2 years)",0,0,0,0,Jul-26
+201,BMGF,E,M116001,Assessment of DFS Gender Portfolio,0,0,0,0,Jul-26
+201,BMGF,E,SS5H100,Staff Salaries,0,23029079,0,23029079,Jul-26
+201,BMGF,E,SS5H200,Staff Provident Fund,0,2287763,0,2287763,Jul-26
+201,BMGF,E,SS5H201,Gratuity expense (Staff Salaries),0,0,0,0,Jul-26
+201,BMGF,E,SS5H300,Staff Over time,0,183466,0,183466,Jul-26
+201,BMGF,E,SS5H400,Staff Car Monetization,0,2717316,0,2717316,Jul-26
+201,BMGF,E,SS5H500,Staff Child care assistance,0,136000,0,136000,Jul-26
+201,BMGF,E,SS5H600,Performance payout,0,0,0,0,Jul-26
+201,BMGF,E,SS5H700,Staff Arrears,0,-30960,0,-30960,Jul-26
+201,BMGF,E,SS5H800,Other Deductions,0,118000,0,118000,Jul-26
+201,BMGF,E,SS5H900,Other Reimbursement Expenses,0,1638824,0,1638824,Jul-26
+201,BMGF,E,h106008,Wellness Allowance (Grade 7-10),0.00E+00,16000,0,1.60E+04,Jul-26
+301,FCDO & BMGF,E,H104001,Travel,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H106002,Telephone & Internet,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H106003,Communication reimbursement,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H115001,Meeting & Conferences,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H116001,Kitchen Supplies,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H116002,Cleaning Material,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H116003,Postage & Courier,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H116004,Office Supplies,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H119003,Perdiem,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H121001,Office Stationery,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H121002,Stationery Printing,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H122004,Legal Charges,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H128001,Guards & Janitorial Services,0,0,0,0,Jul-26
+301,FCDO & BMGF,E,H13003D,Dummy account as of June-22,0,0,0,0,Jul-26
+401,OSR,E,C103002,MBL-SME Loans-Variable Expenses,0,0,0,0,Jul-26
+401,OSR,E,C103005,MIB-SME Loans-Variable Expenses,0,0,0,0,Jul-26
+401,OSR,E,C103006,JSBL-SME Loans-Variable Expenses,0,0,0,0,Jul-26
+401,OSR,E,C103008,Soneri-SME Loans-Variable Expenses,0,0,0,0,Jul-26
+401,OSR,E,C108002,Credit - Pre & post investment cost,0,0,0,0,Jul-26
+401,OSR,E,C109002,Equity - Pre & post investment cost,0,0,0,0,Jul-26
+401,OSR,E,C110002,GREEN - Pre & post investment cost,0,0,0,0,Jul-26
+401,OSR,E,H101001,Bank Charges,0,0,0,0,Jul-26
+401,OSR,E,H103002,Capacity Building,0,229053.5,0,229053.5,Jul-26
+401,OSR,E,H104001,Travel,0,172329,0,172329,Jul-26
+401,OSR,E,H104002,BoD-Travel,0,0,0,0,Jul-26
+401,OSR,E,H104003,International Travel,0,0,0,0,Jul-26
+401,OSR,E,H105001,HR Consultancies & Internships,0,296542.5,0,296542.5,Jul-26
+401,OSR,E,H106001,Electricity,0,165832,0,165832,Jul-26
+401,OSR,E,H106002,Telephone & Internet,0,57170.5,0,57170.5,Jul-26
+401,OSR,E,H106003,Communication reimbursement,0,117567.9,0,117567.9,Jul-26
+401,OSR,E,H106006,Generator Expenses,0,110410,44164,66246,Jul-26
+401,OSR,E,H106007,Fuel reimbursement,0,2420903,0,2420903,Jul-26
+401,OSR,E,H107001,Depreciation Expense - Furnitures and Fixtures,0,0,0,0,Jul-26
+401,OSR,E,H107002,Depreciation Expense - Office Equipment,0,0,0,0,Jul-26
+401,OSR,E,H107004,Depreciation Expense - Computers,0,0,0,0,Jul-26
+401,OSR,E,H107005,Depreciation Expense - ROUA,0,0,0,0,Jul-26
+401,OSR,E,H108001,Road Transportation,0,0,0,0,Jul-26
+401,OSR,E,H108002,Vehicle Operations,0,350,0,350,Jul-26
+401,OSR,E,H108003,Vehicle Maintenance,0,100,0,100,Jul-26
+401,OSR,E,H108004,Vehicle Insurance - Amortization,0,5062.5,0,5062.5,Jul-26
+401,OSR,E,H109001,Directors - Trainings & Workshops,0,0,0,0,Jul-26
+401,OSR,E,H110002,Health Insurance - Amortization,0,1487289,0,1487289,Jul-26
+401,OSR,E,H113001,Exchange Gain,0,0,0,0,Jul-26
+401,OSR,E,H113002,Exchange Loss,0,0,0,0,Jul-26
+401,OSR,E,H115001,Meeting & Conferences,0,71981,0,71981,Jul-26
+401,OSR,E,H116001,Kitchen Supplies,0,65745.48,0,65745.48,Jul-26
+401,OSR,E,H116002,Cleaning Material,0,0,0,0,Jul-26
+401,OSR,E,H116003,Postage & Courier,0,0,1,-1,Jul-26
+401,OSR,E,H116004,Office Supplies,0,29501,0,29501,Jul-26
+401,OSR,E,H116006,IT Supplies,0,16250,0,16250,Jul-26
+401,OSR,E,H116007,IT - Repair and Maintenance,0,9204,0,9204,Jul-26
+401,OSR,E,H116008,Printer Monthly Rental and Usage,0,0,0,0,Jul-26
+401,OSR,E,H117001,Office Rent- Islamabad,0,1582801,0,1582801,Jul-26
+401,OSR,E,H118001,Amortization - Asset and Vehicles Insurance,0,19069.13,0,19069.13,Jul-26
+401,OSR,E,H119001,Boarding & Lodging,0,46864,0,46864,Jul-26
+401,OSR,E,H119002,BoD-Boarding & Lodging,0,86366,0,86366,Jul-26
+401,OSR,E,H119003,Perdiem,0,144208,0,144208,Jul-26
+401,OSR,E,H121001,Office Stationery,0,0,0,0,Jul-26
+401,OSR,E,H121002,Stationery Printing,0,0,0,0,Jul-26
+401,OSR,E,H122001,IT Consultancy,0,0,0,0,Jul-26
+401,OSR,E,H122002,External Audit,0,0,0,0,Jul-26
+401,OSR,E,H122004,Legal Charges,0,302082,0,302082,Jul-26
+401,OSR,E,H122005,Out of Pocket Ext-Audit,0,0,0,0,Jul-26
+401,OSR,E,H122007,Tax Consultancy,0,28750,0,28750,Jul-26
+401,OSR,E,H122010,External Audit Fee - Group Audits,0,0,0,0,Jul-26
+401,OSR,E,H123003,Daily Wages,0,0,0,0,Jul-26
+401,OSR,E,H123005,Staff Training,0,0,0,0,Jul-26
+401,OSR,E,H123006,EOBI Expense,0,99123,0,99123,Jul-26
+401,OSR,E,H124001,Office Repair & Maintenance,0,180,0,180,Jul-26
+401,OSR,E,H124002,Equipment Repair & Maintenance,0,0,0,0,Jul-26
+401,OSR,E,H125001,Software Annual Support Services,0,132653.6,0,132653.6,Jul-26
+401,OSR,E,H125002,Annual License fee - Amortization,0,0,0,0,Jul-26
+401,OSR,E,H125003,ERP support and maintenance cost,0,0,0,0,Jul-26
+401,OSR,E,H126001,Fee & Subscription,0,0,0,0,Jul-26
+401,OSR,E,H126002,Employee Engagement,0,20630.5,0,20630.5,Jul-26
+401,OSR,E,H126004,Corporate Social Responsibility,0,0,0,0,Jul-26
+401,OSR,E,H126005,SPOT recognition,0,215900,0,215900,Jul-26
+401,OSR,E,H128001,Guards & Janitorial Services,0,333368,0,333368,Jul-26
+401,OSR,E,H128002,Corporate and Social Responsibility,0,0,0,0,Jul-26
+401,OSR,E,H129006,Directors & officers liability insurance,0,135595.8,0,135595.8,Jul-26
+401,OSR,E,H129008,Other Expense,0,0,0,0,Jul-26
+401,OSR,E,H129009,JSK Feeds - Management Expense,0,0,0,0,Jul-26
+401,OSR,E,H129018,Finance Cost on Lease Liability,0,0,0,0,Jul-26
+401,OSR,E,H129021,Life Insurance - Amortization,0,97308,0,97308,Jul-26
+401,OSR,E,H129033,Management fee expense PFSL,0,0,0,0,Jul-26
+401,OSR,E,H129036,Modification loss on KRN convertible loans,0,0,0,0,Jul-26
+401,OSR,E,H129037,Brokerage fee and Ancillary charges,0,0,0,0,Jul-26
+401,OSR,E,H130002,Cross-Currency Rounding Account,0,0,0,0,Jul-26
+401,OSR,E,H130003,Board and Committee Meetings,0,0,0,0,Jul-26
+401,OSR,E,H13003D,Dummy account as of June-22,0,0,0,0,Jul-26
+401,OSR,E,I107004,Recovery agent fee for KRN WV parties,0,250000,0,250000,Jul-26
+401,OSR,E,I109004,Ancillary Cost / Portfolio through PFSL,0,0,0,0,Jul-26
+401,OSR,E,I112001,WV: Technical Assistance (BDS),0,0,0,0,Jul-26
+401,OSR,E,I114001,WV: Capacity Building Funds,0,0,0,0,Jul-26
+401,OSR,E,K102005,Green Economy- Developing Case Studies,0,0,0,0,Jul-26
+401,OSR,E,K102006,PR Services,0,210900.8,0,210900.8,Jul-26
+401,OSR,E,K102008,Product-Oriented Research on Select Agri Value Chains,0,0,0,0,Jul-26
+401,OSR,E,K102014,Website Maintenance+SEO,0,76647.06,0,76647.06,Jul-26
+401,OSR,E,K102015,Digital and Social Media,0,241258.2,0,241258.2,Jul-26
+401,OSR,E,K102016,Marketing Collateral,0,0,374.5,-374.5,Jul-26
+401,OSR,E,K102017,SME/CIC Market Visibility and Outreach,0,0,0,0,Jul-26
+401,OSR,E,K102020,"WV - Events, Videos, Briefs, etc. - on-going",0,0,0,0,Jul-26
+401,OSR,E,K102025,ICF Marketing & MEL,0,0,0,0,Jul-26
+401,OSR,E,K102026,"WV - Events, Videos, Briefs",0,0,0,0,Jul-26
+401,OSR,E,K102036,Production equipment,0,0,0,0,Jul-26
+401,OSR,E,K103035,Constant Contact,0,0,0,0,Jul-26
+401,OSR,E,K103052,"Engagement with Influencer Platforms/Podcasts (Pakistonomy, Tabadlab, etc.)",0,0,0,0,Jul-26
+401,OSR,E,K103055,"Feasibilities of Innovative Climate Change Investments Projects (e.g. Biomass, Commercial Forestry)",0,0,0,0,Jul-26
+401,OSR,E,K103062,"Editing and Printing of Internal Notes (e.g. Budget, Import Substitution of Agri Commodities, Digitization of Argi Cooperatives)",0,0,0,0,Jul-26
+401,OSR,E,K103069,Identifying WEE inclusive sectors and opportunities for anchor models,0,0,0,0,Jul-26
+401,OSR,E,K103071,Feasibility Study of Investible Green Projects (new),0,0,0,0,Jul-26
+401,OSR,E,M102001,Third Party Monitoring of Karandaaz Projects,0,0,0,0,Jul-26
+401,OSR,E,M104008,CIC Assessment,0,0,0,0,Jul-26
+401,OSR,E,M117001,MEL Tech Stack/ Dashboard (on secure database),0,0,0,0,Jul-26
+401,OSR,E,SS5H100,Staff Salaries,0,23417691,0,23417691,Jul-26
+401,OSR,E,SS5H200,Staff Provident Fund,0,2330464,0,2330464,Jul-26
+401,OSR,E,SS5H201,Gratuity expense (Staff Salaries),0,0,0,0,Jul-26
+401,OSR,E,SS5H300,Staff Over time,0,183466,0,183466,Jul-26
+401,OSR,E,SS5H400,Staff Car Monetization,0,2837516,0,2837516,Jul-26
+401,OSR,E,SS5H500,Staff Child care assistance,0,109000,0,109000,Jul-26
+401,OSR,E,SS5H600,Performance payout,0,0,0,0,Jul-26
+401,OSR,E,SS5H700,Staff Arrears,0,-9669,0,-9669,Jul-26
+401,OSR,E,SS5H800,Other Deductions,0,137000,0,137000,Jul-26
+401,OSR,E,SS5H900,Other Reimbursement Expenses,0,286613,0,286613,Jul-26
+401,OSR,E,h106008,Wellness Allowance (Grade 7-10),0.00E+00,6000,0,6.00E+03,Jul-26
+501,N/A,E,C101001,FCDO - Amortization of Deferred Grant,0,0,0,0,Jul-26
+501,N/A,E,C103002,MBL-SME Loans-Variable Expenses,0,0,0,0,Jul-26
+501,N/A,E,C103003,BAFL-SME Loans-Variable Expenses,0,0,0,0,Jul-26
+501,N/A,E,C105004,TA to New Partners,0,0,0,0,Jul-26
+501,N/A,E,C107002,Strategic Investment - Pre & post investment cost,0,0,0,0,Jul-26
+501,N/A,E,C108002,Credit - Pre & post investment cost,0,0,0,0,Jul-26
+501,N/A,E,C109002,Equity - Pre & post investment cost,0,0,0,0,Jul-26
+501,N/A,E,C130004,SEED Technical Assistance,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,C130005,CDC Maintenance Charges,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,D103012,Digital Experiments (5-7),0,0,0,0,Jul-26
+501,N/A,E,D103015,UI/UX based support for market players,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,D103016,Fintech Disrupt Challenge,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,D103020,FIWC - 2,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,D105004,CDNS,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,D105007,Agri Value Chain Payment Digitization,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,D105008,SECP Digital & IT Transformation,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,D106004,BISP- ERP & Payment reconciliation system,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,D107002,MPG - Infrastructure,0,0,0,0,Jul-26
+501,N/A,E,D107003,MPG - Consultant (Mckinsey),0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,D107004,MPG Infrastructure,0,0,0,0,Jul-26
+501,N/A,E,D107005,Pilot MPG Linked Projects,0,0,0,0,Jul-26
+501,N/A,E,D107007,MPG Operations,0,0,0,0,Jul-26
+501,N/A,E,D107009,Engagement with Fintech Practitioners,0,0,0,0,Jul-26
+501,N/A,E,D107011,Company Registry,0,0,0,0,Jul-26
+501,N/A,E,D107043,RAAST Implementation Phase,0,0,0,0,Jul-26
+501,N/A,E,H101001,Bank Charges,0,0,0,0,Jul-26
+501,N/A,E,H102001,Amortization of Intangible Assets,0,0,0,0,Jul-26
+501,N/A,E,H103002,Capacity Building,0,0,0,0,Jul-26
+501,N/A,E,H104001,Travel,0,0,0,0,Jul-26
+501,N/A,E,H105001,HR Consultancies & Internships,0,0,0,0,Jul-26
+501,N/A,E,H106001,Electricity,0,0,0,0,Jul-26
+501,N/A,E,H106002,Telephone & Internet,0,0,0,0,Jul-26
+501,N/A,E,H106003,Communication reimbursement,0,0,0,0,Jul-26
+501,N/A,E,H106006,Generator Expenses,0,0,0,0,Jul-26
+501,N/A,E,H106007,Fuel reimbursement,0,0,0,0,Jul-26
+501,N/A,E,H107001,Depreciation Expense - Furnitures and Fixtures,0,0,0,0,Jul-26
+501,N/A,E,H107002,Depreciation Expense - Office Equipment,0,0,0,0,Jul-26
+501,N/A,E,H107003,Depreciation Expense - Vehicles,0,0,0,0,Jul-26
+501,N/A,E,H107004,Depreciation Expense - Computers,0,0,0,0,Jul-26
+501,N/A,E,H107005,Depreciation Expense - ROUA,0,0,0,0,Jul-26
+501,N/A,E,H108002,Vehicle Operations,0,0,0,0,Jul-26
+501,N/A,E,H108003,Vehicle Maintenance,0,0,0,0,Jul-26
+501,N/A,E,H110002,Health Insurance - Amortization,0,0,0,0,Jul-26
+501,N/A,E,H113001,Exchange Gain,0,0,15230.91,-15230.9,Jul-26
+501,N/A,E,H113002,Exchange Loss,0,259033.5,0,259033.5,Jul-26
+501,N/A,E,H114001,Investment / Credit Committee,0,0,0,0,Jul-26
+501,N/A,E,H115001,Meeting & Conferences,0,0,0,0,Jul-26
+501,N/A,E,H116001,Kitchen Supplies,0,0,0,0,Jul-26
+501,N/A,E,H116002,Cleaning Material,0,0,0,0,Jul-26
+501,N/A,E,H116003,Postage & Courier,0,0,0,0,Jul-26
+501,N/A,E,H116004,Office Supplies,0,0,0,0,Jul-26
+501,N/A,E,H116007,IT - Repair and Maintenance,0,0,0,0,Jul-26
+501,N/A,E,H116008,Printer Monthly Rental and Usage,0,0,0,0,Jul-26
+501,N/A,E,H117001,Office Rent- Islamabad,0,0,0,0,Jul-26
+501,N/A,E,H118001,Amortization - Asset and Vehicles Insurance,0,0,0,0,Jul-26
+501,N/A,E,H119001,Boarding & Lodging,0,0,0,0,Jul-26
+501,N/A,E,H119003,Perdiem,0,0,0,0,Jul-26
+501,N/A,E,H121002,Stationery Printing,0,0,0,0,Jul-26
+501,N/A,E,H122001,IT Consultancy,0,0,0,0,Jul-26
+501,N/A,E,H122002,External Audit,0,0,0,0,Jul-26
+501,N/A,E,H122004,Legal Charges,0,0,0,0,Jul-26
+501,N/A,E,H122005,Out of Pocket Ext-Audit,0,0,0,0,Jul-26
+501,N/A,E,H122006,Out of Pocket Internal-Audit,0,0,0,0,Jul-26
+501,N/A,E,H122007,Tax Consultancy,0,0,0,0,Jul-26
+501,N/A,E,H122010,External Audit Fee - Group Audits,0,0,0,0,Jul-26
+501,N/A,E,H123003,Daily Wages,0,0,0,0,Jul-26
+501,N/A,E,H123005,Staff Training,0,0,0,0,Jul-26
+501,N/A,E,H123006,EOBI Expense,0,2397,0,2397,Jul-26
+501,N/A,E,H123007,Advertisement Expenses,0,0,0,0,Jul-26
+501,N/A,E,H124001,Office Repair & Maintenance,0,0,0,0,Jul-26
+501,N/A,E,H125001,Software Annual Support Services,0,0,0,0,Jul-26
+501,N/A,E,H125002,Annual License fee - Amortization,0,0,0,0,Jul-26
+501,N/A,E,H126001,Fee & Subscription,0,0,0,0,Jul-26
+501,N/A,E,H126002,Employee Engagement,0,0,0,0,Jul-26
+501,N/A,E,H126005,SPOT recognition,0,0,0,0,Jul-26
+501,N/A,E,H127001,Loss on disposal of Fixed Assets,0,0,0,0,Jul-26
+501,N/A,E,H128001,Guards & Janitorial Services,0,0,0,0,Jul-26
+501,N/A,E,H128002,Corporate and Social Responsibility,0,0,0,0,Jul-26
+501,N/A,E,H129006,Directors & officers liability insurance,0,0,0,0,Jul-26
+501,N/A,E,H129008,Other Expense,0,30486,0,30486,Jul-26
+501,N/A,E,H129009,JSK Feeds - Management Expense,0,0,0,0,Jul-26
+501,N/A,E,H129014,Impaiment Loss under IFRS 9,0,0,0,0,Jul-26
+501,N/A,E,H129018,Finance Cost on Lease Liability,0,0,0,0,Jul-26
+501,N/A,E,H129019,Loss on below market rate loans - PFSL,0,0,0,0,Jul-26
+501,N/A,E,H129021,Life Insurance - Amortization,0,0,0,0,Jul-26
+501,N/A,E,H129022,Unwinding of Interest on loan to BF Biosciences,0,0,0,0,Jul-26
+501,N/A,E,H129024,Unwinding of Interest on loans through PFSL,0,0,0,0,Jul-26
+501,N/A,E,H129025,Modification loss on below Market loans - PFSL,0,0,0,0,Jul-26
+501,N/A,E,H129027,Life Insurance - Expense,0,0,0,0,Jul-26
+501,N/A,E,H129028,BFBL-SME Loans-Variable Expenses,0,0,0,0,Jul-26
+501,N/A,E,H129029,Nizam- SME Loans- Variable Expenses,0,0,0,0,Jul-26
+501,N/A,E,H129030,WHT on dividend,0,0,0,0,Jul-26
+501,N/A,E,H129033,Management fee expense PFSL,0,0,0,0,Jul-26
+501,N/A,E,H129034,Modification loss / gain on BFBL,0,0,0,0,Jul-26
+501,N/A,E,H129035,Modification loss / gain due to change in cashflow on IHV,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,H129036,Modification loss on KRN convertible loans,0,0,0,0,Jul-26
+501,N/A,E,H129037,Brokerage fee and Ancillary charges,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,H129038,Sales tax - Withholding by clients,0,0,0,0,Jul-26
+501,N/A,E,H130002,Cross-Currency Rounding Account,0,1.07E+08,1.07E+08,0.49,Jul-26
+501,N/A,E,H13003D,Dummy account as of June-22,0.00E+00,0,0.16,-1.60E-01,Jul-26
+501,N/A,E,I107003,Women Entrepreneurship Challenge 2020,0,0,0,0,Jul-26
+501,N/A,E,I109001,ICF 6 - GCF (Grant),0,0,0,0,Jul-26
+501,N/A,E,I109004,Ancillary Cost / Portfolio through PFSL,0,0,0,0,Jul-26
+501,N/A,E,I111001,WV: Investments,0.00E+00,0,0,0.00E+00,Jul-26
+501,N/A,E,I112001,WV: Technical Assistance (BDS),0,0,0,0,Jul-26
+501,N/A,E,I112002,WV 2020: Technical Assistance,0,0,0,0,Jul-26
+501,N/A,E,I114001,WV: Capacity Building Funds,0,0,0,0,Jul-26
+501,N/A,E,K102003,Alternate Revenue Models for National Payment System,0,0,0,0,Jul-26
+501,N/A,E,K102008,Product-Oriented Research on Select Agri Value Chains,0,0,0,0,Jul-26
+501,N/A,E,K102009,Karandaaz Innovation - Advertising & Outreach,0,0,0,0,Jul-26
+501,N/A,E,K102013,Design Agency,0,0,0,0,Jul-26
+501,N/A,E,K102014,Website Maintenance+SEO,0,0,0,0,Jul-26
+501,N/A,E,K102015,Digital and Social Media,0,0,0,0,Jul-26
+501,N/A,E,K102016,Marketing Collateral,0,0,0,0,Jul-26
+501,N/A,E,K102017,SME/CIC Market Visibility and Outreach,0,0,0,0,Jul-26
+501,N/A,E,K102020,"WV - Events, Videos, Briefs, etc. - on-going",0,0,0,0,Jul-26
+501,N/A,E,K102021,Study on Alternate Energy and Energy Efficiency,0,0,0,0,Jul-26
+501,N/A,E,K102023,Comms Consultant,0,0,0,0,Jul-26
+501,N/A,E,K102025,ICF Marketing & MEL,0,0,0,0,Jul-26
+501,N/A,E,K102028,CDNS ATM Card Launch,0,0,0,0,Jul-26
+501,N/A,E,K102030,MPG P2P Launch,0,0,0,0,Jul-26
+501,N/A,E,K103003,Data Portal (BMGF),0,0,0,0,Jul-26
+501,N/A,E,K103004,Data Portal (FCDO),0,0,0,0,Jul-26
+501,N/A,E,K103018,Study on Landscape - Women Led Businesses,0,0,0,0,Jul-26
+501,N/A,E,K103019,Demand Side Outreach Activity,0,0,0,0,Jul-26
+501,N/A,E,K103020,Data Portal 2.0 (FCDO),0,0,0,0,Jul-26
+501,N/A,E,K103021,Data Portal 2.0 (BMGF),0,0,0,0,Jul-26
+501,N/A,E,K103025,FII Survey Wave VII,0,0,0,0,Jul-26
+501,N/A,E,K103028,Study on Quality of Jobs Created,0,0,0,0,Jul-26
+501,N/A,E,K103030,Study on the prevalent tax regime,0,0,0,0,Jul-26
+501,N/A,E,K103033,Regulatory Framework for Digital Assets,0,0,0,0,Jul-26
+501,N/A,E,K103035,Constant Contact,0,0,0,0,Jul-26
+501,N/A,E,K103040,Knowledge Partnerships,0,0,0,0,Jul-26
+501,N/A,E,K103043,Digital Pakistan Conference and Workships/Events/Industry Consultations/Round Tables,0,0,0,0,Jul-26
+501,N/A,E,M102001,Third Party Monitoring of Karandaaz Projects,0,0,0,0,Jul-26
+501,N/A,E,M103005,M&E- Formative evaluations and baselines,0,0,0,0,Jul-26
+501,N/A,E,M104010,MEL functional Assessments (FCDO),0,0,0,0,Jul-26
+501,N/A,E,M108001,SRQ Toolkit Update,0,0,0,0,Jul-26
+501,N/A,E,SS5H100,Staff Salaries,0,0,0,0,Jul-26
+501,N/A,E,SS5H200,Staff Provident Fund,0,0,0,0,Jul-26
+501,N/A,E,SS5H201,Gratuity expense (Staff Salaries),0,0,0,0,Jul-26
+501,N/A,E,SS5H300,Staff Over time,0,0,0,0,Jul-26
+501,N/A,E,SS5H600,Performance payout,0,0,0,0,Jul-26
+601,FCDO & BMGF & OSR,E,H101001,Bank Charges,0,0,0,0,Jul-26
+601,FCDO & BMGF & OSR,E,H130002,Cross-Currency Rounding Account,0,0,0,0,Jul-26
+101,FCDO,E,C103002,MBL-SME Loans-Variable Expenses,0,0,0,0,Aug-26
+101,FCDO,E,C106002,CIC Transaction cost - Legal D.D & Documentation,0,0,0,0,Aug-26
+101,FCDO,E,C107002,Strategic Investment - Pre & post investment cost,0,0,0,0,Aug-26
+101,FCDO,E,C107003,Due diligence cost - Pre & post investment cost,0,0,0,0,Aug-26
+101,FCDO,E,C108002,Credit - Pre & post investment cost,0,0,0,0,Aug-26
+101,FCDO,E,C109001,CIC - Equity Deals,0,0,0,0,Aug-26
+101,FCDO,E,C109002,Equity - Pre & post investment cost,0,0,0,0,Aug-26
+101,FCDO,E,C130001,Capacity Building of Partners,0,0,0,0,Aug-26
+101,FCDO,E,C130004,SEED Technical Assistance,0,0,0,0,Aug-26
+101,FCDO,E,D105012,Secured Transaction Registry (STR),0,0,0,0,Aug-26
+101,FCDO,E,D105013,SECP Overhead,0,0,0,0,Aug-26
+101,FCDO,E,D107010,LEAP Consultancy,0.00E+00,0,0,0.00E+00,Aug-26
+101,FCDO,E,D107011,Company Registry,0.00E+00,0,0,0.00E+00,Aug-26
+101,FCDO,E,D107021,LEAP PMO,0,0,0,0,Aug-26
+101,FCDO,E,D107022,SOC Implementation,0,0,0,0,Aug-26
+101,FCDO,E,D107023,XBRL Implementation,0,0,0,0,Aug-26
+101,FCDO,E,D107025,"W4: Technical Advisory, Industry/Int'l Expert Engagement, Learning/Networking Events",0,0,0,0,Aug-26
+101,FCDO,E,D107051,"W2: Technical Advisory, Industry/Int'l Expert Engagement, Learning/Networking Events",0,0,0,0,Aug-26
+101,FCDO,E,H101001,Bank Charges,0,0,0,0,Aug-26
+101,FCDO,E,H103002,Capacity Building,25000,25000,0,50000,Aug-26
+101,FCDO,E,H104001,Travel,0,0,0,0,Aug-26
+101,FCDO,E,H105001,HR Consultancies & Internships,0,0,0,0,Aug-26
+101,FCDO,E,H106001,Electricity,0,0,0,0,Aug-26
+101,FCDO,E,H106002,Telephone & Internet,0,0,0,0,Aug-26
+101,FCDO,E,H106003,Communication reimbursement,0,0,0,0,Aug-26
+101,FCDO,E,H106006,Generator Expenses,0,0,0,0,Aug-26
+101,FCDO,E,H106007,Fuel reimbursement,0,212763.8,0,212763.8,Aug-26
+101,FCDO,E,H107001,Depreciation Expense - Furnitures and Fixtures,0,0,0,0,Aug-26
+101,FCDO,E,H107002,Depreciation Expense - Office Equipment,0,0,0,0,Aug-26
+101,FCDO,E,H107004,Depreciation Expense - Computers,0,0,0,0,Aug-26
+101,FCDO,E,H107006,Depreciation Expense - Solar Equipment,0,0,0,0,Aug-26
+101,FCDO,E,H108001,Road Transportation,0,0,0,0,Aug-26
+101,FCDO,E,H108002,Vehicle Operations,0,0,0,0,Aug-26
+101,FCDO,E,H108003,Vehicle Maintenance,0,0,0,0,Aug-26
+101,FCDO,E,H108004,Vehicle Insurance - Amortization,0,0,0,0,Aug-26
+101,FCDO,E,H110002,Health Insurance - Amortization,99930,101065,0,200995,Aug-26
+101,FCDO,E,H113001,Exchange Gain,0,0,0,0,Aug-26
+101,FCDO,E,H113002,Exchange Loss,0,0,0,0,Aug-26
+101,FCDO,E,H115001,Meeting & Conferences,0,0,0,0,Aug-26
+101,FCDO,E,H116001,Kitchen Supplies,0,0,0,0,Aug-26
+101,FCDO,E,H116002,Cleaning Material,0,0,0,0,Aug-26
+101,FCDO,E,H116003,Postage & Courier,0,0,0,0,Aug-26
+101,FCDO,E,H116004,Office Supplies,0,0,0,0,Aug-26
+101,FCDO,E,H116006,IT Supplies,0,0,0,0,Aug-26
+101,FCDO,E,H117001,Office Rent- Islamabad,0,0,0,0,Aug-26
+101,FCDO,E,H118001,Amortization - Asset and Vehicles Insurance,0,0,0,0,Aug-26
+101,FCDO,E,H119001,Boarding & Lodging,0,0,0,0,Aug-26
+101,FCDO,E,H119002,BoD-Boarding & Lodging,0,0,0,0,Aug-26
+101,FCDO,E,H119003,Perdiem,0,0,0,0,Aug-26
+101,FCDO,E,H121002,Stationery Printing,0,0,0,0,Aug-26
+101,FCDO,E,H122001,IT Consultancy,0,0,0,0,Aug-26
+101,FCDO,E,H122002,External Audit,0,0,0,0,Aug-26
+101,FCDO,E,H122003,Internal Audit,0,0,0,0,Aug-26
+101,FCDO,E,H122004,Legal Charges,0,0,0,0,Aug-26
+101,FCDO,E,H122005,Out of Pocket Ext-Audit,0,0,0,0,Aug-26
+101,FCDO,E,H122007,Tax Consultancy,0,0,0,0,Aug-26
+101,FCDO,E,H122010,External Audit Fee - Group Audits,0,0,0,0,Aug-26
+101,FCDO,E,H123003,Daily Wages,0,0,0,0,Aug-26
+101,FCDO,E,H123005,Staff Training,0,0,0,0,Aug-26
+101,FCDO,E,H123006,EOBI Expense,6660,8460,0,15120,Aug-26
+101,FCDO,E,H123007,Advertisement Expenses,0,0,0,0,Aug-26
+101,FCDO,E,H124001,Office Repair & Maintenance,0,0,0,0,Aug-26
+101,FCDO,E,H124002,Equipment Repair & Maintenance,0,0,0,0,Aug-26
+101,FCDO,E,H125001,Software Annual Support Services,0,0,0,0,Aug-26
+101,FCDO,E,H126001,Fee & Subscription,0,0,0,0,Aug-26
+101,FCDO,E,H126002,Employee Engagement,0,0,0,0,Aug-26
+101,FCDO,E,H126003,Rewards & Compensation Survey,0,0,0,0,Aug-26
+101,FCDO,E,H128001,Guards & Janitorial Services,0,0,0,0,Aug-26
+101,FCDO,E,H128002,Corporate and Social Responsibility,0,0,0,0,Aug-26
+101,FCDO,E,H129006,Directors & officers liability insurance,0,0,0,0,Aug-26
+101,FCDO,E,H129009,JSK Feeds - Management Expense,0,0,0,0,Aug-26
+101,FCDO,E,H129021,Life Insurance - Amortization,6538,6612,0,13150,Aug-26
+101,FCDO,E,H129022,Unwinding of Interest on loan to BF Biosciences,0,0,0,0,Aug-26
+101,FCDO,E,H129031,LT Gov Framework Exercise/Study,0,0,0,0,Aug-26
+101,FCDO,E,H129033,Management fee expense PFSL,0,0,0,0,Aug-26
+101,FCDO,E,H129034,Modification loss / gain on BFBL,0,0,0,0,Aug-26
+101,FCDO,E,H129035,Modification loss / gain due to change in cashflow on IHV,0,0,0,0,Aug-26
+101,FCDO,E,H129036,Modification loss on KRN convertible loans,0,0,0,0,Aug-26
+101,FCDO,E,H130003,Board and Committee Meetings,0,0,0,0,Aug-26
+101,FCDO,E,I109001,ICF 6 - GCF (Grant),0,0,0,0,Aug-26
+101,FCDO,E,I109002,ICF 6 - GCF Grant,0,0,0,0,Aug-26
+101,FCDO,E,I112001,WV: Technical Assistance (BDS),0.00E+00,0,0,0.00E+00,Aug-26
+101,FCDO,E,I114001,WV: Capacity Building Funds,0.00E+00,0,0,0.00E+00,Aug-26
+101,FCDO,E,K102006,PR Services,0.00E+00,0,0,0.00E+00,Aug-26
+101,FCDO,E,K102009,Karandaaz Innovation - Advertising & Outreach,0,0,0,0,Aug-26
+101,FCDO,E,K102011,The Impact of Digital Financial Inclusion on the Economy,0,0,0,0,Aug-26
+101,FCDO,E,K102012,Knowledge Partnerships,0,0,0,0,Aug-26
+101,FCDO,E,K102014,Website Maintenance+SEO,0.00E+00,0,0,0.00E+00,Aug-26
+101,FCDO,E,K102015,Digital and Social Media,0,0,0,0,Aug-26
+101,FCDO,E,K102016,Marketing Collateral,0,0,0,0,Aug-26
+101,FCDO,E,K102017,SME/CIC Market Visibility and Outreach,0.00E+00,0.00E+00,0.00E+00,0.00E+00,Aug-26
+101,FCDO,E,K102025,ICF Marketing & MEL,0,0,0,0,Aug-26
+101,FCDO,E,K102026,"WV - Events, Videos, Briefs",0,0,0,0,Aug-26
+101,FCDO,E,K102034,"SECP Outreach Activity - STR, LEAP",0,0,0,0.00E+00,Aug-26
+101,FCDO,E,K103002,W2 - Data Portal (FCDO),0,0,0,0,Aug-26
+101,FCDO,E,K103020,Data Portal 2.0 (FCDO),0,0,0,0,Aug-26
+101,FCDO,E,K103027,Study on Landscape of Women-Led Businesses,0,0,0,0,Aug-26
+101,FCDO,E,K103028,Study on Quality of Jobs Created,0,0,0,0,Aug-26
+101,FCDO,E,K103030,Study on the prevalent tax regime,0,0,0,0,Aug-26
+101,FCDO,E,K103035,Constant Contact,0,0,0,0,Aug-26
+101,FCDO,E,K103036,Graphic Design Services,0,0,0,0,Aug-26
+101,FCDO,E,K103041,Study on Healthcare Service Delivery in Pakistan (New),0,0,0,0,Aug-26
+101,FCDO,E,K103044,"DFS Outreach (videos, publications, photo collections)",0,0,0,0,Aug-26
+101,FCDO,E,K103045,SEED - Legal and Professional Charges,0,0,0,0,Aug-26
+101,FCDO,E,K103046,Zoom Webinar,0,0,0,0,Aug-26
+101,FCDO,E,K103047,SEO for Website,0,0,0,0,Aug-26
+101,FCDO,E,K103050,KRN Small Development Initiatives,0,0,0,0,Aug-26
+101,FCDO,E,K103051,Corporate Governance in SMEs,0,0,0,0,Aug-26
+101,FCDO,E,K103052,"Engagement with Influencer Platforms/Podcasts (Pakistonomy, Tabadlab, etc.)",0,0,0,0,Aug-26
+101,FCDO,E,K103056,Green Investment Instruments (e.g. Green Carbon Markets),0,0,0,0,Aug-26
+101,FCDO,E,M102001,Third Party Monitoring of Karandaaz Projects,0,0,0,0,Aug-26
+101,FCDO,E,M104008,CIC Assessment,0,0,0,0,Aug-26
+101,FCDO,E,M104010,MEL functional Assessments (FCDO),0,0,0,0,Aug-26
+101,FCDO,E,M104011,ESG Compliance Assessment,0,0,0,0,Aug-26
+101,FCDO,E,M104012,Assessment of STR (SECP) - DFS,0,0,0,0,Aug-26
+101,FCDO,E,M111001,KRN Green Portfolio,0,0,0,0,Aug-26
+101,FCDO,E,SS5H100,Staff Salaries,1773467,1830749,0,3604216,Aug-26
+101,FCDO,E,SS5H200,Staff Provident Fund,177458,183216,0,360674,Aug-26
+101,FCDO,E,SS5H201,Gratuity expense (Staff Salaries),0,0,0,0,Aug-26
+101,FCDO,E,SS5H300,Staff Over time,0,57582,0,57582,Aug-26
+101,FCDO,E,SS5H400,Staff Car Monetization,353000,353000,0,706000,Aug-26
+101,FCDO,E,SS5H500,Staff Child care assistance,0,0,0,0,Aug-26
+101,FCDO,E,SS5H600,Performance payout,0,0,0,0,Aug-26
+101,FCDO,E,SS5H700,Staff Arrears,0,0,0,0,Aug-26
+101,FCDO,E,SS5H800,Other Deductions,0,0,0,0,Aug-26
+101,FCDO,E,SS5H900,Other Reimbursement Expenses,240196,0,0,240196,Aug-26
+201,BMGF,E,D103004,DFS - Digital Financial Inclusion for Women,0,0,0,0,Aug-26
+201,BMGF,E,D103011,Digital Experiment 4,0,0,0,0,Aug-26
+201,BMGF,E,D103014,Community of Fintechs,0,0,0,0,Aug-26
+201,BMGF,E,D103015,UI/UX based support for market players,0,0,0,0,Aug-26
+201,BMGF,E,D103016,Fintech Disrupt Challenge,0,0,0,0,Aug-26
+201,BMGF,E,D103018,Digital Experiment 3,0,0,0,0,Aug-26
+201,BMGF,E,D103020,FIWC - 2,0,0,0,0,Aug-26
+201,BMGF,E,D103021,Digital Payments,0,0,0,0,Aug-26
+201,BMGF,E,D103022,Sectoral Projects - Value chain,0,0,0,0,Aug-26
+201,BMGF,E,D103025,FIWC - 3,0,0,0,0,Aug-26
+201,BMGF,E,D105002,DFS - Innov. & Incb.. - Agri Program Development,0,0,0,0,Aug-26
+201,BMGF,E,D105011,BISP Financial Literacy,0,0,0,0,Aug-26
+201,BMGF,E,D105015,Pilot to scale,0,0,0,0,Aug-26
+201,BMGF,E,D106008,"W3: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events",0,0,0,0,Aug-26
+201,BMGF,E,D107002,MPG - Infrastructure,0,0,0,0,Aug-26
+201,BMGF,E,D107003,MPG - Consultant (Mckinsey),0,0,0,0,Aug-26
+201,BMGF,E,D107005,Pilot MPG Linked Projects,0,0,0,0,Aug-26
+201,BMGF,E,D107006,MPG - Mosc Expenses,0,0,0,0,Aug-26
+201,BMGF,E,D107007,MPG Operations,0,0,0,0,Aug-26
+201,BMGF,E,D107009,Engagement with Fintech Practitioners,0,0,0,0,Aug-26
+201,BMGF,E,D107012,Ecommerce,0,0,0,0,Aug-26
+201,BMGF,E,D107013,CDNS Phase-2 Development,0,0,0,0,Aug-26
+201,BMGF,E,D107015,New Accounts Acquisition,0,0,0,0,Aug-26
+201,BMGF,E,D107016,MOPASS,0,0,0,0,Aug-26
+201,BMGF,E,D107017,RAAST Adoption,0,0,0,0,Aug-26
+201,BMGF,E,D107018,"W1: Technical Advisory, Industry/Int'l Expert Engagement, Learning/Networking Events",198486.7,18000,0,216486.7,Aug-26
+201,BMGF,E,D107020,Pakistan Stack,0,0,0,0,Aug-26
+201,BMGF,E,D107025,"W4: Technical Advisory, Industry/Int'l Expert Engagement, Learning/Networking Events",73414.56,12778.75,0,86193.31,Aug-26
+201,BMGF,E,D107026,FIWC - 4 (Account or channel specifIc),0,0,0,0,Aug-26
+201,BMGF,E,D107028,E-commerce Value Chain Interventions,0,0,0,0,Aug-26
+201,BMGF,E,D107029,Sector Transformation - Agri Value Chain Transformation,4219078,0,123558,4095520,Aug-26
+201,BMGF,E,D107030,Adoption Projects,0,0,0,0,Aug-26
+201,BMGF,E,D107034,Channel Development (Agents/Digital Onboarding),0,0,0,0,Aug-26
+201,BMGF,E,D107037,FBR - Digital Invoicing Initiative (Landscape Assessment),0,0,0,0,Aug-26
+201,BMGF,E,D107038,DFA-C,2550257,0,0,2550257,Aug-26
+201,BMGF,E,D107039,RAAST S&M,0,0,0,0,Aug-26
+201,BMGF,E,D107043,RAAST Implementation Phase,-28801.6,0,0,-28801.6,Aug-26
+201,BMGF,E,D107044,Buna-RAAST Connectivity,-225860,0,0,-225860,Aug-26
+201,BMGF,E,D107046,RAAST Governance,0,0,0,0,Aug-26
+201,BMGF,E,D107047,FIWC - 5 (Launch),0,0,0,0,Aug-26
+201,BMGF,E,D107048,New Project - Innovation Challenge Round,0,0,0,0,Aug-26
+201,BMGF,E,D107049,Cashless Ecosystem,0,0,0,0,Aug-26
+201,BMGF,E,D107051,"W2: Technical Advisory, Industry/Int'l Expert Engagement, Learning/Networking Events",0,0,0,0,Aug-26
+201,BMGF,E,D107052,FBR - Digitization for Tax System (Stage 2: Project & Change Management ),0,0,0,0,Aug-26
+201,BMGF,E,D107053,FBR - Digitalization for Tax System: Individual Consultant,1.04E+07,0,0,10395000,Aug-26
+201,BMGF,E,D107054,BISP - BISP and RAAST integration,0,0,0,0.00E+00,Aug-26
+201,BMGF,E,D107055,Raast-BUNA: Implementation,2.37E+07,0,0,23688628,Aug-26
+201,BMGF,E,D107059,FBR Digitization for Tax System (Stage 3: McKinsey PMO),50570744,50414182,0,1.01E+08,Aug-26
+201,BMGF,E,D108001,Technical assistance for social protection program,0,0,0,0,Aug-26
+201,BMGF,E,D108002,CCT Program to eradicate Polio,2360000,1130000,0,3490000,Aug-26
+201,BMGF,E,D108003,Termination Cost - Grant Audit,0,0,0,0,Aug-26
+201,BMGF,E,D108005,Mainstreaming,0,0,0,0,Aug-26
+201,BMGF,E,D108006,Disruption and Experimentation: Innovative Solutions for Women's Inclusion,0,0,255408,-255408,Aug-26
+201,BMGF,E,D108008,"W5: Technical Advisory, Industry/International Expert Engagement, Learning/Networking Events",1531480,0,0,1531480,Aug-26
+201,BMGF,E,H101001,Bank Charges,0,21411.94,0,21411.94,Aug-26
+201,BMGF,E,H103002,Capacity Building,254053.5,2118238,0,2372292,Aug-26
+201,BMGF,E,H104001,Travel,90776,26197,0,116973,Aug-26
+201,BMGF,E,H104002,BoD-Travel,0,0,0,0,Aug-26
+201,BMGF,E,H104003,International Travel,0,0,0,0,Aug-26
+201,BMGF,E,H105001,HR Consultancies & Internships,2.97E+05,86768,0,3.83E+05,Aug-26
+201,BMGF,E,H106001,Electricity,165832,151663,0,317495,Aug-26
+201,BMGF,E,H106002,Telephone & Internet,57170.5,57171,0,114341.5,Aug-26
+201,BMGF,E,H106003,Communication reimbursement,101167.2,131508.8,0,232676,Aug-26
+201,BMGF,E,H106006,Generator Expenses,66246,101040.9,0,167286.9,Aug-26
+201,BMGF,E,H106007,Fuel reimbursement,2420903,2032888,0,4453790,Aug-26
+201,BMGF,E,H107001,Depreciation Expense - Furnitures and Fixtures,0,0,0,0,Aug-26
+201,BMGF,E,H107002,Depreciation Expense - Office Equipment,0,0,0,0,Aug-26
+201,BMGF,E,H107004,Depreciation Expense - Computers,0,0,0,0,Aug-26
+201,BMGF,E,H108001,Road Transportation,0,0,0,0,Aug-26
+201,BMGF,E,H108002,Vehicle Operations,350,142866.7,0,143216.7,Aug-26
+201,BMGF,E,H108003,Vehicle Maintenance,100,11902,0,12002,Aug-26
+201,BMGF,E,H108004,Vehicle Insurance - Amortization,5062.5,17136.04,0,22198.54,Aug-26
+201,BMGF,E,H109001,Directors - Trainings & Workshops,0,0,0,0,Aug-26
+201,BMGF,E,H110002,Health Insurance - Amortization,1377366,1376172,0,2753538,Aug-26
+201,BMGF,E,H111001,BMGF Grant,0,0,0,0,Aug-26
+201,BMGF,E,H113001,Exchange Gain,0,0,0,0,Aug-26
+201,BMGF,E,H113002,Exchange Loss,35644.16,0,0,35644.16,Aug-26
+201,BMGF,E,H115001,Meeting & Conferences,66461,10852.7,0,77313.7,Aug-26
+201,BMGF,E,H116001,Kitchen Supplies,65745.48,119730,0,185475.5,Aug-26
+201,BMGF,E,H116002,Cleaning Material,0,0,0,0,Aug-26
+201,BMGF,E,H116003,Postage & Courier,1,5558,0,5559,Aug-26
+201,BMGF,E,H116004,Office Supplies,29501,12446.5,0,41947.5,Aug-26
+201,BMGF,E,H116006,IT Supplies,16250,13000,0,29250,Aug-26
+201,BMGF,E,H116007,IT - Repair and Maintenance,0,0,0,0,Aug-26
+201,BMGF,E,H116008,Printer Monthly Rental and Usage,0,0,0,0,Aug-26
+201,BMGF,E,H117001,Office Rent- Islamabad,1582801,1582801,0,3165602,Aug-26
+201,BMGF,E,H118001,Amortization - Asset and Vehicles Insurance,19069.13,19069.13,0,38138.26,Aug-26
+201,BMGF,E,H119001,Boarding & Lodging,0,5000,0,5000,Aug-26
+201,BMGF,E,H119002,BoD-Boarding & Lodging,86366,0,0,86366,Aug-26
+201,BMGF,E,H119003,Perdiem,108208,18300,0,126508,Aug-26
+201,BMGF,E,H121001,Office Stationery,0,11840,0,11840,Aug-26
+201,BMGF,E,H121002,Stationery Printing,0,0,0,0,Aug-26
+201,BMGF,E,H122001,IT Consultancy,0,0,0,0,Aug-26
+201,BMGF,E,H122002,External Audit,0,0,0,0,Aug-26
+201,BMGF,E,H122003,Internal Audit,0,0,0,0,Aug-26
+201,BMGF,E,H122004,Legal Charges,302082,60416.5,0,362498.5,Aug-26
+201,BMGF,E,H122005,Out of Pocket Ext-Audit,0,0,0,0,Aug-26
+201,BMGF,E,H122007,Tax Consultancy,28750,28750,0,57500,Aug-26
+201,BMGF,E,H122010,External Audit Fee - Group Audits,0,0,0,0,Aug-26
+201,BMGF,E,H123003,Daily Wages,0,6000,0,6000,Aug-26
+201,BMGF,E,H123005,Staff Training,0,0,0,0,Aug-26
+201,BMGF,E,H123006,EOBI Expense,91797,115197,0,206994,Aug-26
+201,BMGF,E,H123007,Advertisement Expenses,0,0,0,0,Aug-26
+201,BMGF,E,H124001,Office Repair & Maintenance,180,12695,0,12875,Aug-26
+201,BMGF,E,H124002,Equipment Repair & Maintenance,0,0,0,0,Aug-26
+201,BMGF,E,H125001,Software Annual Support Services,132653.9,129933.6,0,262587.5,Aug-26
+201,BMGF,E,H125002,Annual License fee - Amortization,0,0,0,0,Aug-26
+201,BMGF,E,H125003,ERP support and maintenance cost,0,0,0,0,Aug-26
+201,BMGF,E,H126001,Fee & Subscription,1000,72942,0,73942,Aug-26
+201,BMGF,E,H126002,Employee Engagement,20630.5,7860,0,28490.5,Aug-26
+201,BMGF,E,H126003,Rewards & Compensation Survey,0,0,0,0,Aug-26
+201,BMGF,E,H126004,Corporate Social Responsibility,0,0,0,0,Aug-26
+201,BMGF,E,H126005,SPOT recognition,214100,110500,0,324600,Aug-26
+201,BMGF,E,H128001,Guards & Janitorial Services,333368,179136,0,512504,Aug-26
+201,BMGF,E,H128002,Corporate and Social Responsibility,0,0,0,0,Aug-26
+201,BMGF,E,H129006,Directors & officers liability insurance,135595.8,135595.8,0,271191.7,Aug-26
+201,BMGF,E,H129021,Life Insurance - Amortization,90115,90037,0,180152,Aug-26
+201,BMGF,E,H129031,LT Gov Framework Exercise/Study,0,0,0,0,Aug-26
+201,BMGF,E,H130002,Cross-Currency Rounding Account,0,0,0,0,Aug-26
+201,BMGF,E,H130003,Board and Committee Meetings,0,0,0,0,Aug-26
+201,BMGF,E,H13003D,Dummy account as of June-22,0,0,0,0,Aug-26
+201,BMGF,E,I109003,ICF-7,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K102001,KFIS 2026,0,0,0,0,Aug-26
+201,BMGF,E,K102002,Landscape Study of Digital Lending for Small and Medium-Sized Merchants in Urban Pakistan,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K102003,Alternate Revenue Models for National Payment System,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K102004,Collateral Regime required to optimize EWRF in Pakistan,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K102006,PR Services,2.11E+05,27508.8,0,2.38E+05,Aug-26
+201,BMGF,E,K102008,Product-Oriented Research on Select Agri Value Chains,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K102014,Website Maintenance+SEO,76647.06,76428.12,0,153075.2,Aug-26
+201,BMGF,E,K102015,Digital and Social Media,2.41E+05,6706.11,0,2.48E+05,Aug-26
+201,BMGF,E,K102016,Marketing Collateral,-3.75E+02,74664.5,0,7.43E+04,Aug-26
+201,BMGF,E,K102017,SME/CIC Market Visibility and Outreach,0,0,0,0,Aug-26
+201,BMGF,E,K102018,FII Survey Wave VI,0,0,0,0,Aug-26
+201,BMGF,E,K102028,CDNS ATM Card Launch,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K102036,Production equipment,0,0,0,0,Aug-26
+201,BMGF,E,K103001,W2 - Data Portal (BMGF),0,0,0,0,Aug-26
+201,BMGF,E,K103010,Regulatory Researches and Policy Notes,0,0,0,0,Aug-26
+201,BMGF,E,K103021,Data Portal 2.0 (BMGF),0,0,0,0,Aug-26
+201,BMGF,E,K103023,Market Assessment - Geographical Eco System,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K103025,FII Survey Wave VII,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K103033,Regulatory Framework for Digital Assets,0,0,0,0,Aug-26
+201,BMGF,E,K103035,Constant Contact,0,0,0,0,Aug-26
+201,BMGF,E,K103036,Graphic Design Services,0,0,0,0,Aug-26
+201,BMGF,E,K103039,FII Survey Wave VII (in-Field Data Collection - Feb/Mar 2022),0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K103043,Digital Pakistan Conference and Workships/Events/Industry Consultations/Round Tables,0,5000,0,5000,Aug-26
+201,BMGF,E,K103044,"DFS Outreach (videos, publications, photo collections)",7.12E+05,0,0,7.12E+05,Aug-26
+201,BMGF,E,K103046,Zoom Webinar,0,0,0,0,Aug-26
+201,BMGF,E,K103047,SEO for Website,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K103052,"Engagement with Influencer Platforms/Podcasts (Pakistonomy, Tabadlab, etc.)",0,0,0,0,Aug-26
+201,BMGF,E,K103053,SBP Campaign - Digital Fraud,0,0,0,0,Aug-26
+201,BMGF,E,K103058,KFIS 2024,0,0,0,0,Aug-26
+201,BMGF,E,K103059,Digital Fraud,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K103061,Improving DFS Adoption Among Women,0,0,0,0,Aug-26
+201,BMGF,E,K103062,"Editing and Printing of Internal Notes (e.g. Budget, Import Substitution of Agri Commodities, Digitization of Argi Cooperatives)",0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,K103064,"Research Partnerships (e.g. Collboration wtih Research Experts, Decodis)",0,0,0,0,Aug-26
+201,BMGF,E,K103065,Knowledge Partnerships BMGF (FAW),0,0,0,0,Aug-26
+201,BMGF,E,K103066,Corporate Governance in SMEs (on-going),0,0,0,0,Aug-26
+201,BMGF,E,K103068,Payment Digitization Index,0,0,0,0,Aug-26
+201,BMGF,E,K103070,Feasibility Study for an E-invoicing platform in Pakistan,0,0,0,0,Aug-26
+201,BMGF,E,K103072,RAAST Awareness Campaign,1.92E+05,0,0.00E+00,1.92E+05,Aug-26
+201,BMGF,E,M102001,Third Party Monitoring of Karandaaz Projects,0,0,0,0,Aug-26
+201,BMGF,E,M103001,Assessment of SCF market adoption,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,M103003,Mid-cycle assessmentof Raast merchant onboarding,0,0,0,0,Aug-26
+201,BMGF,E,M104004,GrowTech Assessment,0,0,0,0,Aug-26
+201,BMGF,E,M112001,Assessment of Incentive Scheme Projects,0,0,0,0,Aug-26
+201,BMGF,E,M113001,"CDNS - Assessment of Digitization Impact (Total Budgeted PKR 20.0M, spread over 2 years)",0,0,0,0,Aug-26
+201,BMGF,E,M116001,Assessment of DFS Gender Portfolio,0,0,0,0,Aug-26
+201,BMGF,E,SS5H100,Staff Salaries,2.30E+07,23305179,0,4.63E+07,Aug-26
+201,BMGF,E,SS5H200,Staff Provident Fund,2.29E+06,2332439,0,4.62E+06,Aug-26
+201,BMGF,E,SS5H201,Gratuity expense (Staff Salaries),0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,SS5H300,Staff Over time,1.83E+05,561216,0,7.45E+05,Aug-26
+201,BMGF,E,SS5H400,Staff Car Monetization,2717316,2792746,0,5510062,Aug-26
+201,BMGF,E,SS5H500,Staff Child care assistance,136000,136000,0,272000,Aug-26
+201,BMGF,E,SS5H600,Performance payout,0.00E+00,0,0,0.00E+00,Aug-26
+201,BMGF,E,SS5H700,Staff Arrears,-3.10E+04,-6833,0,-3.78E+04,Aug-26
+201,BMGF,E,SS5H800,Other Deductions,118000,113750,0,231750,Aug-26
+201,BMGF,E,SS5H900,Other Reimbursement Expenses,1.64E+06,1240631,0,2.88E+06,Aug-26
+201,BMGF,E,h106008,Wellness Allowance (Grade 7-10),16000,25050,0,41050,Aug-26
+301,FCDO & BMGF,E,H104001,Travel,0.00E+00,0,0,0.00E+00,Aug-26
+301,FCDO & BMGF,E,H106002,Telephone & Internet,0,0,0,0,Aug-26
+301,FCDO & BMGF,E,H106003,Communication reimbursement,0.00E+00,0,0,0.00E+00,Aug-26
+301,FCDO & BMGF,E,H115001,Meeting & Conferences,0.00E+00,0,0,0.00E+00,Aug-26
+301,FCDO & BMGF,E,H116001,Kitchen Supplies,0.00E+00,0,0,0.00E+00,Aug-26
+301,FCDO & BMGF,E,H116002,Cleaning Material,0.00E+00,0,0,0.00E+00,Aug-26
+301,FCDO & BMGF,E,H116003,Postage & Courier,0,0,0,0,Aug-26
+301,FCDO & BMGF,E,H116004,Office Supplies,0,0,0,0,Aug-26
+301,FCDO & BMGF,E,H119003,Perdiem,0.00E+00,0,0,0.00E+00,Aug-26
+301,FCDO & BMGF,E,H121001,Office Stationery,0.00E+00,0,0,0.00E+00,Aug-26
+301,FCDO & BMGF,E,H121002,Stationery Printing,0.00E+00,0,0,0.00E+00,Aug-26
+301,FCDO & BMGF,E,H122004,Legal Charges,0.00E+00,0,0,0.00E+00,Aug-26
+301,FCDO & BMGF,E,H128001,Guards & Janitorial Services,0.00E+00,0,0,0.00E+00,Aug-26
+301,FCDO & BMGF,E,H13003D,Dummy account as of June-22,0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,C103002,MBL-SME Loans-Variable Expenses,0,0,0,0,Aug-26
+401,OSR,E,C103005,MIB-SME Loans-Variable Expenses,0,0,0,0,Aug-26
+401,OSR,E,C103006,JSBL-SME Loans-Variable Expenses,0,0,0,0,Aug-26
+401,OSR,E,C103008,Soneri-SME Loans-Variable Expenses,0,0,0,0,Aug-26
+401,OSR,E,C108002,Credit - Pre & post investment cost,0,942667,0,942667,Aug-26
+401,OSR,E,C109002,Equity - Pre & post investment cost,0,942667,0,942667,Aug-26
+401,OSR,E,C110002,GREEN - Pre & post investment cost,0,942666,0,942666,Aug-26
+401,OSR,E,H101001,Bank Charges,0,21411.94,0,21411.94,Aug-26
+401,OSR,E,H103002,Capacity Building,229053.5,2093238,0,2322292,Aug-26
+401,OSR,E,H104001,Travel,1.72E+05,38197,0,2.11E+05,Aug-26
+401,OSR,E,H104002,BoD-Travel,0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,H104003,International Travel,0,0,0,0,Aug-26
+401,OSR,E,H105001,HR Consultancies & Internships,296542.5,86768,0,383310.5,Aug-26
+401,OSR,E,H106001,Electricity,165832,151663,0,317495,Aug-26
+401,OSR,E,H106002,Telephone & Internet,57170.5,57170,0,114340.5,Aug-26
+401,OSR,E,H106003,Communication reimbursement,117567.9,89029.33,0,206597.2,Aug-26
+401,OSR,E,H106006,Generator Expenses,66246,130865.1,0,197111.1,Aug-26
+401,OSR,E,H106007,Fuel reimbursement,2420903,2197680,0,4618582,Aug-26
+401,OSR,E,H107001,Depreciation Expense - Furnitures and Fixtures,0,0,0,0,Aug-26
+401,OSR,E,H107002,Depreciation Expense - Office Equipment,0,0,0,0,Aug-26
+401,OSR,E,H107004,Depreciation Expense - Computers,0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,H107005,Depreciation Expense - ROUA,0,0,0,0,Aug-26
+401,OSR,E,H108001,Road Transportation,0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,H108002,Vehicle Operations,350,179053.3,0,179403.3,Aug-26
+401,OSR,E,H108003,Vehicle Maintenance,100,11902,0,12002,Aug-26
+401,OSR,E,H108004,Vehicle Insurance - Amortization,5.06E+03,17136.04,0,2.22E+04,Aug-26
+401,OSR,E,H109001,Directors - Trainings & Workshops,0,0,0,0,Aug-26
+401,OSR,E,H110002,Health Insurance - Amortization,1487289,1487344,0,2974633,Aug-26
+401,OSR,E,H113001,Exchange Gain,0,0,0,0,Aug-26
+401,OSR,E,H113002,Exchange Loss,0,0,0,0,Aug-26
+401,OSR,E,H115001,Meeting & Conferences,71981,16126.7,0,88107.7,Aug-26
+401,OSR,E,H116001,Kitchen Supplies,65745.48,119730,0,185475.5,Aug-26
+401,OSR,E,H116002,Cleaning Material,0,0,0,0,Aug-26
+401,OSR,E,H116003,Postage & Courier,-1,5558,0,5557,Aug-26
+401,OSR,E,H116004,Office Supplies,29501,17446.5,0,46947.5,Aug-26
+401,OSR,E,H116006,IT Supplies,16250,13000,0,29250,Aug-26
+401,OSR,E,H116007,IT - Repair and Maintenance,9204,0,0,9204,Aug-26
+401,OSR,E,H116008,Printer Monthly Rental and Usage,0,0,0,0,Aug-26
+401,OSR,E,H117001,Office Rent- Islamabad,1582801,1582801,0,3165602,Aug-26
+401,OSR,E,H118001,Amortization - Asset and Vehicles Insurance,19069.13,19069.13,0,38138.26,Aug-26
+401,OSR,E,H119001,Boarding & Lodging,46864,5000,0,51864,Aug-26
+401,OSR,E,H119002,BoD-Boarding & Lodging,86366,0,0,86366,Aug-26
+401,OSR,E,H119003,Perdiem,144208,71700,0,215908,Aug-26
+401,OSR,E,H121001,Office Stationery,0,11840,0,11840,Aug-26
+401,OSR,E,H121002,Stationery Printing,0,0,0,0,Aug-26
+401,OSR,E,H122001,IT Consultancy,0,0,0,0,Aug-26
+401,OSR,E,H122002,External Audit,0,0,0,0,Aug-26
+401,OSR,E,H122004,Legal Charges,302082,60416.5,0,362498.5,Aug-26
+401,OSR,E,H122005,Out of Pocket Ext-Audit,0,0,0,0,Aug-26
+401,OSR,E,H122007,Tax Consultancy,28750,28750,0,57500,Aug-26
+401,OSR,E,H122010,External Audit Fee - Group Audits,0,0,0,0,Aug-26
+401,OSR,E,H123003,Daily Wages,0,6000,0,6000,Aug-26
+401,OSR,E,H123005,Staff Training,0,0,0,0,Aug-26
+401,OSR,E,H123006,EOBI Expense,99123,124503,0,223626,Aug-26
+401,OSR,E,H124001,Office Repair & Maintenance,180,12695,0,12875,Aug-26
+401,OSR,E,H124002,Equipment Repair & Maintenance,0,0,0,0,Aug-26
+401,OSR,E,H125001,Software Annual Support Services,132653.6,129933.6,0,262587.2,Aug-26
+401,OSR,E,H125002,Annual License fee - Amortization,0,0,0,0,Aug-26
+401,OSR,E,H125003,ERP support and maintenance cost,0,0,0,0,Aug-26
+401,OSR,E,H126001,Fee & Subscription,0,72942,0,72942,Aug-26
+401,OSR,E,H126002,Employee Engagement,20630.5,7860,0,28490.5,Aug-26
+401,OSR,E,H126004,Corporate Social Responsibility,0,0,0,0,Aug-26
+401,OSR,E,H126005,SPOT recognition,215900,8500,0,224400,Aug-26
+401,OSR,E,H128001,Guards & Janitorial Services,333368,179135,0,512503,Aug-26
+401,OSR,E,H128002,Corporate and Social Responsibility,0,0,0,0,Aug-26
+401,OSR,E,H129006,Directors & officers liability insurance,135595.8,135595.8,0,271191.7,Aug-26
+401,OSR,E,H129008,Other Expense,0,0,0,0,Aug-26
+401,OSR,E,H129009,JSK Feeds - Management Expense,0,0,0,0,Aug-26
+401,OSR,E,H129018,Finance Cost on Lease Liability,0,0,0,0,Aug-26
+401,OSR,E,H129021,Life Insurance - Amortization,97308,97311,0,194619,Aug-26
+401,OSR,E,H129033,Management fee expense PFSL,0,0,0,0,Aug-26
+401,OSR,E,H129036,Modification loss on KRN convertible loans,0,0,0,0,Aug-26
+401,OSR,E,H129037,Brokerage fee and Ancillary charges,0,0,0,0,Aug-26
+401,OSR,E,H130002,Cross-Currency Rounding Account,0,0,0,0,Aug-26
+401,OSR,E,H130003,Board and Committee Meetings,0,0,0,0,Aug-26
+401,OSR,E,H13003D,Dummy account as of June-22,0,0,0,0,Aug-26
+401,OSR,E,I107004,Recovery agent fee for KRN WV parties,2.50E+05,0,0,2.50E+05,Aug-26
+401,OSR,E,I109004,Ancillary Cost / Portfolio through PFSL,0,0,0,0,Aug-26
+401,OSR,E,I112001,WV: Technical Assistance (BDS),0,0,0,0,Aug-26
+401,OSR,E,I114001,WV: Capacity Building Funds,0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,K102005,Green Economy- Developing Case Studies,0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,K102006,PR Services,2.11E+05,27508.8,0,2.38E+05,Aug-26
+401,OSR,E,K102008,Product-Oriented Research on Select Agri Value Chains,0,0,0,0,Aug-26
+401,OSR,E,K102014,Website Maintenance+SEO,76647.06,76428.12,0,153075.2,Aug-26
+401,OSR,E,K102015,Digital and Social Media,2.41E+05,6706.11,0,2.48E+05,Aug-26
+401,OSR,E,K102016,Marketing Collateral,-374.5,74664.5,0,74290,Aug-26
+401,OSR,E,K102017,SME/CIC Market Visibility and Outreach,0,0,0,0,Aug-26
+401,OSR,E,K102020,"WV - Events, Videos, Briefs, etc. - on-going",0,0,0,0,Aug-26
+401,OSR,E,K102025,ICF Marketing & MEL,0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,K102026,"WV - Events, Videos, Briefs",0,0,0,0,Aug-26
+401,OSR,E,K102036,Production equipment,0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,K103035,Constant Contact,0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,K103043,Digital Pakistan Conference and Workships/Events/Industry Consultations/Round Tables,0.00E+00,5000,0,5.00E+03,Aug-26
+401,OSR,E,K103052,"Engagement with Influencer Platforms/Podcasts (Pakistonomy, Tabadlab, etc.)",0,0,0,0,Aug-26
+401,OSR,E,K103055,"Feasibilities of Innovative Climate Change Investments Projects (e.g. Biomass, Commercial Forestry)",0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,K103062,"Editing and Printing of Internal Notes (e.g. Budget, Import Substitution of Agri Commodities, Digitization of Argi Cooperatives)",0,0,0,0,Aug-26
+401,OSR,E,K103069,Identifying WEE inclusive sectors and opportunities for anchor models,0,0,0,0,Aug-26
+401,OSR,E,K103071,Feasibility Study of Investible Green Projects (new),0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,M102001,Third Party Monitoring of Karandaaz Projects,0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,M104008,CIC Assessment,0,0,0,0,Aug-26
+401,OSR,E,M117001,MEL Tech Stack/ Dashboard (on secure database),0,0,0,0,Aug-26
+401,OSR,E,SS5H100,Staff Salaries,2.34E+07,24557560,0,4.80E+07,Aug-26
+401,OSR,E,SS5H200,Staff Provident Fund,2.33E+06,2383528,0,4.71E+06,Aug-26
+401,OSR,E,SS5H201,Gratuity expense (Staff Salaries),0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,SS5H300,Staff Over time,1.83E+05,1480383,0,1.66E+06,Aug-26
+401,OSR,E,SS5H400,Staff Car Monetization,2.84E+06,2929146,0,5.77E+06,Aug-26
+401,OSR,E,SS5H500,Staff Child care assistance,1.09E+05,109000,0,2.18E+05,Aug-26
+401,OSR,E,SS5H600,Performance payout,0.00E+00,0,0,0.00E+00,Aug-26
+401,OSR,E,SS5H700,Staff Arrears,-9.67E+03,-23167,0,-3.28E+04,Aug-26
+401,OSR,E,SS5H800,Other Deductions,1.37E+05,131250,0,2.68E+05,Aug-26
+401,OSR,E,SS5H900,Other Reimbursement Expenses,286613,2404692,0,2691305,Aug-26
+401,OSR,E,h106008,Wellness Allowance (Grade 7-10),6.00E+03,21750,0,2.78E+04,Aug-26
+501,N/A,E,C101001,FCDO - Amortization of Deferred Grant,0,0,0,0,Aug-26
+501,N/A,E,C103002,MBL-SME Loans-Variable Expenses,0,0,0,0,Aug-26
+501,N/A,E,C103003,BAFL-SME Loans-Variable Expenses,0,0,0,0,Aug-26
+501,N/A,E,C105004,TA to New Partners,0,0,0,0,Aug-26
+501,N/A,E,C107002,Strategic Investment - Pre & post investment cost,0,0,0,0,Aug-26
+501,N/A,E,C108002,Credit - Pre & post investment cost,0,0,0,0,Aug-26
+501,N/A,E,C109002,Equity - Pre & post investment cost,0,0,0,0,Aug-26
+501,N/A,E,C130004,SEED Technical Assistance,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,C130005,CDC Maintenance Charges,0,0,0,0,Aug-26
+501,N/A,E,D103012,Digital Experiments (5-7),0,0,0,0,Aug-26
+501,N/A,E,D103015,UI/UX based support for market players,0,0,0,0,Aug-26
+501,N/A,E,D103016,Fintech Disrupt Challenge,0,0,0,0,Aug-26
+501,N/A,E,D103020,FIWC - 2,0,0,0,0,Aug-26
+501,N/A,E,D105004,CDNS,0,0,0,0,Aug-26
+501,N/A,E,D105007,Agri Value Chain Payment Digitization,0,0,0,0,Aug-26
+501,N/A,E,D105008,SECP Digital & IT Transformation,0,0,0,0,Aug-26
+501,N/A,E,D106004,BISP- ERP & Payment reconciliation system,0,0,0,0,Aug-26
+501,N/A,E,D107002,MPG - Infrastructure,0,0,0,0,Aug-26
+501,N/A,E,D107003,MPG - Consultant (Mckinsey),0,0,0,0,Aug-26
+501,N/A,E,D107004,MPG Infrastructure,0,0,0,0,Aug-26
+501,N/A,E,D107005,Pilot MPG Linked Projects,0,0,0,0,Aug-26
+501,N/A,E,D107007,MPG Operations,0,0,0,0,Aug-26
+501,N/A,E,D107009,Engagement with Fintech Practitioners,0,0,0,0,Aug-26
+501,N/A,E,D107011,Company Registry,0,0,0,0,Aug-26
+501,N/A,E,D107043,RAAST Implementation Phase,0,0,0,0,Aug-26
+501,N/A,E,H101001,Bank Charges,0,0,0,0,Aug-26
+501,N/A,E,H102001,Amortization of Intangible Assets,0,0,0,0,Aug-26
+501,N/A,E,H103002,Capacity Building,0,0,0,0,Aug-26
+501,N/A,E,H104001,Travel,0,0,0,0,Aug-26
+501,N/A,E,H105001,HR Consultancies & Internships,0,0,0,0,Aug-26
+501,N/A,E,H106001,Electricity,0,0,0,0,Aug-26
+501,N/A,E,H106002,Telephone & Internet,0,0,0,0,Aug-26
+501,N/A,E,H106003,Communication reimbursement,0,0,0,0,Aug-26
+501,N/A,E,H106006,Generator Expenses,0,0,0,0,Aug-26
+501,N/A,E,H106007,Fuel reimbursement,0,0,0,0,Aug-26
+501,N/A,E,H107001,Depreciation Expense - Furnitures and Fixtures,0,0,0,0,Aug-26
+501,N/A,E,H107002,Depreciation Expense - Office Equipment,0,0,0,0,Aug-26
+501,N/A,E,H107003,Depreciation Expense - Vehicles,0,0,0,0,Aug-26
+501,N/A,E,H107004,Depreciation Expense - Computers,0,0,0,0,Aug-26
+501,N/A,E,H107005,Depreciation Expense - ROUA,0.00E+00,0.00E+00,0.00E+00,0.00E+00,Aug-26
+501,N/A,E,H108002,Vehicle Operations,0,0,0,0,Aug-26
+501,N/A,E,H108003,Vehicle Maintenance,0.00E+00,0.00E+00,0.00E+00,0.00E+00,Aug-26
+501,N/A,E,H110002,Health Insurance - Amortization,0,0,0,0,Aug-26
+501,N/A,E,H113001,Exchange Gain,-1.52E+04,0,0,-1.52E+04,Aug-26
+501,N/A,E,H113002,Exchange Loss,2.59E+05,0,0,2.59E+05,Aug-26
+501,N/A,E,H114001,Investment / Credit Committee,0,0,0,0,Aug-26
+501,N/A,E,H115001,Meeting & Conferences,0,0,0,0,Aug-26
+501,N/A,E,H116001,Kitchen Supplies,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H116002,Cleaning Material,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H116003,Postage & Courier,0,0,0,0.00E+00,Aug-26
+501,N/A,E,H116004,Office Supplies,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H116007,IT - Repair and Maintenance,0,0,0,0,Aug-26
+501,N/A,E,H116008,Printer Monthly Rental and Usage,0,0,0,0,Aug-26
+501,N/A,E,H117001,Office Rent- Islamabad,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H118001,Amortization - Asset and Vehicles Insurance,0,0,0,0,Aug-26
+501,N/A,E,H119001,Boarding & Lodging,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H119003,Perdiem,0,0,0,0,Aug-26
+501,N/A,E,H121002,Stationery Printing,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H122001,IT Consultancy,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H122002,External Audit,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H122004,Legal Charges,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H122005,Out of Pocket Ext-Audit,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H122006,Out of Pocket Internal-Audit,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H122007,Tax Consultancy,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H122010,External Audit Fee - Group Audits,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H123003,Daily Wages,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H123005,Staff Training,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H123006,EOBI Expense,2397,0,3796,-1399,Aug-26
+501,N/A,E,H123007,Advertisement Expenses,0,0,0,0,Aug-26
+501,N/A,E,H124001,Office Repair & Maintenance,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H125001,Software Annual Support Services,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H125002,Annual License fee - Amortization,0,0,0,0,Aug-26
+501,N/A,E,H126001,Fee & Subscription,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H126002,Employee Engagement,0,0,0,0,Aug-26
+501,N/A,E,H126005,SPOT recognition,0,0,0,0,Aug-26
+501,N/A,E,H127001,Loss on disposal of Fixed Assets,0,0,0,0,Aug-26
+501,N/A,E,H128001,Guards & Janitorial Services,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H128002,Corporate and Social Responsibility,0,0,0,0,Aug-26
+501,N/A,E,H129006,Directors & officers liability insurance,0,0,0,0,Aug-26
+501,N/A,E,H129008,Other Expense,30486,0,0,30486,Aug-26
+501,N/A,E,H129009,JSK Feeds - Management Expense,0,0,0,0,Aug-26
+501,N/A,E,H129014,Impaiment Loss under IFRS 9,0,0,0,0,Aug-26
+501,N/A,E,H129018,Finance Cost on Lease Liability,0,0.00E+00,0.00E+00,0,Aug-26
+501,N/A,E,H129019,Loss on below market rate loans - PFSL,0,0,0,0,Aug-26
+501,N/A,E,H129021,Life Insurance - Amortization,0,0,0,0,Aug-26
+501,N/A,E,H129022,Unwinding of Interest on loan to BF Biosciences,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H129024,Unwinding of Interest on loans through PFSL,0,0,0,0,Aug-26
+501,N/A,E,H129025,Modification loss on below Market loans - PFSL,0,0,0,0,Aug-26
+501,N/A,E,H129027,Life Insurance - Expense,0,0,0,0,Aug-26
+501,N/A,E,H129028,BFBL-SME Loans-Variable Expenses,0,0,0,0,Aug-26
+501,N/A,E,H129029,Nizam- SME Loans- Variable Expenses,0,0,0,0,Aug-26
+501,N/A,E,H129030,WHT on dividend,0,0,0,0,Aug-26
+501,N/A,E,H129033,Management fee expense PFSL,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H129034,Modification loss / gain on BFBL,0,0,0,0,Aug-26
+501,N/A,E,H129035,Modification loss / gain due to change in cashflow on IHV,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,H129036,Modification loss on KRN convertible loans,0,0,0,0,Aug-26
+501,N/A,E,H129037,Brokerage fee and Ancillary charges,0,0,0,0,Aug-26
+501,N/A,E,H129038,Sales tax - Withholding by clients,0,0,0,0,Aug-26
+501,N/A,E,H130002,Cross-Currency Rounding Account,0.49,0,0,0.49,Aug-26
+501,N/A,E,H13003D,Dummy account as of June-22,-0.16,0,0.05,-0.21,Aug-26
+501,N/A,E,I107003,Women Entrepreneurship Challenge 2020,0,0,0,0,Aug-26
+501,N/A,E,I109001,ICF 6 - GCF (Grant),0,0,0,0,Aug-26
+501,N/A,E,I109004,Ancillary Cost / Portfolio through PFSL,0,0,0,0,Aug-26
+501,N/A,E,I111001,WV: Investments,0,0,0,0,Aug-26
+501,N/A,E,I112001,WV: Technical Assistance (BDS),0,0,0,0,Aug-26
+501,N/A,E,I112002,WV 2020: Technical Assistance,0,0,0,0,Aug-26
+501,N/A,E,I114001,WV: Capacity Building Funds,0,0,0,0,Aug-26
+501,N/A,E,K102003,Alternate Revenue Models for National Payment System,0,0,0,0,Aug-26
+501,N/A,E,K102008,Product-Oriented Research on Select Agri Value Chains,0,0,0,0,Aug-26
+501,N/A,E,K102009,Karandaaz Innovation - Advertising & Outreach,0,0,0,0,Aug-26
+501,N/A,E,K102013,Design Agency,0.00E+00,0,0,0.00E+00,Aug-26
+501,N/A,E,K102014,Website Maintenance+SEO,0,0,0,0,Aug-26
+501,N/A,E,K102015,Digital and Social Media,0,0,0,0,Aug-26
+501,N/A,E,K102016,Marketing Collateral,0,0,0,0,Aug-26
+501,N/A,E,K102017,SME/CIC Market Visibility and Outreach,0,0,0,0,Aug-26
+501,N/A,E,K102020,"WV - Events, Videos, Briefs, etc. - on-going",0,0,0,0,Aug-26
+501,N/A,E,K102021,Study on Alternate Energy and Energy Efficiency,0,0,0,0,Aug-26
+501,N/A,E,K102023,Comms Consultant,0,0,0,0,Aug-26
+501,N/A,E,K102025,ICF Marketing & MEL,0,0,0,0,Aug-26
+501,N/A,E,K102028,CDNS ATM Card Launch,0,0,0,0,Aug-26
+501,N/A,E,K102030,MPG P2P Launch,0,0,0,0,Aug-26
+501,N/A,E,K103003,Data Portal (BMGF),0,0,0,0,Aug-26
+501,N/A,E,K103004,Data Portal (FCDO),0,0,0,0,Aug-26
+501,N/A,E,K103018,Study on Landscape - Women Led Businesses,0,0,0,0,Aug-26
+501,N/A,E,K103019,Demand Side Outreach Activity,0,0,0,0,Aug-26
+501,N/A,E,K103020,Data Portal 2.0 (FCDO),0,0,0,0,Aug-26
+501,N/A,E,K103021,Data Portal 2.0 (BMGF),0,0,0,0,Aug-26
+501,N/A,E,K103025,FII Survey Wave VII,0,0,0,0,Aug-26
+501,N/A,E,K103028,Study on Quality of Jobs Created,0,0,0,0,Aug-26
+501,N/A,E,K103030,Study on the prevalent tax regime,0,0,0,0,Aug-26
+501,N/A,E,K103033,Regulatory Framework for Digital Assets,0,0,0,0,Aug-26
+501,N/A,E,K103035,Constant Contact,0,0,0,0,Aug-26
+501,N/A,E,K103040,Knowledge Partnerships,0,0,0,0,Aug-26
+501,N/A,E,K103043,Digital Pakistan Conference and Workships/Events/Industry Consultations/Round Tables,0,0,0,0,Aug-26
+501,N/A,E,M102001,Third Party Monitoring of Karandaaz Projects,0,0,0,0,Aug-26
+501,N/A,E,M103005,M&E- Formative evaluations and baselines,0,0,0,0,Aug-26
+501,N/A,E,M104010,MEL functional Assessments (FCDO),0,0,0,0,Aug-26
+501,N/A,E,M108001,SRQ Toolkit Update,0,0,0,0,Aug-26
+501,N/A,E,SS5H100,Staff Salaries,0,0,0,0,Aug-26
+501,N/A,E,SS5H200,Staff Provident Fund,0,0,0,0,Aug-26
+501,N/A,E,SS5H201,Gratuity expense (Staff Salaries),0,0,0,0,Aug-26
+501,N/A,E,SS5H300,Staff Over time,0,0,0,0,Aug-26
+501,N/A,E,SS5H600,Performance payout,0,0,0,0,Aug-26
+601,FCDO & BMGF & OSR,E,H101001,Bank Charges,0,0,0,0,Aug-26
+601,FCDO & BMGF & OSR,E,H130002,Cross-Currency Rounding Account,0,0,0,0,Aug-26
