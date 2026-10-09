@@ -15,10 +15,10 @@ const DEFAULT_DONOR = 'OSR';
 const ALL_DONORS = 'All Donors';
 const BEHIND_PACE_THRESHOLD = 0.75;               // spend below 75% of plan-to-date = "behind pace"
 /* Donor colours avoid the green / amber / orange used for status. */
-/* Donor colours: fixed for the main donors so they look the same every year, chosen to be
-   easy to tell apart and to avoid the green / amber / orange used for status. */
-const DONOR_FIXED_COLORS = { OSR: '#1d4ed8', GF: '#db2777', FIP: '#0891b2', FCDO: '#7c3aed' };
-const DONOR_PALETTE = ['#475569', '#be123c', '#4d7c0f', '#c084fc', '#0f766e', '#92400e', '#64748b', '#f472b6'];
+/* Donor colours: soft pastels, fixed for the main donors so they look the same every year,
+   chosen to be easy to tell apart and to avoid the green / amber / orange used for status. */
+const DONOR_FIXED_COLORS = { OSR: '#7fa7e0', GF: '#e8a0bf', FIP: '#7cc8d6', FCDO: '#b7a4e0' };   // soft blue, rose, aqua, lavender
+const DONOR_PALETTE = ['#a8b4c4', '#d6a99a', '#b5c99a', '#9fd3c7', '#d4b8e8', '#c9b79c', '#a7c7e7', '#f2c6de'];
 
 const FISCAL_MONTHS = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 const MONTH_INDEX = Object.fromEntries(FISCAL_MONTHS.map((m, i) => [m, i]));
