@@ -10,6 +10,35 @@ function getSafeNum(val) {
     return isNaN(num) ? 0 : num;
 }
 
+function formatShortDate(d) {
+    const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${String(d.getDate()).padStart(2, '0')}-${m[d.getMonth()]}-${d.getFullYear()}`;
+}
+
+function formatDurationFromDays(days) {
+    days = Math.max(0, Math.round(days));
+    if (days < 31) return `${days} day${days === 1 ? '' : 's'}`;
+    let months = Math.floor(days / 30.4375);
+    let remDays = Math.round(days - months * 30.4375);
+    if (remDays >= 30) { months += 1; remDays = 0; }
+    let text = `${months} month${months === 1 ? '' : 's'}`;
+    if (remDays > 0) text += ` ${remDays} day${remDays === 1 ? '' : 's'}`;
+    return text;
+}
+
+// When training spend exceeds what has accrued, work out how long it takes
+// (at the annual entitlement's daily accrual rate) for accrual to catch up
+// and the employee to be entitled to training again. Approximate: assumes the
+// annual entitlement stays the same.
+function getTrainingRecovery(overage, annualBudget, today) {
+    if (!(overage > 0)) return null;
+    const dailyAccrual = annualBudget / 365.25;
+    if (!(dailyAccrual > 0)) return { days: null, text: 'No annual training entitlement on record.' };
+    const days = Math.ceil(overage / dailyAccrual);
+    const date = new Date(today.getTime() + days * 86400000);
+    return { days, date, text: `${formatDurationFromDays(days)} (approx. ${formatShortDate(date)})` };
+}
+
 // Advances.csv has 12 month-deduction columns headed by Excel serial-date
 // numbers (e.g. "46204" = 01-Jul-2026). The old code tried to sum
 // "every column after Settled outside of payroll" by position in
@@ -185,17 +214,24 @@ function renderDashboard() {
         let gf = rawEmp['GF'];
         let fip = rawEmp['FIP'];
 
-        function makeDetailRow(title, value) {
+        function makeDetailRow(title, value, isText) {
             if (value === undefined || value === null || value === 0 || value === "0" || value === "" || value === "-") return '';
             let displayVal = typeof value === 'number' ? Math.round(value).toLocaleString('en-PK') : value;
             return `
                 <div class="sidebar-detail-row">
                     <span class="sidebar-detail-label">${title}</span>
-                    <span class="sidebar-detail-value">${displayVal}</span>
+                    <span class="sidebar-detail-value${isText ? ' is-text' : ''}">${displayVal}</span>
                 </div>`;
         }
 
-        sidebarList.innerHTML = [
+        // Benefits (as opposed to pay & allowances above)
+        let trainingEntitlement = getSafeNum(rawEmp['Training']);
+        let gratuityApplies = tenureMonths >= 36; // same 3-year rule as the Gratuity card
+        let leaseElig = String(rawEmp['Lease eligibility'] || '').trim().toLowerCase();
+        let leaseEligible = leaseElig === 'yes' || leaseElig === 'y';
+        let leaseAvailedAmt = getSafeNum(rawEmp['Lease amount availed']);
+
+        let payRows = [
             makeDetailRow('Base Salary', baseSalary),
             makeDetailRow('Car Monetization', cma),
             makeDetailRow('Child Care Allowance', childCare),
@@ -207,6 +243,15 @@ function renderDashboard() {
             makeDetailRow('GF', gf),
             makeDetailRow('FIP', fip)
         ].join('');
+
+        let benefitRows = [
+            makeDetailRow('Training (per annum)', trainingEntitlement),
+            gratuityApplies ? makeDetailRow('Gratuity (per annum)', baseSalary / 2) : '',
+            makeDetailRow('Lease Finance (LFL)', leaseEligible ? 'Eligible' : 'Not eligible', true),
+            leaseAvailedAmt > 0 ? makeDetailRow('Lease availed', leaseAvailedAmt) : ''
+        ].join('');
+
+        sidebarList.innerHTML = payRows + (benefitRows ? `<div class="sidebar-subhead">Benefits</div>` + benefitRows : '');
     }
 
     // --- A. PROVIDENT FUND ---
@@ -254,16 +299,27 @@ function renderDashboard() {
     let trainWarningEl = document.getElementById('trainingWarning');
     if (trainWarningEl) trainWarningEl.style.display = (histExpense > totalAccrued) ? 'block' : 'none';
 
+    let trainRecovery = getTrainingRecovery(histExpense - totalAccrued, annualBudget, today);
+    let trainRecoveryEl = document.getElementById('trainingRecovery');
+    if (trainRecoveryEl) {
+        trainRecoveryEl.innerHTML = trainRecovery ? `<strong>Entitled to training again in:</strong> ${trainRecovery.text}` : '';
+    }
+
     let trainUtilPct = totalAccrued > 0 ? Math.min(100, (histExpense / totalAccrued) * 100) : 0;
     if(document.getElementById('trainUtilBar')) document.getElementById('trainUtilBar').style.width = trainUtilPct + '%';
     if(document.getElementById('trainUtilPercent')) document.getElementById('trainUtilPercent').innerText = Math.round(trainUtilPct) + '% utilized';
     if(document.getElementById('trainEntitlement')) document.getElementById('trainEntitlement').innerText = Math.round(annualBudget).toLocaleString('en-PK');
 
     // --- C. GRATUITY ---
-    let gratOpening = getSafeNum(rawGrat['Gratuity Payable']);
-    let gratPeriodAccrual = (baseSalary * 0.0417) * 12 * (daysPassedInFY / 365.25); 
-    let gratTotal = gratOpening + gratPeriodAccrual;
-    let gratuityEligible = tenureMonths >= 36; // 3 years' service required
+    // Per-year rate is Base Salary / 2, applied to years served counted from
+    // 1-Jul-2023 (or the employee's actual joining date if later). This
+    // replaces the old "opening balance + this year's accrual" approach —
+    // Gratuity.csv's opening balance is no longer used at all.
+    let gratAnchorDate = new Date(2023, 6, 1); // 1 July 2023
+    let gratStartDate = joinDateObj > gratAnchorDate ? joinDateObj : gratAnchorDate;
+    let gratYearsServed = Math.max(0, (today - gratStartDate) / (1000 * 60 * 60 * 24 * 365.25));
+    let gratTotal = (baseSalary / 2) * gratYearsServed; // unconditional — Lease's formula uses this regardless of eligibility
+    let gratuityEligible = tenureMonths >= 36; // still requires 3 real years' service, from the actual joining date
 
     let gratuityCard = document.getElementById('gratuityCard');
     let gratBreakdownEl = document.getElementById('gratuityBreakdown');
@@ -271,8 +327,6 @@ function renderDashboard() {
     if (!gratuityEligible) {
         if(document.getElementById('gratuityTotal')) document.getElementById('gratuityTotal').innerText = "0";
         if(gratBreakdownEl) gratBreakdownEl.innerHTML = '';
-        if(document.getElementById('gratuityBarOpening')) document.getElementById('gratuityBarOpening').style.width = '0%';
-        if(document.getElementById('gratuityBarAccrual')) document.getElementById('gratuityBarAccrual').style.width = '0%';
 
         if (gratuityCard) {
             gratuityCard.classList.add('locked-card');
@@ -294,15 +348,10 @@ function renderDashboard() {
         if(document.getElementById('gratuityTotal')) animateValue('gratuityTotal', gratTotal);
         if(gratBreakdownEl) {
             gratBreakdownEl.innerHTML = `
-                <span style="color: var(--text-secondary);">Opening:</span> <strong>${Math.round(gratOpening).toLocaleString('en-PK')}</strong><br>
-                <span style="color: var(--text-secondary);">FY Accrued:</span> <strong>${Math.round(gratPeriodAccrual).toLocaleString('en-PK')}</strong>
+                <span style="color: var(--text-secondary);">Years Served:</span> <strong>${gratYearsServed.toFixed(2)}</strong><br>
+                <span style="color: var(--text-secondary);">Rate (Base Salary &divide; 2):</span> <strong>${Math.round(baseSalary / 2).toLocaleString('en-PK')}</strong>
             `;
         }
-
-        let gratOpenPct = gratTotal > 0 ? (gratOpening / gratTotal) * 100 : 0;
-        let gratAccrualPct = gratTotal > 0 ? (gratPeriodAccrual / gratTotal) * 100 : 0;
-        if(document.getElementById('gratuityBarOpening')) document.getElementById('gratuityBarOpening').style.width = gratOpenPct + '%';
-        if(document.getElementById('gratuityBarAccrual')) document.getElementById('gratuityBarAccrual').style.width = gratAccrualPct + '%';
     }
 
     // Tenure line stays informative either way — it's what tells an
@@ -357,8 +406,8 @@ function renderDashboard() {
                 
                 advancesHTML += `
                     <div style="margin-bottom: 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 0.75rem; margin-bottom: 4px;">
-                            <span style="color: var(--text-secondary);">Advance ${index + 1} Balance${advDateDisplay ? ` <span style="opacity:0.7; font-size:0.68rem;">&middot; Deductions from ${advDateDisplay}</span>` : ''}</span>
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: var(--fs-label); margin-bottom: 4px;">
+                            <span style="color: var(--text-secondary);">Advance ${index + 1} Balance${advDateDisplay ? ` <span style="font-size: var(--fs-note);">&middot; Deductions from ${advDateDisplay}</span>` : ''}</span>
                             <strong style="color: var(--krn-orange);">${Math.round(balance).toLocaleString('en-PK')} PKR</strong>
                         </div>
                         <div style="width: 100%; background: rgba(0,0,0,0.1); border-radius: 4px; height: 6px; overflow: hidden;">
@@ -370,7 +419,7 @@ function renderDashboard() {
             advancesHTML += '</div>';
             advancesContainer.innerHTML = advancesHTML;
         } else {
-            advancesContainer.innerHTML = '<div style="margin-top: 15px; font-size: 0.8rem; color: var(--text-secondary);">No active advances.</div>';
+            advancesContainer.innerHTML = '<div style="margin-top: 15px; font-size: var(--fs-label); color: var(--text-secondary);">No active advances.</div>';
         }
     }
 
@@ -503,7 +552,7 @@ function openPFModal() {
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                 <h2 style="margin:0; color:var(--krn-blue);">Provident Fund Ledger</h2>
             </div>
-            <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:10px;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.92rem; margin-bottom:10px;">
                 <tr style="border-bottom: 1px dashed var(--border-color);">
                     <td style="padding:8px 0; color:var(--text-secondary);">Historical Opening Withdrawals</td>
                     <td style="padding:8px 0; text-align:right;"><strong>${Math.round(openingWithdrawals).toLocaleString('en-PK')}</strong></td>
@@ -520,7 +569,7 @@ function openPFModal() {
             
             ${monthlyRows ? `
             <div style="margin-top: 15px; margin-bottom: 15px; max-height: 160px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px;">
-                <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
                     <thead style="background: var(--bg-page); position: sticky; top: 0;">
                         <tr>
                             <th style="padding:8px 5px; text-align:left; color:var(--text-secondary);">Month</th>
@@ -533,7 +582,7 @@ function openPFModal() {
                 </table>
             </div>` : ''}
             
-            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.97rem;">
                 <tbody>
                     <tr style="border-bottom: 1px solid var(--border-color);">
                         <td style="padding:6px 0; color:var(--krn-orange);">Less: Current FY Withdrawals</td>
@@ -588,7 +637,7 @@ function openAdvancesModal() {
                 <h2 style="margin:0; color:var(--krn-blue);">Advances Ledger Breakdown</h2>
             </div>
             ${rows ? `
-            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.97rem;">
                 <thead>
                     <tr style="border-bottom:2px solid var(--border-color); color:var(--text-secondary);">
                         <th style="text-align:left; padding:8px 0;">Detail</th>
@@ -642,7 +691,7 @@ function openExpensesModal() {
                 <h2 style="margin:0; color:var(--krn-blue);">Expense Claims History</h2>
             </div>
             ${rows ? `
-            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.97rem;">
                 <thead>
                     <tr style="border-bottom:2px solid var(--border-color); color:var(--text-secondary);">
                         <th style="text-align:left; padding:8px 0;">Claim</th>
@@ -686,29 +735,36 @@ function openGratuityModal() {
     if (Object.keys(rawGrat).length === 0) return;
 
     let today = new Date();
-    let currentFYYear = today.getMonth() < 6 ? today.getFullYear() - 1 : today.getFullYear();
-    let fyStart = new Date(currentFYYear, 6, 1);
-    let daysPassedInFY = Math.max(0, (today - fyStart) / (1000 * 60 * 60 * 24));
-
     let baseSalary = getSafeNum(rawEmp['Base Salary']);
-    let gratOpening = getSafeNum(rawGrat['Gratuity Payable']);
-    let gratPeriodAccrual = (baseSalary * 0.0417) * 12 * (daysPassedInFY / 365.25);
-    let gratTotal = gratOpening + gratPeriodAccrual;
+
+    let joinDateObj = new Date();
+    let joinDateStr = rawEmp['Joining Date'] || "";
+    let joinParts = String(joinDateStr).split('/');
+    if (joinParts.length === 3) joinDateObj = new Date(joinParts[2], joinParts[1] - 1, joinParts[0]);
+
+    let gratAnchorDate = new Date(2023, 6, 1); // 1 July 2023
+    let gratStartDate = joinDateObj > gratAnchorDate ? joinDateObj : gratAnchorDate;
+    let gratYearsServed = Math.max(0, (today - gratStartDate) / (1000 * 60 * 60 * 24 * 365.25));
+    let gratTotal = (baseSalary / 2) * gratYearsServed;
 
     modal.innerHTML = `
         <div style="background:var(--bg-card); padding:25px; border-radius:12px; width:90%; max-width:500px; color:var(--text-primary); box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                 <h2 style="margin:0; color:var(--krn-blue);">Gratuity Accrual Detail</h2>
             </div>
-            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.97rem;">
                 <tbody>
                     <tr style="border-bottom: 1px dashed var(--border-color);">
-                        <td style="padding:8px 0; color:var(--text-secondary);">Opening Balance (as of last FY close)</td>
-                        <td style="padding:8px 0; text-align:right;"><strong>${Math.round(gratOpening).toLocaleString('en-PK')}</strong></td>
+                        <td style="padding:8px 0; color:var(--text-secondary);">Calculation start date</td>
+                        <td style="padding:8px 0; text-align:right;"><strong>${String(gratStartDate.getDate()).padStart(2,'0')}-${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][gratStartDate.getMonth()]}-${gratStartDate.getFullYear()}</strong></td>
+                    </tr>
+                    <tr style="border-bottom: 1px dashed var(--border-color);">
+                        <td style="padding:8px 0; color:var(--text-secondary);">Years Served (for gratuity)</td>
+                        <td style="padding:8px 0; text-align:right;"><strong>${gratYearsServed.toFixed(2)}</strong></td>
                     </tr>
                     <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding:8px 0; color:var(--text-secondary);">Current FY Accrual (to date)</td>
-                        <td style="padding:8px 0; text-align:right;"><strong>${Math.round(gratPeriodAccrual).toLocaleString('en-PK')}</strong></td>
+                        <td style="padding:8px 0; color:var(--text-secondary);">Rate (Base Salary &divide; 2)</td>
+                        <td style="padding:8px 0; text-align:right;"><strong>${Math.round(baseSalary / 2).toLocaleString('en-PK')}</strong></td>
                     </tr>
                     <tr style="background:rgba(0,0,0,0.02);">
                         <td style="padding:15px 5px; font-weight:bold; color:var(--krn-blue);">Accrued Amount</td>
@@ -716,7 +772,7 @@ function openGratuityModal() {
                     </tr>
                 </tbody>
             </table>
-            <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:12px;">Accrual formula: Base Salary &times; 4.17% per month, prorated for days elapsed in the current fiscal year.</div>
+            <div style="font-size:var(--fs-note); color:var(--text-secondary); margin-top:12px;">Accrual formula: Base Salary &divide; 2, multiplied by years served counted from 1-Jul-2023 (or your joining date, if later). Requires at least 3 years' actual service to be eligible.</div>
             <div style="text-align:right; margin-top:20px;">
                 <button onclick="document.getElementById('gratModal').style.display='none'" style="background:var(--krn-blue); color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-weight:bold;">Close</button>
             </div>
@@ -751,13 +807,14 @@ function openTrainingModal() {
     let totalAccrued = histAccrued + currentFYAccrual;
     let trAvailable = Math.max(0, totalAccrued - histExpense);
     let isOverdrawn = histExpense > totalAccrued;
+    let trainRecovery = getTrainingRecovery(histExpense - totalAccrued, annualBudget, today);
 
     modal.innerHTML = `
         <div style="background:var(--bg-card); padding:25px; border-radius:12px; width:90%; max-width:500px; color:var(--text-primary); box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                 <h2 style="margin:0; color:var(--krn-blue);">Training Budget Detail</h2>
             </div>
-            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.97rem;">
                 <tbody>
                     <tr style="border-bottom: 1px dashed var(--border-color);">
                         <td style="padding:8px 0; color:var(--text-secondary);">Annual Entitlement</td>
@@ -781,8 +838,8 @@ function openTrainingModal() {
                     </tr>
                 </tbody>
             </table>
-            <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:12px;">Accrual formula: Annual Entitlement &divide; 365.25 &times; days elapsed in the current fiscal year, plus any historical opening balance, less amounts already utilized.</div>
-            ${isOverdrawn ? `<div style="background: rgba(241, 98, 34, 0.1); color: var(--krn-orange); padding: 8px; border-radius: 4px; font-size: 0.75rem; margin-top: 12px; border: 1px solid var(--krn-orange);"><strong>Advance Utilized:</strong> You have dipped into un-accrued funds. A Training Bond is currently active.</div>` : ''}
+            <div style="font-size:var(--fs-note); color:var(--text-secondary); margin-top:12px;">Accrual formula: Annual Entitlement &divide; 365.25 &times; days elapsed in the current fiscal year, plus any historical opening balance, less amounts already utilized.</div>
+            ${isOverdrawn ? `<div style="background: rgba(241, 98, 34, 0.1); color: var(--krn-orange); padding: 10px 12px; border-radius: 6px; font-size: var(--fs-label); line-height: 1.45; margin-top: 12px; border: 1px solid var(--krn-orange);"><strong>Advance Utilized:</strong> You have dipped into un-accrued funds. A Training Bond is currently active.${trainRecovery ? `<div style="margin-top:6px;"><strong>Entitled to training again in:</strong> ${trainRecovery.text}</div>` : ''}</div>` : ''}
             <div style="text-align:right; margin-top:20px;">
                 <button onclick="document.getElementById('trainModal').style.display='none'" style="background:var(--krn-blue); color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-weight:bold;">Close</button>
             </div>
@@ -991,6 +1048,24 @@ function toggleTheme() {
         }
     }, 100);
 })();
+
+// Mobile tab groups — only visually relevant under the 900px breakpoint
+// (see .mobile-tabs / [data-tab-group] rules in index.html), but harmless
+// to wire up unconditionally since it's plain class-toggling.
+(function initMobileTabs() {
+    const tabBtns = document.querySelectorAll('.mobile-tab-btn');
+    const groupedCards = document.querySelectorAll('[data-tab-group]');
+    if (!tabBtns.length) return;
+
+    function setActiveTab(tab) {
+        tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+        groupedCards.forEach(c => c.classList.toggle('tab-visible', c.dataset.tabGroup === tab));
+    }
+
+    tabBtns.forEach(b => b.addEventListener('click', () => setActiveTab(b.dataset.tab)));
+    setActiveTab('benefits');
+})();
+
 
 // ========================================================================
 // 7. LOGOUT
