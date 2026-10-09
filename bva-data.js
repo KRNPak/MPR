@@ -118,6 +118,7 @@ const isTotalLabel = s => {
 function parseBudget(table, ctx) {
     const col = resolveColumns(table.headers, COLUMN_SPECS.budget, 'Budget');
     const coa = new Map();       // account code → mapping
+    const donorsByCode = new Map();   // account code → donors with budget on it
     const byName = new Map();    // normalised account name → mapping (only real names)
     const deptOrder = [];
 
@@ -137,6 +138,10 @@ function parseBudget(table, ctx) {
 
         coa.set(code, mapping);
         codes.slice(1).forEach(c => coa.set(c, mapping));
+        [code, ...codes.slice(1)].forEach(c => {
+            if (!donorsByCode.has(c)) donorsByCode.set(c, new Set());
+            donorsByCode.get(c).add(donor);
+        });
         if (rawName) {
             const k = normName(rawName);
             if (!byName.has(k)) byName.set(k, mapping);
@@ -153,7 +158,7 @@ function parseBudget(table, ctx) {
             QUARTER_MONTHS[QUARTERS[qi]].forEach(m => ctx.ledger.add(m, mapping, donor, { budget: qv / 3 }));
         });
     });
-    return { coa, byName, deptOrder };
+    return { coa, byName, deptOrder, donorsByCode };
 }
 
 /* Name matching used when an account code isn't in Budget.csv.
@@ -187,7 +192,13 @@ function mapTbAccount(code, desc, type, chart) {
     return { mapping: { ...base, Dept: 'Unmapped Actuals', Stream: 'Unmapped', Program: 'Unmapped' }, method: 'Not mapped' };
 }
 
-function resolveTbDonor(row, col, mapping) {
+/* Donor names the ledger uses that the budget calls something else. When a trial-balance
+   row's donor isn't budgeted on that account code, these alternatives are tried in order.
+   The ledger tags FCDO-funded staff cost as "FCDO"; the budget calls that share "FIP". */
+const DONOR_ALIASES = { FCDO: ['FIP'] };
+
+/* Returns the donor a trial-balance row belongs to, and whether it needed an alias or has no budget. */
+function resolveTbDonor(row, col, mapping, chart) {
     const blank = s => !s || ['nan', '0', 'undefined'].includes(s.toLowerCase());
     let d = clean(row[col.donor]);
     if (blank(d) && col.donorFallback) d = clean(row[col.donorFallback]);
@@ -195,16 +206,21 @@ function resolveTbDonor(row, col, mapping) {
     if (blank(d)) d = DEFAULT_DONOR;
 
     const low = d.toLowerCase();
-    if (low.includes(' and ') || low.includes(' & ') || low.includes('+')) return DEFAULT_DONOR;   // mixed funding
-    const isDfs = mapping.Dept === 'Digital Financial Services' || mapping.Dept === 'DFS';
-    if (!isDfs && (low.includes('fcdo') || low.includes('n/a'))) return DEFAULT_DONOR;
-    return d;
+    if (low.includes(' and ') || low.includes(' & ') || low.includes('+')) return { donor: DEFAULT_DONOR, note: 'mixed' };   // mixed funding
+    if (low === 'n/a' || low === 'na') return { donor: DEFAULT_DONOR };
+
+    const budgeted = chart.donorsByCode.get(mapping.Code);
+    if (!budgeted || budgeted.has(d)) return { donor: d };
+    const alias = (DONOR_ALIASES[d.toUpperCase()] || []).find(a => budgeted.has(a));
+    if (alias) return { donor: alias, note: 'alias', from: d };
+    return { donor: d, note: 'unbudgeted' };
 }
 
 function parseTrialBalance(table, chart, ctx) {
     const col = resolveColumns(table.headers, COLUMN_SPECS.tb, 'ActualDonor');
     /* Review items are grouped by account code, so one code is one line however many months or donors it spans. */
     const review = new Map();
+    const donorReview = new Map();
     const note = (code, desc, month, amount, method, mappedTo) => {
         const key = `${code}|${method}`;
         if (!review.has(key)) review.set(key, { code, desc, months: new Set(), amount: 0, method, mappedTo });
@@ -240,10 +256,29 @@ function parseTrialBalance(table, chart, ctx) {
         }
 
         const mapping = { ...hit.mapping, Code: code };   // keep the real GL code for traceability
-        const donor = resolveTbDonor(row, col, mapping);
+        const { donor, note: donorNote, from } = resolveTbDonor(row, col, mapping, chart);
+        if (donorNote === 'unbudgeted' || donorNote === 'alias') {
+            /* Renamed donors are summarised per department; unbudgeted donor spend is listed per code. */
+            const key = donorNote === 'alias' ? `${mapping.Dept}|alias|${from}|${donor}` : `${code}|unbudgeted|${donor}`;
+            if (!donorReview.has(key)) donorReview.set(key, { code, codes: new Set(), desc, donor, from, kind: donorNote, months: new Set(), amount: 0, dept: mapping.Dept });
+            const r = donorReview.get(key);
+            r.codes.add(code);
+            r.months.add(period.month);
+            r.amount += actual;
+        }
         ctx.ledger.add(period.month, mapping, donor, { actual });
         ctx.totals.tbIncluded += actual;
         if (hit.method !== 'Account code') note(code, desc, period.month, actual, hit.method, `${mapping.Dept} / ${mapping.Stream}`);
+    });
+
+    donorReview.forEach(r => {
+        const months = FISCAL_MONTHS.filter(m => r.months.has(m)).join(', ');
+        if (Math.abs(r.amount) < 1) return;
+        ctx.flag(r.kind === 'alias'
+            ? { severity: 'info', source: 'Donor', code: [...r.codes].join(', '), description: `${r.dept}: ${r.from} spend counted as ${r.donor}`, month: months, amount: r.amount, mappedTo: `${r.dept}, ${r.donor}`,
+                reason: `These ${r.codes.size} account codes are tagged ${r.from} in the ledger and budgeted under ${r.donor}, so the spend is counted as ${r.donor}. Change DONOR_ALIASES in bva-data.js if that is wrong.` }
+            : { severity: 'warn', source: 'Donor', code: r.code, description: r.desc, month: months, amount: r.amount, mappedTo: `${r.dept}, ${r.donor}`,
+                reason: `Tagged ${r.donor} in the ledger, but this line has no ${r.donor} budget, so it shows as unbudgeted ${r.donor} spend. Fix: add a ${r.donor} row for this line in the budget file, or correct the donor tag in the ledger.` });
     });
 
     review.forEach(r => {
